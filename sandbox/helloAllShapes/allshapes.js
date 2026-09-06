@@ -6,7 +6,7 @@ import { Shader, LocationType } from "../../base/helpers/WebGLShader.js";
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
 
-const shaderVariables = [
+const baseShaderVariables = [
   {
     name: "aVertexPosition",
     type: LocationType.VERTEX
@@ -36,8 +36,8 @@ export const main = () => {
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
-  const shader = new Shader(gl, baseVertShader, baseFragShader);
-  shader.connectLocations(gl, shaderVariables);
+  const baseShader = new Shader(gl, baseVertShader, baseFragShader);
+  baseShader.connectLocations(gl, baseShaderVariables);
 
   const camera = new Camera({
       // projectionOptions

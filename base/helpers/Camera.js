@@ -144,7 +144,7 @@ export class Camera {
       vec3.scale(camPosVec, camPosVec, 0.95);
     }
 
-    this.#camPos = { x: camPosVec[0], x: camPosVec[1], x: camPosVec[2] };
+    this.#camPos = { x: camPosVec[0], y: camPosVec[1], z: camPosVec[2] };
     this.#set();
   }
 
