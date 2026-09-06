@@ -1,0 +1,17 @@
+{
+  "name": "oblig_and_sandbox",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "module": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2",
+    "@types/bun": "latest"
+  }
+}
