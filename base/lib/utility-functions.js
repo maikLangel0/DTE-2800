@@ -1,3 +1,6 @@
+import { Matrix4 } from "./cuon-matrix";
+// import { vec3 } from "./gl-matrix";
+
 /**
  * Roterer gitt vektor delta antall grader om gitt akse.
  * @param delta
@@ -6,10 +9,10 @@
  * @param axisY
  * @param axisZ
  */
-export function rotateVector(delta, vector, axisX, axisY, axisZ) {
+export function rotateVector(delta, vector, axis) {
 	var matrix = new Matrix4();
 	matrix.setIdentity();
-	matrix.rotate(delta, axisX, axisY, axisZ);
+	matrix.rotate(delta, axis.x, axis.y, axis.z);
 	vec3.transformMat4(vector, vector, matrix.elements);
 }
 

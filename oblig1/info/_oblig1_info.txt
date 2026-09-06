@@ -1,0 +1,90 @@
+Inntil to studenter kan samarbeide og levere felles besvarelse. Bruk gruppesettet "Oblig 1". MERK: Alle må melde seg inn i grupper, selv om du skulle velge å jobbe alene.
+
+Introduksjon:
+Oppgaven går ut på å bygge en 3D-scene fra grunnen av, med standard WebGL-primitiver.
+
+Merk: Du/dere skal bruke kodestrukturen som vist i kodeeksempler og gjennomganger, det vil si:
+
+I main() opprettes WebGLCanvas og ett renderInfo-objekt som bl.a. holder på gl, shaderinfo, buffere, arbeidsmatriser og currentlyPressedKeys.
+
+Bruk WebGLCanvas.js, WebGLShader.js, Camera.js og nødvendige funksjoner fra utility-functions.js.
+Videre animate() → getElapsed() → calculateFps() → draw(), og clearCanvas() først i draw().
+
+Bruk to ulike shaderpar, et som håndterer både verteksposisjon og verteksfarge og et som kun håndterer verteksposisjon men som tar en uniform-fargeparamter i fragmenshaderen. Det ene shaderparametret brukes til å tegne f.eks. koordinatsystemet og trærne, mens det andre brukes til å tegne husets ulike deler/geometrier (f.eks. kuber). Bruk av en uniform gjør det enklere å endre farge når man gjenbruker geometrier.
+
+--- Oppgaven - tegne 3D hus og trær ---
+
+Oppstart
+Start med å sette opp et kodesjelett som tegner et tomt canvas med perspektivkamera og FPS-teller. Tegn deretter koordinatsystemet i sentrum av scenen. Bruk kode direkte fra kodeeksemplene knyttet til faget. Det skal også være mulig å bevege kamera med tastene W A S D og zoom med V B.
+
+-- Bakkeplanet
+Tegn et 20x20 rutenett i XZ-planet (y=0), "bakkeplanet", vha. gl.LINES. La hver rute i rutenettet være 1x1 enheter stort. Linjene skal være mørkeblå.
+
+-- 3D-hus og trær
+Lag en 3D-modell av et tradisjonelt hus med dører, vinduer og skråtak med ark. Se figuren under. Både ytterdør og vinduer skal ha en hvit ramme, og glasset skal være delvis gjennomsiktig (vinduene trenger ikke nødvendigvis deles opp i fire mindre ruter som figuren viser). Huset skal ha en pipe som går gjennom hele huset, dvs. fra bakkeplan. Ytterveggene ska ha en annen farge enn taket og pipa. Huset skal ha to etasjer og hver etasje skal minst ha tre rom. Det kan også være en trapp opp til andre etasje (ikke et krav). Brukeren skal kunne se husets indre når hen zoomer inn i huset.
+
+Vegger, etasjeskiller, tak, pipe osv. skal bestå av rektangulære kuber, dvs. ikke rene 2D-flater. Glasset i vinduene skal imidlertid være 2D-flater. Ytterdøren skal kunne åpnes og lukkes (f.eks. ved trykk på tastene F og G).
+
+I hagen (utenfor huset) skal det stå 4-5 trær med ulike størrelser og plassering. Et tre består av en stamme, i form av en brun sylinder, og en trekrone i for m av en grønn kule.
+
+Det kan være lurt å lage et buffer for hver basisfigur som trengs for å tegne hus og trær. Eksempel på basisfigur vil her være rektangulær kube, prisme, sylinder og kule. Lag også en egen tegnefunksjon, f.eks. drawCube(...), for hver basisfigur. Disse kalles fra draw(), ev. indirekte fra draw(). Disse draw-funksjonene bør ta en modellmatrise som parameter slik at man kan tegne basisfiguren så mange ganger det måtte være behov for, hver gang med ulike transformasjoner. Se løsningsforslag øvingsoppgaver modul 2 for tips.
+
+Huset vi bestå av mange rektangulære kuber med ulik størrelse, posisjon og ev. rotasjon. Både vegger, tak, etasjeskiller, dører er rektangulære kuber. En vegg kan alternativt bestå av flere kuber. Poenget er at man lager en modellmatrise for en kube, bruker denne til å tegne kuben, setter ny modellmatrise og tegner neste kube osv.
+
+Huset skal ha en enkel tradisjonell analog rund klokke ved siden av ytterdøren. Klokka skal ha minutt- og timeviser. Klokkas visere skal rotere i forhold til virkelig tid (og også vise virkelig tid). Klokka kan tegnes som en 2D sirkel med enkle 2D visere.
+
+-- Tips angående gjennomsiktighet:
+
+Vindusglasset tegnes som en 2D-flate og skal være delvis gjennomsiktig (tenk farget/mørkt glass). Bruk følgrende oppskrift for å tegne glassest:
+
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+// ... tegn de gjennomsiktige flatene ...
+gl.disable(gl.BLEND);
+
+Husk: Alfaverdien er fjerde komponent i verteksfargen, for eksempel [0, 0.4, 0.8, 0.5] for halvgjennomsiktig blått. Bruk gjerne disse verdiene som farge på vindusglassene.
+
+-- To viktige ting å være klar over:
+- de gjennomsiktige flatene må tegnes sist, dvs. etter at alt det ugjennomsiktige er tegnet, og
+- la gl.BLEND være avslått når de andre delene tegnes. Tegnes en gjennomsiktig flate først, blir den skrevet til dybdebufferet og objektene bak forsvinner — de blir dybdetestet bort før blandinga får skjedd.
+- Vi kommer tilbake til fargeblanding senere. Dette er bare en enkel start.
+
+-- Brukerinput
+Fang tastetrykk med initKeyPress() og renderInfo.currentlyPressedKeys, og la brukeren åpne og lukke ytterdøra til huset.
+
+-- Noen tips:
+Bygg huset om origo.
+Sørg for å ha like mange farger som posisjoner.
+Nå gjelder ikke begrensningen [−1, 1] i koordinataksene lenger. Med kamera og projeksjon på plass kan man bruke det som er naturlig for scenen, for eksempel meter.
+Dere trenger ikke ta hensyn til at hele modellen skal "henge sammen" slik at dersom man flytter en vegg, så flytter også tilhørende dører og vinduer. Hvordan man kan løse dette vil bli gjennomgått etter hvert.
+
+-- Læremål
+Legge verteksdata i buffere og koble dem til attributter i shaderen.
+Bruke verteksfarger.
+Bruke uniform fargeparameter i fragmentshaderen.
+Bruk flere shaderpar.
+Plassere hvert objekt i scenen med sin egen modellmatrise, og se forskjellen på modell-, view- og projeksjonsmatrisa i praksis.
+Slå på og bruke enkel fargeblanding (alpfa blending) for gjennomsiktige flater.
+Tegne vha. drawArrays(...) og grunnleggende WebGL-primitiver (trekanter, linjer) og bruk av gl.TRIANGLES, gl.TRIANGLE_STRIP, gl.LINES, gl.LINE_STRIP osv.
+Gjenbruke basisfigurer for å tegne en større modell (et hus)
+Kunne organisere koden godt slik at den enkelt kan brukes i senere prosjekter.
+Lære generell struktur til WebGL-programmer og tilhørende shaderprogrammer.
+
+-- Krav
+Løsninga skal være basert på Javascript og WebGL (v2) og GLSL ES 3, og skal bruke samme kodestruktur som kodeeksemplene gitt på Canvas og i forelesningene. Det betyr bl.a.
+Shaderkoden legges i html-fila i script-tagger.
+Javascriptkoden skal ligge i separate .js filer.
+Det skal brukes Javascript-moduler.
+Løsninga kan ha en eller flere .js filer. Fila som inneholder main() funksjonen skal imidlertid følge mønstret til eksemplene med bruk av WebGLCanvas, renderInfo-objektet, kall på animate() og draw() m.m. Om ønskelig kan andre funksjoner plasseres i egne filer. Disse må i så fall eksporteres og importeres.
+
+-- Innlevering
+- Komplett prosjekt med all kode som skal til for at koden skal fungere.
+Det betyr at du/dere lager en zip-fil med nødvendige html og javascript-filer, inkludert hjelpefiler og klasser (fra /base-mappa) i korrekt mappestruktur. Dette for at det skal være enkelt å åpne prosjektet i mitt utviklingsmiljø og at det fungerer umiddelbart (jeg kan ikke bruke tid på å plassere filer og mapper i korrekt for at deres løsning skal fungere).
+
+- En film med opptak av skjermen der:
+Hver enkelt gruppemedlem filmer seg selv (ansiktet) samtidig som du holder frem en ID (studentbevis eller annet) og presenterer deg.
+Kjører en kort demo av løsninga, dvs. vis at den er kjørbar/fungerer ev. så langt dere har kommet.
+Viktig: Gjennomgå og forklar (html,) javascript og shader-koden. Her må hver enkelt vise at han/hun har forstått temaene vi så langt har vært gjennom i faget.
+Filmen skal være på maks 12 minutter, totalt. Begge i gruppe skal bidra like mye.
+
+NB: PLANLEGG og FORBERED videogjennomgangen ved f.eks. på forhånd skrive ned det du skal si. Dette gjør det enklere å holde tiden. IKKE ta videopptaket på sparket - det blir sjelden bra.

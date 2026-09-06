@@ -28,5 +28,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["sandbox/**/*", "oblig1/**/*", "oblig2/**/*", "oblig3/**/*", "oblig4/**/*"]
+  "include": ["sandbox/**/*", "oblig1/**/*", "oblig2/**/*", "oblig3/**/*", "oblig4/**/*", "base/**/**/*"]
 }
