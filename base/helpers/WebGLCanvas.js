@@ -16,8 +16,9 @@ export class WebGLCanvas {
     canvas.width = width;
 
 		const ctx = canvas.getContext('webgl2', {stencil: true} );
-		if (!ctx)
-      alert('No context found.');
+		if (!ctx) {
+      throw Error('No context found.');
+    }
 
 		/**@type WebGL2RenderingContext */
     this.gl = ctx;
