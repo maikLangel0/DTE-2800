@@ -9,14 +9,13 @@
         in vec3 aVertexPosition;
         in vec4 aVertexColor;
 
-        uniform mat4 uModelMatrix;
-        uniform mat4 uViewMatrix;
+        uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
 
-        out lowp vec4 vColor;
+        out mediump vec4 vColor;
 
         void main(void) {
-            gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+            gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
             vColor = aVertexColor;
         }
     </script>
@@ -24,8 +23,8 @@
     <script id="base-frag-shader" type="x-shader/x-vertex">#version 300 es
         precision mediump float;
 
-        in lowp vec4 vColor;
-        out lowp vec4 fragColor;
+        in mediump vec4 vColor;  
+        out mediump vec4 fragColor;
 
         void main(void) {
             fragColor = vColor;

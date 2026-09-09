@@ -26,9 +26,31 @@ export const DataType = Object.freeze({
   UINT: "uint",
 })
 
+const componentsInDataType = {
+  [DataType.MAT4f]: 16,
+  [DataType.MAT3f]: 9,
+
+  [DataType.VEC4f]: 4,
+  [DataType.VEC4i]: 4,
+  [DataType.VEC4ui]: 4,
+
+  [DataType.VEC3f]: 3,
+  [DataType.VEC3i]: 3,
+  [DataType.VEC3ui]: 3,
+
+  [DataType.VEC2f]: 2,
+  [DataType.VEC2i]: 2,
+  [DataType.VEC2ui]: 2,
+  [DataType.SAMPLER2D]: 2,
+
+  [DataType.FLOAT]: 1,
+  [DataType.INT]: 1,
+  [DataType.UINT]: 1
+};
+
 export class Shader {
   #gl;
-  #locations;
+  // #locations;
 
   /**
    * @param {WebGL2RenderingContext} gl
@@ -42,7 +64,7 @@ export class Shader {
     this.shaderProgram = gl.createProgram();
 
     /** @type {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>} */
-    this.#locations = new Map();
+    this.locations = new Map();
 
     const vertexShader = this.#compileShader(gl.VERTEX_SHADER, vsSource);
     const fragmentShader = this.#compileShader(gl.FRAGMENT_SHADER, fsSource);
@@ -69,18 +91,18 @@ export class Shader {
    * @returns {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>}
    */
   getLocationsChecked() {
-    if (this.#locations.size === 0) {
+    if (this.locations.size === 0) {
       throw Error("No locations found. They're most likely not instanciated yet. Do findLocations() first.");
     }
 
-    return this.#locations;
+    return this.locations;
   }
 
   /**
    * @param {string} name
    * @param {{buffer: WebGLBuffer; texture: WebGLTexture} | WebGLBuffer | Float32Array | number} data,
    * @param {{glType: number; stride: number, offset: number}} attribSettings
-   * @param {{ sampleName: string; activeTexture: number; target: number; }} [textureSettings]
+   * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
    *
    */
   connectLocationChecked(
@@ -88,16 +110,17 @@ export class Shader {
     data,
     attribSettings = {
       glType: this.#gl.FLOAT,
+      normalize: false,
       stride: 0,
       offset: 0
     },
     textureSettings = {
-      sampleName: "uSampler",
+      samplerName: "uSampler",
       activeTexture: this.#gl.TEXTURE0,
       target: this.#gl.TEXTURE_2D
     }
     ) {
-    const locationInfo = this.#locations.get(name);
+    const locationInfo = this.locations.get(name);
 
     if (!locationInfo) {
       throw Error("Found no location named: " + name);
@@ -123,10 +146,10 @@ export class Shader {
         );
 
       } else if (isTextureBundle) {
-        const samplerInfo = this.#locations.get(textureSettings.sampleName);
+        const samplerInfo = this.locations.get(textureSettings.samplerName);
 
         if (!samplerInfo || typeof samplerInfo.location === "number") {
-          throw Error("No sampler found named: " + textureSettings.sampleName);
+          throw Error("No sampler found named: " + textureSettings.samplerName);
         }
 
         this.#connectTextureAttribute(
@@ -150,20 +173,104 @@ export class Shader {
     }
   }
 
+  /**
+   * @param {string} name
+   * @param {WebGLBuffer} buffer
+   * @param {{glType: number; normalize: boolean; stride: number; offset: number}} settings
+   */
+  connectAttribute(
+    name,
+    buffer,
+    settings = {
+      glType: this.#gl.FLOAT,
+      normalize: false,
+      stride: 0,
+      offset: 0
+    }) {
+    const locationInfo = this.locations.get(name);
+
+    if (!locationInfo) {
+      throw Error("Found no in/attribute named " + name);
+    }
+
+    this.#connectAttribute(locationInfo, buffer, settings);
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} samplerName
+   * @param {WebGLBuffer} buffer
+   * @param {WebGLTexture} texture
+   * @param {{glType: number; stride: number, offset: number}} attribSettings
+   * @param {{ samplerName: string; activeTexture: number; target: number; }} textureSettings
+   */
+  connectTexture(
+    name,
+    buffer,
+    texture,
+    textureSettings = {
+      samplerName: "uSampler",
+      activeTexture: this.#gl.TEXTURE0,
+      target: this.#gl.TEXTURE_2D
+    },
+    attribSettings = {
+      glType: this.#gl.FLOAT,
+      normalize: false,
+      stride: 0,
+      offset: 0,
+    },
+    ) {
+    const locationInfo = this.locations.get(name);
+    if (!locationInfo) {
+      throw Error("Found no location named " + name + " for texture");
+    }
+
+    const samplerInfo = this.locations.get(textureSettings.samplerName);
+    if (!locationInfo) {
+      throw Error("Found no sampler named " + textureSettings.samplerName);
+    }
+
+    this.#connectTextureAttribute(
+      locationInfo,
+      samplerInfo,
+      buffer,
+      texture,
+      attribSettings,
+      textureSettings,
+    );
+  }
+
+  /**
+   * @param {name} name
+   * @param {Float32Array | number} data
+   */
+  connectUniform(name, data) {
+    const gl = this.#gl; // for ease-of-use
+
+    const locationInfo = this.locations.get(name);
+    if (!locationInfo) {
+      throw Error("Found no uniform named " + name);
+    }
+
+    this.#connectUniform(locationInfo, data);
+
+
+  }
+
   useProgram() {
     this.#gl.useProgram(this.shaderProgram);
   }
 
   free() {
     this.#gl.deleteProgram(this.shaderProgram);
-    this.#locations = new Map();
+    this.locations = new Map();
   }
 
   log() {
     console.log(`--- ShaderProgram ---`)
     console.log(`Locations: `)
 
-    this.#locations.forEach((value, key) => {
+    this.locations.forEach((value, key) => {
       console.log(`Name: ${key}, DataType: ${value.dataType}, Location: ${value.location}`)
     })
   }
@@ -223,14 +330,14 @@ export class Shader {
     switch (info.locationType) {
 
       case LocationType.UNIFORM:
-        this.#locations.set(info.name, {
+        this.locations.set(info.name, {
           location: this.#getUniformLocationChecked(info.name),
           dataType: info.dataType,
         })
         break
 
       case LocationType.IN:
-        this.#locations.set(info.name, {
+        this.locations.set(info.name, {
           location: this.#getAttribLocationChecked(info.name),
           dataType: info.dataType,
         })
@@ -248,44 +355,17 @@ export class Shader {
    * @returns {boolean}
    */
   #isDataTypeCompatible(type, data) {
-    const isPrimitive = (
-      type === DataType.FLOAT ||
-      type === DataType.INT ||
-      type === DataType.UINT
-    )
-
     const numComponents = this.#numOfComponents(type);
 
-    if (isPrimitive && typeof data !== "number") {
+    if (numComponents === 1 && typeof data !== "number") {
       return false;
     }
 
-    if (!isPrimitive && typeof data === "number") {
+    if (isPrimitive !== 1 && typeof data === "number") {
       return false;
     }
-
-    const expectedLengths = {
-        [DataType.MAT4f]: 16,
-        [DataType.MAT3f]: 9,
-        [DataType.VEC4f]: 4,
-        [DataType.VEC4i]: 4,
-        [DataType.VEC4ui]: 4,
-        [DataType.VEC3f]: 3,
-        [DataType.VEC3i]: 3,
-        [DataType.VEC3ui]: 3,
-        [DataType.VEC2f]: 2,
-        [DataType.VEC2i]: 2,
-        [DataType.VEC2ui]: 2,
-        [DataType.SAMPLER2D]: 2,
-      };
-
-      const expected = expectedLengths[type];
-
-      if (expected === undefined) {
-        return false;
-      }
-
-      return data.length === expected;
+    // NOTE : THIS CHECK MIGHT NOT WORK FOR Float32Array & WebGLBuffer
+    return data.length === expected;
   }
 
   /**
@@ -293,54 +373,20 @@ export class Shader {
    * @returns {number}
    */
   #numOfComponents(type) {
-    const isFour = (
-      type === DataType.VEC4f ||
-      type === DataType.VEC4i ||
-      type === DataType.VEC4ui
-    );
+    /**@type {number} */
+    const res = componentsInDataType[type];
 
-    if (isFour) {
-      return 4;
+    if (res !== undefined) {
+      return res;
+    } else {
+      throw Error("Unsupported DataType: " + type + " for attributes.");
     }
-
-    const isThree = (
-      type === DataType.VEC3f ||
-      type === DataType.VEC3i ||
-      type === DataType.VEC3ui
-    );
-
-    if (isThree) {
-      return 3;
-    }
-
-    const isTwo = (
-      type === DataType.VEC2f ||
-      type === DataType.VEC2i ||
-      type === DataType.VEC2ui ||
-      type === DataType.SAMPLER2D
-    );
-
-    if (isTwo) {
-      return 2;
-    }
-
-    const isOne = (
-      type === DataType.FLOAT ||
-      type === DataType.INT ||
-      type === DataType.UINT
-    );
-
-    if (isOne) {
-      return 1;
-    }
-
-    throw Error("Unsupported DataType: " + type + " for attributes.");
   }
 
   /**
    * @param {{location: number, dataType: DataType}} locationInfo
    * @param {WebGLBuffer} buffer
-   * @param {{glType: number; stride: number, offset: number}} settings
+   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} settings
    */
   #connectAttribute(locationInfo, buffer, settings) {
     const gl = this.#gl; // For convenience
@@ -354,7 +400,7 @@ export class Shader {
       location,
       this.#numOfComponents(type),
       settings.glType,
-      false,
+      settings.normalize,
       settings.stride,
       settings.offset
     );
@@ -364,11 +410,11 @@ export class Shader {
 
   /**
    * @param {{location: number; dataType: DataType}} locationInfo
-   * @param {{location: number; dataType: DataType}} samplerInfo
+   * @param {{location: WebGLUniformLocation; dataType: DataType}} samplerInfo
    * @param {WebGLBuffer} buffer
    * @param {WebGLTexture} texture
-   * @param {{glType: number; stride: number, offset: number}} attribSettings
-   * @param {{ sampleName: string; activeTexture: number; target: number; }} [textureSettings]
+   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
+   * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
    */
   #connectTextureAttribute(
     locationInfo,
@@ -389,7 +435,7 @@ export class Shader {
       location,
       this.#numOfComponents(type),
       attribSettings.glType,
-      false,
+      attribSettings.normalize,
       attribSettings.stride,
       attribSettings.offset
     );
@@ -411,9 +457,6 @@ export class Shader {
   */
   #connectUniform(locationInfo, data) {
     const gl = this.#gl; // for ease-of-use
-
-    const location = locationInfo.location;
-    const type = locationInfo.dataType;
 
     if (!this.#isDataTypeCompatible(type, data)) {
       throw Error(`DataType: ${type} not compatible with data: ${data}`);

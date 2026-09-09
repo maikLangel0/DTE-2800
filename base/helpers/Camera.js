@@ -25,7 +25,7 @@ export class Camera {
       near: 0.1,
       far: 10000,
     },
-    camPos = { x: 5, y: 20, z: 35 },
+    camPos = { x: 20, y: 20, z: 20 },
     lookAt = { x: 0, y: 0, z: 0 },
     up = {x: 0, y: 1, z: 0 },
   ) {
@@ -33,13 +33,13 @@ export class Camera {
     this.#projectionOptions = projectionOptions;
 
     /**@type {{ x: number; y: number; z: number; }} */
-    this.#camPos = { x: camPos.x, y: camPos.y, z: camPos.z };
+    this.#camPos = camPos;
 
     /**@type {{ x: number; y: number; z: number; }} */
-    this.#lookAt = { x: lookAt.x, y: lookAt.y, z: lookAt.z };
+    this.#lookAt = lookAt;
 
     /**@type {{ x: number; y: number; z: number; }} */
-    this.#up = { x: up.x, y: up.y, z: up.z };
+    this.#up = up;
 
     /**@type {Matrix4} */
     this.#viewMatrix = new Matrix4();
@@ -70,7 +70,8 @@ export class Camera {
     );
   }
 
-  /**@param { Matrix4 } modelMatrix
+  /** Multiplies the this.viewMatrix with the modelMatrix, in that order.
+   * @param { Matrix4 } modelMatrix
    * @returns { Matrix4 }
    */
   getModelViewMatrix(modelMatrix) {
@@ -123,24 +124,24 @@ export class Camera {
    */
   handleKeys(currentlyPressedKeys, degrees = 2) {
     let camPosVec = vec3.fromValues(this.#camPos.x, this.#camPos.y, this.#camPos.z);
-    //Enkel rotasjon av kameraposisjonen:
-    if (currentlyPressedKeys['KeyA']) {    //A
-      rotateVector(degrees, camPosVec, 0, 1, 0);  //Roterer camPosVec 2 grader om y-aksen.
+    
+    if (currentlyPressedKeys['KeyA']) {    
+      rotateVector(degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec 2 grader om y-aksen.
     }
-    if (currentlyPressedKeys['KeyD']) {	//D
-      rotateVector(-degrees, camPosVec, 0, 1, 0);  //Roterer camPosVec -2 grader om y-aksen.
+    if (currentlyPressedKeys['KeyD']) {	
+      rotateVector(-degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec -2 grader om y-aksen.
     }
-    if (currentlyPressedKeys['KeyW']) {	//W
-      rotateVector(degrees, camPosVec, 1, 0, 0);  //Roterer camPosVec 2 grader om x-aksen.
+    if (currentlyPressedKeys['KeyW']) {	
+      rotateVector(degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
-    if (currentlyPressedKeys['KeyS']) {	//S
-      rotateVector(-degrees, camPosVec, 1, 0, 0);  //Roterer camPosVec 2 grader om x-aksen.
+    if (currentlyPressedKeys['KeyS']) {	
+      rotateVector(-degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
     //Zoom inn og ut:
-    if (currentlyPressedKeys['KeyV']) { //V
+    if (currentlyPressedKeys['KeyV']) { 
       vec3.scale(camPosVec, camPosVec, 1.05);
     }
-    if (currentlyPressedKeys['KeyB']) {	//B
+    if (currentlyPressedKeys['KeyB']) {	
       vec3.scale(camPosVec, camPosVec, 0.95);
     }
 

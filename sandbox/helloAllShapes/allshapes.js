@@ -2,6 +2,7 @@ import { Matrix4 } from "../../base/lib/cuon-matrix.js";
 import { Camera } from "../../base/helpers/Camera.js";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
 import { Shader, LocationType, DataType } from "../../base/helpers/WebGLShader.js";
+import { initKeyPress } from "../../base/lib/utility-functions.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -19,12 +20,7 @@ const baseShaderVariables = [
     dataType: DataType.VEC4f
   },
   {
-    name: "uModelMatrix",
-    locationType: LocationType.UNIFORM,
-    dataType: DataType.MAT4f
-  },
-  {
-    name: "uViewMatrix",
+    name: "uModelViewMatrix",
     locationType: LocationType.UNIFORM,
     dataType: DataType.MAT4f
   },
@@ -44,7 +40,6 @@ export const main = () => {
 
   const baseShader = new Shader(gl, baseVertShader, baseFragShader);
   baseShader.findLocations(baseShaderVariables);
-  baseShader.getLocationsChecked();
 
   // TODO: make connectAttribute, connectUniform, connectTextureAttribute accessable
 
@@ -58,8 +53,15 @@ export const main = () => {
       far: 10000,
   });
 
-  console.log(camera.toString())
+  /** 
+    * @type {{
+    *   baseShader: Shader;
+    *   keysPressed: Record<string, boolean>;}} 
+  */
+  const renderInfo = {
+    baseShader: baseShader,
+    keysPressed = [],
+  }
 
-  let mat4 = new Matrix4();
-  mat4.setIdentity();
+  initKeyPress(renderInfo.keysPressed);
 }

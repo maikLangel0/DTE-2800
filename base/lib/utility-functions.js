@@ -2,12 +2,62 @@ import { Matrix4 } from "./cuon-matrix";
 // import { vec3 } from "./gl-matrix";
 
 /**
+ * Gets called in the function that includes the recursive callback
+ * to itself via
+ * window.requestAnimationFrame( (currTime) => { itself(); } )
+ *
+ * @param {number} dt
+ * @param {{frameCount: number; dtTotal: number}} fpsInfo
+ * @param {string} documentIdName
+ */
+export function iterateAndShowFps(dt, fpsInfo, documentIdName) {
+  fpsInfo.frameCount++;
+  fpsInfo.dtTotal += dt;
+
+  // Only updates the innerHTML when 1 second has elapsed
+  if (fpsInfo.dtTotal >= 1.0) {
+    const rawFps = fpsInfo.frameCount / fpsInfo.dtTotal;
+
+    document.getElementById(documentIdName).innerHTML = Math.round(rawFps);
+
+    fpsInfo.frameCount = 0;
+    fpsInfo.dtTotal = 0;
+  }
+}
+
+/**
+ * Gets called in the function that includes the recursive callback
+ * to itself via
+ * window.requestAnimationFrame( (currTime) => { itself(); } )
+ *
+ * @param {number} lastTime
+ * @param {number} currTime
+ */
+export function getDt(lastTime, currTime) {
+  return currTime - lastTime;
+}
+
+/**
+ * Creates listeners for keyup and keydown events, and
+ * populates or updates the currPressedKeys[keycode] given
+ * the event.
+ * @param {Record<string, boolean>} currPressedKeys
+ */
+export function initKeyPress(currPressedKeys) {
+  document.addEventListener('keyup', (event) => {
+    currPressedKeys[event.code] = false;
+  });
+
+  document.addEventListener('keydown', (event) => {
+    currPressedKeys[event.code] = true;
+  });
+}
+
+/**
  * Roterer gitt vektor delta antall grader om gitt akse.
- * @param delta
- * @param vector
- * @param axisX
- * @param axisY
- * @param axisZ
+ * @param {number} delta
+ * @param {vec3} vector
+ * @param {{x: number; y: number; z: number}} axis
  */
 export function rotateVector(delta, vector, axis) {
 	var matrix = new Matrix4();
@@ -18,23 +68,29 @@ export function rotateVector(delta, vector, axis) {
 
 /**
  * Fra radianer til grader.
- * @param angle
- * @returns {degree}
+ * @param {number} angle
+ * @returns {number}
  */
-export function toDegrees (angle) {
+export function toDegrees(angle) {
 	return angle * (180 / Math.PI);
 }
 
 /**
  * Fra grader til radianer.
- * @param angle
- * @returns {radian}
+ * @param {number} angle
+ * @returns {number}
  */
-export function toRadians (angle) {
+export function toRadians(angle) {
 	return angle * (Math.PI / 180);
 }
 
-export function getRandomInt (min, max) {
+/**
+ *
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+export function randomIntBetween(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -63,9 +119,10 @@ export function isPowerOfTwo2(value) {
  */
 export function vectorToString(vector) {
 	let props = Object.getOwnPropertyNames(vector);
-	let retVal='';
+  let retVal = '';
+
 	for (let i=0; i<props.length; i++) {
-		retVal+=props[i] + ': ' + String(vector[props[i]].toFixed(1)) + ' ';
+		retVal += props[i] + ': ' + String(vector[props[i]].toFixed(1)) + ' ';
 	}
 	return retVal;
 }
