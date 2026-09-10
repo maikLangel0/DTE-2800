@@ -41,8 +41,6 @@ export const main = () => {
   const baseShader = new Shader(gl, baseVertShader, baseFragShader);
   baseShader.findLocations(baseShaderVariables);
 
-  // TODO: make connectAttribute, connectUniform, connectTextureAttribute accessable
-
   baseShader.log()
 
   const camera = new Camera({
@@ -53,10 +51,10 @@ export const main = () => {
       far: 10000,
   });
 
-  /** 
+  /**
     * @type {{
     *   baseShader: Shader;
-    *   keysPressed: Record<string, boolean>;}} 
+    *   keysPressed: Record<string, boolean>;}}
   */
   const renderInfo = {
     baseShader: baseShader,

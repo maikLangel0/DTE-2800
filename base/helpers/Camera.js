@@ -1,6 +1,5 @@
 import { rotateVector } from "../lib/utility-functions.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
-// import { vec3 } from "../lib/gl-matrix.js";
 
 export class Camera {
   // ALL PRIVATE VARIABLES IN CLASS
@@ -124,24 +123,24 @@ export class Camera {
    */
   handleKeys(currentlyPressedKeys, degrees = 2) {
     let camPosVec = vec3.fromValues(this.#camPos.x, this.#camPos.y, this.#camPos.z);
-    
-    if (currentlyPressedKeys['KeyA']) {    
+
+    if (currentlyPressedKeys['KeyA']) {
       rotateVector(degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec 2 grader om y-aksen.
     }
-    if (currentlyPressedKeys['KeyD']) {	
+    if (currentlyPressedKeys['KeyD']) {
       rotateVector(-degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec -2 grader om y-aksen.
     }
-    if (currentlyPressedKeys['KeyW']) {	
+    if (currentlyPressedKeys['KeyW']) {
       rotateVector(degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
-    if (currentlyPressedKeys['KeyS']) {	
+    if (currentlyPressedKeys['KeyS']) {
       rotateVector(-degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
     //Zoom inn og ut:
-    if (currentlyPressedKeys['KeyV']) { 
+    if (currentlyPressedKeys['KeyV']) {
       vec3.scale(camPosVec, camPosVec, 1.05);
     }
-    if (currentlyPressedKeys['KeyB']) {	
+    if (currentlyPressedKeys['KeyB']) {
       vec3.scale(camPosVec, camPosVec, 0.95);
     }
 

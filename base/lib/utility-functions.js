@@ -1,5 +1,4 @@
 import { Matrix4 } from "./cuon-matrix";
-// import { vec3 } from "./gl-matrix";
 
 /**
  * Gets called in the function that includes the recursive callback
