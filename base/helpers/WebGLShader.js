@@ -50,6 +50,7 @@ const componentsInDataType = {
 
 export class Shader {
   #gl;
+  #shaderProgram;
   // #locations;
 
   /**
@@ -61,7 +62,7 @@ export class Shader {
     this.#gl = gl; // reference to the WebGL2RenderingContext class
 
     /**@type {WebGLProgram} */
-    this.shaderProgram = gl.createProgram();
+    this.#shaderProgram = gl.createProgram();
 
     /** @type {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>} */
     this.locations = new Map();
@@ -69,12 +70,12 @@ export class Shader {
     const vertexShader = this.#compileShader(gl.VERTEX_SHADER, vsSource);
     const fragmentShader = this.#compileShader(gl.FRAGMENT_SHADER, fsSource);
 
-		gl.attachShader(this.shaderProgram, vertexShader);
-		gl.attachShader(this.shaderProgram, fragmentShader);
-		gl.linkProgram(this.shaderProgram);
+		gl.attachShader(this.#shaderProgram, vertexShader);
+		gl.attachShader(this.#shaderProgram, fragmentShader);
+		gl.linkProgram(this.#shaderProgram);
 
-		if (!gl.getProgramParameter(this.shaderProgram, gl.LINK_STATUS)) {
-		  throw Error('Error when compiling/linking the shader programs: ' + gl.getProgramInfoLog(this.shaderProgram));
+		if (!gl.getProgramParameter(this.#shaderProgram, gl.LINK_STATUS)) {
+  throw Error('Error when compiling/linking the shader programs: ' + gl.getProgramInfoLog(this.#shaderProgram));
 		}
   }
 
@@ -99,9 +100,10 @@ export class Shader {
   }
 
   /**
+   * Runtime checks to see which type of Location you want to connect.
    * @param {string} name
    * @param {{buffer: WebGLBuffer; texture: WebGLTexture} | WebGLBuffer | Float32Array | number} data,
-   * @param {{glType: number; stride: number, offset: number}} attribSettings
+   * @param {{glType: number; normalize: number; stride: number, offset: number}} attribSettings
    * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
    *
    */
@@ -201,15 +203,15 @@ export class Shader {
    * @param {string} samplerName
    * @param {WebGLBuffer} buffer
    * @param {WebGLTexture} texture
-   * @param {{glType: number; stride: number, offset: number}} attribSettings
-   * @param {{ samplerName: string; activeTexture: number; target: number; }} textureSettings
+   * @param {{glType: number; normalize: number; stride: number, offset: number}} attribSettings
+   * @param {{ activeTexture: number; target: number; }} textureSettings
    */
   connectTexture(
     name,
+    samplerName,
     buffer,
     texture,
     textureSettings = {
-      samplerName: "uSampler",
       activeTexture: this.#gl.TEXTURE0,
       target: this.#gl.TEXTURE_2D
     },
@@ -225,9 +227,9 @@ export class Shader {
       throw Error("Found no location named " + name + " for texture");
     }
 
-    const samplerInfo = this.locations.get(textureSettings.samplerName);
+    const samplerInfo = this.locations.get(samplerName);
     if (!locationInfo) {
-      throw Error("Found no sampler named " + textureSettings.samplerName);
+      throw Error("Found no sampler named " + samplerName);
     }
 
     this.#connectTextureAttribute(
@@ -245,24 +247,21 @@ export class Shader {
    * @param {Float32Array | number} data
    */
   connectUniform(name, data) {
-    const gl = this.#gl; // for ease-of-use
-
     const locationInfo = this.locations.get(name);
+
     if (!locationInfo) {
       throw Error("Found no uniform named " + name);
     }
 
     this.#connectUniform(locationInfo, data);
-
-
   }
 
   useProgram() {
-    this.#gl.useProgram(this.shaderProgram);
+    this.#gl.useProgram(this.#shaderProgram);
   }
 
   free() {
-    this.#gl.deleteProgram(this.shaderProgram);
+    this.#gl.deleteProgram(this.#shaderProgram);
     this.locations = new Map();
   }
 
@@ -300,7 +299,7 @@ export class Shader {
    * @returns {WebGLUniformLocation}
    */
   #getUniformLocationChecked(name) {
-    const location = this.#gl.getUniformLocation(this.shaderProgram, name);
+    const location = this.#gl.getUniformLocation(this.#shaderProgram, name);
 
     if (!location) {
       throw Error("Unable to get uniform location of uniform " + name);
@@ -314,7 +313,7 @@ export class Shader {
    * @returns {number}
    */
   #getAttribLocationChecked(name) {
-    const location = this.#gl.getAttribLocation(this.shaderProgram, name);
+    const location = this.#gl.getAttribLocation(this.#shaderProgram, name);
 
     if (location === -1) {
       throw Error("Unable to get attribute location of attribute" + name);
@@ -414,7 +413,7 @@ export class Shader {
    * @param {WebGLBuffer} buffer
    * @param {WebGLTexture} texture
    * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
-   * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
+   * @param {{ activeTexture: number; target: number; }} [textureSettings]
    */
   #connectTextureAttribute(
     locationInfo,
