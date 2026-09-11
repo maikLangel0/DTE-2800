@@ -28,7 +28,7 @@ export class WebGLCanvas {
 
   /**@param {{r: number, g: number, b: number, a: number}} bgColor  */
   clearCanvas(bgColor) {
-    this.gl.clearColor(...bgColor);
+    this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
     this.gl.clearDepth(1.0);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthFunc(this.gl.LEQUAL);

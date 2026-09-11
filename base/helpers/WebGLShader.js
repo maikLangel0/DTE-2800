@@ -75,8 +75,8 @@ export class Shader {
 		gl.linkProgram(this.#shaderProgram);
 
 		if (!gl.getProgramParameter(this.#shaderProgram, gl.LINK_STATUS)) {
-  throw Error('Error when compiling/linking the shader programs: ' + gl.getProgramInfoLog(this.#shaderProgram));
-		}
+      throw Error('Error when compiling/linking the shader programs: ' + gl.getProgramInfoLog(this.#shaderProgram));
+	  }
   }
 
   /**
@@ -360,11 +360,11 @@ export class Shader {
       return false;
     }
 
-    if (isPrimitive !== 1 && typeof data === "number") {
+    if (numComponents !== 1 && typeof data === "number") {
       return false;
     }
     // NOTE : THIS CHECK MIGHT NOT WORK FOR Float32Array & WebGLBuffer
-    return data.length === expected;
+    return data.length === numComponents;
   }
 
   /**
@@ -456,6 +456,9 @@ export class Shader {
   */
   #connectUniform(locationInfo, data) {
     const gl = this.#gl; // for ease-of-use
+
+    const type = locationInfo.dataType;
+    const location = locationInfo.location;
 
     if (!this.#isDataTypeCompatible(type, data)) {
       throw Error(`DataType: ${type} not compatible with data: ${data}`);

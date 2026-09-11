@@ -1,5 +1,6 @@
 import { rotateVector } from "../lib/utility-functions.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
+import "../lib/gl-matrix.js";
 
 export class Camera {
   // ALL PRIVATE VARIABLES IN CLASS
@@ -7,8 +8,6 @@ export class Camera {
   #camPos;
   #lookAt;
   #up;
-  #viewMatrix;
-  #projectionMatrix;
 
   /**
    * @param {*} gl
@@ -41,10 +40,10 @@ export class Camera {
     this.#up = up;
 
     /**@type {Matrix4} */
-    this.#viewMatrix = new Matrix4();
+    this.viewMatrix = new Matrix4();
 
     /**@type {Matrix4} */
-    this.#projectionMatrix = new Matrix4();
+    this.projectionMatrix = new Matrix4();
 
     this.#set();
   }
@@ -53,7 +52,7 @@ export class Camera {
     // where it looks, and what up is defined as. The reason it is a 4x4 matrix and
     // not a 3x3 is because the extra rows allows for translation and perspective
     // projection only using matrix multiplication.
-    this.#viewMatrix.setLookAt(
+    this.viewMatrix.setLookAt(
       this.#camPos.x, this.#camPos.y, this.#camPos.z,
       this.#lookAt.x, this.#lookAt.y, this.#lookAt.z,
       this.#up.x, this.#up.y, this.#up.z
@@ -61,20 +60,12 @@ export class Camera {
 
     // ProjectionMatrix is how the world is percieved through the "lens" of the camera.
     // It does a translation
-    this.#projectionMatrix.setPerspective(
+    this.projectionMatrix.setPerspective(
       this.#projectionOptions.fov,
       this.#projectionOptions.aspectRatio,
       this.#projectionOptions.near,
       this.#projectionOptions.far
     );
-  }
-
-  /** Multiplies the this.viewMatrix with the modelMatrix, in that order.
-   * @param { Matrix4 } modelMatrix
-   * @returns { Matrix4 }
-   */
-  getModelViewMatrix(modelMatrix) {
-      return new Matrix4(this.#viewMatrix.multiply(modelMatrix)); // NB! rekkefølge!
   }
 
   /**@param {{x: number; y: number; z: number;}} pos */
@@ -119,29 +110,31 @@ export class Camera {
   /**
    *
    * @param {Map<string, bool>} currentlyPressedKeys
+   * @param {number} dt
    * @param {number} degrees
    */
-  handleKeys(currentlyPressedKeys, degrees = 2) {
+  handleKeys(currentlyPressedKeys, dt, degrees = 2) {
     let camPosVec = vec3.fromValues(this.#camPos.x, this.#camPos.y, this.#camPos.z);
+    const deltaMove = degrees * dt * 100;
 
     if (currentlyPressedKeys['KeyA']) {
-      rotateVector(degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec 2 grader om y-aksen.
+      rotateVector(-deltaMove, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec 2 grader om y-aksen.
     }
     if (currentlyPressedKeys['KeyD']) {
-      rotateVector(-degrees, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec -2 grader om y-aksen.
+      rotateVector(deltaMove, camPosVec, {x:0, y: 1, z: 0});  //Roterer camPosVec -2 grader om y-aksen.
     }
     if (currentlyPressedKeys['KeyW']) {
-      rotateVector(degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
+      rotateVector(deltaMove, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
     if (currentlyPressedKeys['KeyS']) {
-      rotateVector(-degrees, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
+      rotateVector(-deltaMove, camPosVec, {x: 1, y: 0, z: 0});  //Roterer camPosVec 2 grader om x-aksen.
     }
     //Zoom inn og ut:
     if (currentlyPressedKeys['KeyV']) {
-      vec3.scale(camPosVec, camPosVec, 1.05);
+      vec3.scale(camPosVec, camPosVec, 1.0 + deltaMove / 100);
     }
     if (currentlyPressedKeys['KeyB']) {
-      vec3.scale(camPosVec, camPosVec, 0.95);
+      vec3.scale(camPosVec, camPosVec, 1.0 - deltaMove / 100);
     }
 
     this.#camPos = { x: camPosVec[0], y: camPosVec[1], z: camPosVec[2] };

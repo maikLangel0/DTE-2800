@@ -23,6 +23,35 @@ export function iterateAndShowFps(dt, fpsInfo, documentIdName) {
     fpsInfo.dtTotal = 0;
   }
 }
+/**
+ * Mutates timeInfo.dtTotal = 0 AND timeInfo.fps = 0.
+ * @param {{ previousTime: number; dt: number; dtTotal: number; fps: number; }} timeInfo
+ * @param {string} name 
+ */
+export function showFps(timeInfo, name) {
+
+  if (timeInfo.dtTotal >= 1.0) {
+    const fps = Math.round(timeInfo.fps);
+    
+    const fpsInHtml = document.getElementById(name);
+    fpsInHtml.innerHTML = `FPS: ${fps}`;
+    
+    timeInfo.dtTotal = 0;
+    timeInfo.fps = 0;
+  }
+}
+
+/**
+ * @param {{ previousTime: number; dt: number; dtTotal: number; fps: number; }} timeInfo
+ * @param {number} currentTime 
+ */
+export function updateFps(timeInfo, currentTime) {
+  timeInfo.dt = (currentTime - timeInfo.previousTime) / 1000;
+
+  timeInfo.previousTime = currentTime;
+  timeInfo.dtTotal += timeInfo.dt;
+  timeInfo.fps++;
+}
 
 /**
  * Gets called in the function that includes the recursive callback
