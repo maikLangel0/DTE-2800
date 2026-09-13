@@ -6,7 +6,7 @@ export class WebGLCanvas {
    */
   constructor(id, width, height) {
 
-    /**@type HTMLCanvasElement */
+    /**@type HTMLCanvasElement | null */
     const canvas = document.querySelector(id);
     if (!canvas) {
       throw Error("Canvas not found");
@@ -27,7 +27,7 @@ export class WebGLCanvas {
   }
 
   /**@param {{r: number, g: number, b: number, a: number}} bgColor  */
-  clearCanvas(bgColor) {
+  clear(bgColor) {
     this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
     this.gl.clearDepth(1.0);
     this.gl.enable(this.gl.DEPTH_TEST);

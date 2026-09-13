@@ -109,7 +109,7 @@ export class Camera {
 
   /**
    *
-   * @param {Map<string, bool>} currentlyPressedKeys
+   * @param {Record<string, boolean>} currentlyPressedKeys
    * @param {number} dt
    * @param {number} degrees
    */

@@ -49,9 +49,12 @@ const componentsInDataType = {
 };
 
 export class Shader {
+  /**@type {WebGL2RenderingContext}*/
   #gl;
+  /**@type {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>}*/
+  #locations;
+  /**@type {WebGLProgram}*/
   #shaderProgram;
-  // #locations;
 
   /**
    * @param {WebGL2RenderingContext} gl
@@ -60,12 +63,8 @@ export class Shader {
    */
   constructor(gl, vsSource, fsSource) {
     this.#gl = gl; // reference to the WebGL2RenderingContext class
-
-    /**@type {WebGLProgram} */
+    this.#locations = new Map();
     this.#shaderProgram = gl.createProgram();
-
-    /** @type {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>} */
-    this.locations = new Map();
 
     const vertexShader = this.#compileShader(gl.VERTEX_SHADER, vsSource);
     const fragmentShader = this.#compileShader(gl.FRAGMENT_SHADER, fsSource);
@@ -92,18 +91,18 @@ export class Shader {
    * @returns {Map<string, {location: number | WebGLUniformLocation, dataType: DataType}>}
    */
   getLocationsChecked() {
-    if (this.locations.size === 0) {
+    if (this.#locations.size === 0) {
       throw Error("No locations found. They're most likely not instanciated yet. Do findLocations() first.");
     }
 
-    return this.locations;
+    return this.#locations;
   }
 
   /**
    * Runtime checks to see which type of Location you want to connect.
    * @param {string} name
    * @param {{buffer: WebGLBuffer; texture: WebGLTexture} | WebGLBuffer | Float32Array | number} data,
-   * @param {{glType: number; normalize: number; stride: number, offset: number}} attribSettings
+   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
    * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
    *
    */
@@ -122,7 +121,7 @@ export class Shader {
       target: this.#gl.TEXTURE_2D
     }
     ) {
-    const locationInfo = this.locations.get(name);
+    const locationInfo = this.#locations.get(name);
 
     if (!locationInfo) {
       throw Error("Found no location named: " + name);
@@ -148,7 +147,7 @@ export class Shader {
         );
 
       } else if (isTextureBundle) {
-        const samplerInfo = this.locations.get(textureSettings.samplerName);
+        const samplerInfo = this.#locations.get(textureSettings.samplerName);
 
         if (!samplerInfo || typeof samplerInfo.location === "number") {
           throw Error("No sampler found named: " + textureSettings.samplerName);
@@ -189,7 +188,7 @@ export class Shader {
       stride: 0,
       offset: 0
     }) {
-    const locationInfo = this.locations.get(name);
+    const locationInfo = this.#locations.get(name);
 
     if (!locationInfo) {
       throw Error("Found no in/attribute named " + name);
@@ -203,7 +202,7 @@ export class Shader {
    * @param {string} samplerName
    * @param {WebGLBuffer} buffer
    * @param {WebGLTexture} texture
-   * @param {{glType: number; normalize: number; stride: number, offset: number}} attribSettings
+   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
    * @param {{ activeTexture: number; target: number; }} textureSettings
    */
   connectTexture(
@@ -222,12 +221,12 @@ export class Shader {
       offset: 0,
     },
     ) {
-    const locationInfo = this.locations.get(name);
+    const locationInfo = this.#locations.get(name);
     if (!locationInfo) {
       throw Error("Found no location named " + name + " for texture");
     }
 
-    const samplerInfo = this.locations.get(samplerName);
+    const samplerInfo = this.#locations.get(samplerName);
     if (!locationInfo) {
       throw Error("Found no sampler named " + samplerName);
     }
@@ -243,11 +242,11 @@ export class Shader {
   }
 
   /**
-   * @param {name} name
+   * @param {string} name
    * @param {Float32Array | number} data
    */
   connectUniform(name, data) {
-    const locationInfo = this.locations.get(name);
+    const locationInfo = this.#locations.get(name);
 
     if (!locationInfo) {
       throw Error("Found no uniform named " + name);
@@ -262,14 +261,14 @@ export class Shader {
 
   free() {
     this.#gl.deleteProgram(this.#shaderProgram);
-    this.locations = new Map();
+    this.#locations = new Map();
   }
 
   log() {
     console.log(`--- ShaderProgram ---`)
     console.log(`Locations: `)
 
-    this.locations.forEach((value, key) => {
+    this.#locations.forEach((value, key) => {
       console.log(`Name: ${key}, DataType: ${value.dataType}, Location: ${value.location}`)
     })
   }
@@ -282,7 +281,7 @@ export class Shader {
    * @returns {WebGLShader}
   */
 	#compileShader(type, source) {
-		const shader = this.#gl.createShader(type);
+    const shader = this.#gl.createShader(type);
 
 		this.#gl.shaderSource(shader, source);
 		this.#gl.compileShader(shader);
@@ -329,14 +328,14 @@ export class Shader {
     switch (info.locationType) {
 
       case LocationType.UNIFORM:
-        this.locations.set(info.name, {
+        this.#locations.set(info.name, {
           location: this.#getUniformLocationChecked(info.name),
           dataType: info.dataType,
         })
         break
 
       case LocationType.IN:
-        this.locations.set(info.name, {
+        this.#locations.set(info.name, {
           location: this.#getAttribLocationChecked(info.name),
           dataType: info.dataType,
         })

@@ -1,9 +1,11 @@
-import { Matrix4 } from "../../base/lib/cuon-matrix.js";
 import { Camera } from "../../base/helpers/Camera.js";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
 import { Shader, LocationType, DataType } from "../../base/helpers/WebGLShader.js";
-import { initKeyPress, showFps, updateFps } from "../../base/lib/utility-functions.js";
+import { initKeyPress } from "../../base/lib/utility-functions.js";
 import { Coords } from "../../base/shapes/coord.js";
+import { FpsInfo } from "../../base/helpers/fpsInfo.js";
+import { Cube } from "../../base/shapes/cube.js";
+import { RenderMatrices } from "../../base/helpers/renderMatrices.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -52,70 +54,74 @@ export const main = () => {
     },
   );
 
-  const coords = new Coords(80, gl, baseShader, camera);
+  const coords = new Coords(gl, baseShader, camera, 80);
+  coords.bindBuffers();
 
+  const cube = new Cube(gl, baseShader, camera, { r: 1.0, g: 0.5, b: 1.0, a: 1.0 });
+  cube.bindBuffers();
+
+  cube.setColor({ r: 0.5, g: 0.5, b: 1.0, a: 1.0 });
+  cube.bindColorBuffer();
+  
   /**
     * @type {{
     *   canvas: WebGLCanvas;
     *   camera: Camera,
-    *   modelMatrix: Matrix4,
-    *   modelViewMatrix: Matrix4,
-    *   coords: Coords,
+    *   matrices: RenderMatrices;
+    *   coords: Coords;
+    *   cube: Cube;
+    *   fpsInfo: FpsInfo;
     *   keysPressed: Record<string, boolean>;}}
   */
   const renderInfo = {
     canvas: canvas,
     camera: camera,
-    modelMatrix: new Matrix4(),
-    modelViewMatrix: new Matrix4(),
     coords: coords,
+    cube: cube,
+    matrices: new RenderMatrices(),
+    fpsInfo: new FpsInfo("fps"),
     keysPressed: [],
-  }
-
-  /**
-   * @type {{
-   *  previousTime: number;
-   *  dt: number;
-   *  dtTotal: number;
-   *  fps: number;
-   * }}
-   */
-  const timeInfo = {
-    previousTime: 0,
-    dt: 0,
-    dtTotal: 0,
-    fps: 0
   }
 
   initKeyPress(renderInfo.keysPressed);
 
-  renderLoop(renderInfo, timeInfo);
+  renderLoop(renderInfo);
 }
 
 /**
  * @param {{
  *  canvas: WebGLCanvas;
  *  camera: Camera;
- *  modelMatrix: Matrix4,
- *  modelViewMatrix: Matrix4,
+ *  matrices: RenderMatrices;
  *  coords: Coords;
+ *  cube: Cube;
+ *  fpsInfo: FpsInfo;
  *  keysPressed: Record<string, boolean>;}} renderInfo
- * @param {{ previousTime: number; dt: number; dtTotal: number; fps: number;}} timeInfo
  */
-function renderLoop(renderInfo, timeInfo) {
+function renderLoop(renderInfo) {
+  const fps = renderInfo.fpsInfo;
+  const canvas = renderInfo.canvas;
+  const camera = renderInfo.camera;
+
+  const matrices = renderInfo.matrices;
+  const modelMatrix = matrices.modelMatrix;
 
   window.requestAnimationFrame((currentTime) => {
-    updateFps(timeInfo, currentTime);
-    renderLoop(renderInfo, timeInfo);
+    fps.updateFps(currentTime);
+    renderLoop(renderInfo);
   })
 
-  showFps(timeInfo, "fps")
+  fps.showFps();
 
-  // --------------------
+  // ----------------------------------------------------
 
-  renderInfo.canvas.clearCanvas({ r: 0.1, g: 0.1, b: 0.1, a: 1.0 });
+  canvas.clear({ r: 0.1, g: 0.1, b: 0.1, a: 1.0 });
 
-  renderInfo.camera.handleKeys(renderInfo.keysPressed, timeInfo.dt);
+  camera.handleKeys(renderInfo.keysPressed, fps.dt);
 
-  renderInfo.coords.draw(renderInfo.modelMatrix, renderInfo.modelViewMatrix);
+  modelMatrix.setIdentity();
+  renderInfo.coords.draw(matrices);
+  
+  modelMatrix.setIdentity();
+  renderInfo.cube.draw(matrices);
 }
