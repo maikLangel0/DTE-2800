@@ -62,7 +62,7 @@ export const main = () => {
 
   cube.setColor({ r: 0.5, g: 0.5, b: 1.0, a: 1.0 });
   cube.bindColorBuffer();
-  
+
   /**
     * @type {{
     *   canvas: WebGLCanvas;
@@ -121,7 +121,11 @@ function renderLoop(renderInfo) {
 
   modelMatrix.setIdentity();
   renderInfo.coords.draw(matrices);
-  
+
   modelMatrix.setIdentity();
+  renderInfo.cube.draw(matrices);
+
+  modelMatrix.setIdentity();
+  modelMatrix.translate(10, 10, 10);
   renderInfo.cube.draw(matrices);
 }
