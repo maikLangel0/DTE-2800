@@ -9,11 +9,12 @@ export class Cube extends Drawable {
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
    * @param {Camera} camera
+   * @param {{ r: number; g: number; b: number; a: number; } | null} color
    */
-  constructor(gl, shader, camera, color = {r: 1.0, g: 0.0, b: 0.0, a: 1.0}) {
+  constructor(gl, shader, camera, color = null) {
     super(gl, shader, camera);
 
-    this.positions = [
+    this._positions = [
         //Front:
         -1, 1, 1,
         -1,-1, 1,
@@ -24,7 +25,6 @@ export class Cube extends Drawable {
         1,1,1,
 
         //Right side:
-
         1,1,1,
         1,-1,1,
         1,-1,-1,
@@ -70,9 +70,11 @@ export class Cube extends Drawable {
         1,-1,1,
     ];
     
-    this.vertexCount = this.positions.length / 3;
+    this._vertexCount = this._positions.length / 3;
 
-    super.setColor(color)
+    if (color) {
+      super.setVertexColors(color)
+    }
   }
 
   /**
@@ -80,7 +82,7 @@ export class Cube extends Drawable {
    * @param {RenderMatrices} matrices 
    * @param {number} glMode 
    */
-  draw(matrices, glMode = this.gl.TRIANGLES) {
+  draw(matrices, glMode = this._gl.TRIANGLES) {
     super.draw(matrices, glMode);
   }
 }

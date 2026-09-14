@@ -33,6 +33,29 @@
 
     </script>
 
+    <script id="coord-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+      
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+      
+      void main(void) {
+          gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="coord-frag-shader" type="x-shader/x-vertex">#version 300 es
+        precision mediump float;
+
+        uniform mediump vec4 uColor;  
+        out mediump vec4 fragColor;
+
+        void main(void) {
+            fragColor = uColor;
+        }
+
+    </script>
+
     <script type="module">
     'use strict';
     import {main} from "./allshapes.js";

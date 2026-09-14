@@ -9,15 +9,15 @@ export class XZPlane extends Drawable {
    * @param {Shader} shader
    * @param {Camera} camera 
    * @param {{amount: number; spacing: number; length: number}} settings
-   * @param {{ r: number; g: number; b: number; a: number; }} [color={r: 0.0,g: 0.0,b: 0.4,a: 1.0}] 
+   * @param {{ r: number; g: number; b: number; a: number; } | null} color 
    */
-  constructor(gl, shader, camera, settings, color = {r: 0.0,g: 0.0,b: 0.4,a: 1.0}) {
+  constructor(gl, shader, camera, settings, color = null) {
     super(gl, shader, camera);
 
     for (let i = 0; i <= settings.amount; i += settings.spacing) {
       const offset = i - settings.amount / 2;
       
-      this.positions.push(
+      this._positions.push(
         -settings.length, 0, offset,
         settings.length, 0, offset,
         offset, 0, -settings.length,
@@ -25,7 +25,9 @@ export class XZPlane extends Drawable {
       );
     }
 
-    this.setColor(color);
+    if (color) {
+      this.setVertexColors(color);  
+    }
   }
 
   /**
@@ -33,7 +35,7 @@ export class XZPlane extends Drawable {
    * @param {RenderMatrices} matrices 
    * @param {number} glMode
    */
-  draw(matrices, glMode = this.gl.LINES) { 
-    
+  draw(matrices, glMode = this._gl.LINES) { 
+    super.draw(matrices, glMode);
   }
 }

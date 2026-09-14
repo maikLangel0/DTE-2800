@@ -10,8 +10,8 @@ export class Drawable {
    * @param {Camera} camera
    */
   constructor(gl, shader, camera) {
-    this.gl = gl;
-    this.shader = shader;
+    this._gl = gl;
+    this._shader = shader;
     this.camera = camera;
 
     /**@type {WebGLBuffer | null} */
@@ -22,22 +22,22 @@ export class Drawable {
     this.indexBuffer = null;
 
     /**@type {number[]} */
-    this.colors = [];
+    this._vertexColors = [];
     /**@type {number[]} */
-    this.positions = [];
+    this._positions = [];
     /**@type {number[]} */
-    this.indeces = [];
+    this._indeces = [];
 
     /**@type {number} */
-    this.vertexCount = 0;
+    this._vertexCount = 0;
     /**@type {number} */
-    this.indexCount = 0;
+    this._indexCount = 0;
 
     /** @type {{
      * name: string; 
      * getBuffer: (self: Drawable) => WebGLBuffer | null}[]
      } */
-    this.attributeBindings = [
+    this._attributeBindings = [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
       { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
     ];
@@ -46,22 +46,15 @@ export class Drawable {
      * name: string; 
      * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[]
      } */
-    this.uniformBindings = [
-      {
-        name: "uModelViewMatrix",
-        getValue: (self, matrices) => {
+    this._uniformBindings = [
+      { name: "uModelViewMatrix", getValue: (self, matrices) => {
           const modelViewMatrix = matrices.modelViewMatrix;
 
           modelViewMatrix.set(self.camera.viewMatrix);
           modelViewMatrix.multiply(matrices.modelMatrix);
 
-          return modelViewMatrix.elements;
-        },
-      },
-      {
-        name: "uProjectionMatrix",
-        getValue: (self, _) => self.camera.projectionMatrix.elements,
-      },
+          return modelViewMatrix.elements }},
+      { name: "uProjectionMatrix", getValue: (self, _) => {return self.camera.projectionMatrix.elements} },
     ];
 
     if (this.constructor === Drawable) {
@@ -70,101 +63,107 @@ export class Drawable {
   }
 
   bindBuffers() {
-    const gl = this.gl;
+    this.bindPositionBuffer();
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    if (this._vertexColors.length !== 0) {
+      this.bindColorBuffer();
+    }
 
-    const colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colors), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    if (this._indeces.length !== 0) {
+      this.bindIndexBuffer();
+    }
+  }
+
+  bindPositionBuffer() {
+    const positionBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, positionBuffer);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._positions), this._gl.STATIC_DRAW);
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
 
     this.positionBuffer = positionBuffer;
+    this._vertexCount = this._positions.length / 3;
+  }
+
+  bindColorBuffer() {
+    const colorBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, colorBuffer);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._vertexColors), this._gl.STATIC_DRAW);
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
+
     this.colorBuffer = colorBuffer;
+  }
 
-    if (this.indeces.length !== 0) {
-      const indexBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indeces), gl.STATIC_DRAW);
+  bindIndexBuffer() {
+    const indexBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indeces), this._gl.STATIC_DRAW);
 
-      this.indexBuffer = indexBuffer;
-      this.indexCount = this.indeces.length / 3;
-    }
+    this.indexBuffer = indexBuffer;
+    this._indexCount = this._indeces.length;
   }
 
   /**
    * @param {{r: number;g: number;b: number;a: number;}} color
    */
-  setColor(color) {
-    this.colors = [];
+  setVertexColors(color) {
+    this._vertexColors = [];
 
-    for (let i = 0; i < this.vertexCount; i++) {
-      this.colors.push(color.r, color.g, color.b, color.a);
+    for (let i = 0; i < this._vertexCount; i++) {
+      this._vertexColors.push(color.r, color.g, color.b, color.a);
     }
-  }
-
-  bindColorBuffer() {
-    const colorBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.colors), this.gl.STATIC_DRAW);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
-
-    this.colorBuffer = colorBuffer;
   }
 
   /**
    * @param {Shader} shader
    */
   swapShader(shader) {
-    this.shader = shader;
+    this._shader = shader;
   }
 
   log() {
     if (this.indexBuffer) {
-      console.log(`Positions: ${this.positions} | Indeces: ${this.indeces} | Colors: ${this.colors}`)
+      console.log(`Positions: ${this._positions} | Indeces: ${this._indeces} | Colors: ${this._vertexColors}`)
     } else {
-      console.log(`Positions: ${this.positions} | Colors: ${this.colors}`)
+      console.log(`Positions: ${this._positions} | Colors: ${this._vertexColors}`)
     }
   }
 
   /**
    * Redefine how this Class' data maps onto shader attribute and/or uniform names. 
-   * Use after swapShader() if the new shader uses different names.
+   * Use after swapShader() if the new shader uses different names or data.
    * @param {{
-   *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer}[];
+   *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer | null}[];
    *   uniforms?: {name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[];
    * }} relationship
    */
   setShaderRelationship({ attributes, uniforms } = {}) {
-    if (attributes) this.attributeBindings = attributes;
-    if (uniforms) this.uniformBindings = uniforms;
+    if (attributes) { this._attributeBindings = attributes };
+    if (uniforms) { this._uniformBindings = uniforms };
   }
 
   /**
    * @param {RenderMatrices} matrices
    * @param {number} glMode
    */
-  draw(matrices, glMode = this.gl.TRIANGLES) {
+  draw(matrices, glMode = this._gl.TRIANGLES) {
     if (!this.positionBuffer) {
       throw Error("Buffers not instantiated; call bindBuffers() first.");
     }
 
-    const shader = this.shader;
+    const shader = this._shader;
     shader.useProgram();
 
-    for (const { name, getBuffer } of this.attributeBindings) {
+    for (const { name, getBuffer } of this._attributeBindings) {
+
       const buffer = getBuffer(this);
       if (!buffer) {
-        throw Error("Buffer defined with name " + name + " not instanciated.");
+        throw Error("Attribute-buffer defined with name " + name + " is not instanciated.");
       }
       
       shader.connectAttribute(name, buffer);
     }
     
-    for (const { name, getValue } of this.uniformBindings) {
+    for (const { name, getValue } of this._uniformBindings) {
       const value = getValue(this, matrices);
       
       shader.connectUniform(name, value);
@@ -175,14 +174,14 @@ export class Drawable {
 
   /**@param {number} glMode*/
   #drawCall(glMode) {
-    if (this.indexBuffer && this.indexCount > 0)
+    if (this.indexBuffer && this._indexCount > 0)
     {
-      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-      this.gl.drawElements(glMode, this.indexCount, this.gl.UNSIGNED_SHORT, 0);
+      this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+      this._gl.drawElements(glMode, this._indexCount, this._gl.UNSIGNED_SHORT, 0);
     }
     else
     {
-      this.gl.drawArrays(glMode, 0, this.vertexCount);
+      this._gl.drawArrays(glMode, 0, this._vertexCount);
     }
   }
 }

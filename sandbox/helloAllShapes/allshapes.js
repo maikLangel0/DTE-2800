@@ -6,9 +6,18 @@ import { Coords } from "../../base/shapes/coord.js";
 import { FpsInfo } from "../../base/helpers/fpsInfo.js";
 import { Cube } from "../../base/shapes/cube.js";
 import { RenderMatrices } from "../../base/helpers/renderMatrices.js";
+import { Color } from "../../base/helpers/color.js";
+import { XZPlane } from "../../base/shapes/xzPlane.js";
+import { Cone } from "../../base/shapes/cone.js";
+import { Disc } from "../../base/shapes/disc.js";
+import { Sphere } from "../../base/shapes/sphere.js";
+import { Cylinder } from "../../base/shapes/cylinder.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
+
+const coordVertShader = document.getElementById("coord-vert-shader").innerHTML;
+const coordFragShader = document.getElementById("coord-frag-shader").innerHTML;
 
 /**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
 const baseShaderVariables = [
@@ -34,6 +43,33 @@ const baseShaderVariables = [
   },
 ]
 
+/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+const coordShaderVariables = [
+  {
+    name: "aVertexPosition",
+    locationType: LocationType.IN,
+    dataType: DataType.VEC3f
+  },
+  {
+    name: "uColor",
+    locationType: LocationType.UNIFORM,
+    dataType: DataType.VEC4f
+  },
+  {
+    name: "uModelViewMatrix",
+    locationType: LocationType.UNIFORM,
+    dataType: DataType.MAT4f
+  },
+  {
+    name: "uProjectionMatrix",
+    locationType: LocationType.UNIFORM,
+    dataType: DataType.MAT4f
+  },
+]
+
+let cubeUColor = new Color([1.0, 0.3, 1.0, 1.0]);
+let xzPlaneUColor = new Color([0.0, 0.0, 0.4, 1.0]); 
+
 // ------------------------
 
 export const main = () => {
@@ -41,8 +77,15 @@ export const main = () => {
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
+  // SHADERS --------------------------
+
   const baseShader = new Shader(gl, baseVertShader, baseFragShader);
   baseShader.findLocations(baseShaderVariables);
+
+  const coordShader = new Shader(gl, coordVertShader, coordFragShader);
+  coordShader.findLocations(coordShaderVariables);
+
+  // OBJECTS AND CAMERA ---------------
 
   const camera = new Camera(
     {
@@ -57,18 +100,93 @@ export const main = () => {
   const coords = new Coords(gl, baseShader, camera, 80);
   coords.bindBuffers();
 
-  const cube = new Cube(gl, baseShader, camera, { r: 1.0, g: 0.5, b: 1.0, a: 1.0 });
+  const cone = new Cone(gl, coordShader, camera, 10);
+  cone.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...cone._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  });
+  cone.bindBuffers();
+
+  const disc = new Disc(gl, coordShader, camera, 10);
+  disc.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...disc._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  });
+  disc.bindBuffers();
+
+  const sphere = new Sphere(gl, coordShader, camera);
+  sphere.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...sphere._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  });
+  sphere.bindBuffers();
+
+  const cylinder = new Cylinder(gl, coordShader, camera);
+  cylinder.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...cylinder._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  });
+  cylinder.bindBuffers();
+  
+  const xzPlane = new XZPlane(gl, coordShader, camera, { amount: 100, spacing: 1, length: 50 });
+  xzPlane.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...xzPlane._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  })
+  xzPlane.bindBuffers();
+
+  const cube = new Cube(gl, baseShader, camera);
+  
+  cube.swapShader(coordShader);
+  cube.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...cube._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(cubeUColor.raw) } },
+    ]
+  });
   cube.bindBuffers();
 
-  cube.setColor({ r: 0.5, g: 0.5, b: 1.0, a: 1.0 });
-  cube.bindColorBuffer();
-
+  // RENDERINFO -----------------------
+  
   /**
     * @type {{
     *   canvas: WebGLCanvas;
     *   camera: Camera,
     *   matrices: RenderMatrices;
     *   coords: Coords;
+    *   xzPlane: XZPlane,
+    *   cone: Cone;
+    *   disc: Disc;
+    *   sphere: Sphere;
+    *   cylinder: Cylinder;
     *   cube: Cube;
     *   fpsInfo: FpsInfo;
     *   keysPressed: Record<string, boolean>;}}
@@ -77,6 +195,11 @@ export const main = () => {
     canvas: canvas,
     camera: camera,
     coords: coords,
+    xzPlane: xzPlane,
+    cone: cone,
+    disc: disc,
+    sphere: sphere,
+    cylinder: cylinder,
     cube: cube,
     matrices: new RenderMatrices(),
     fpsInfo: new FpsInfo("fps"),
@@ -85,7 +208,7 @@ export const main = () => {
 
   initKeyPress(renderInfo.keysPressed);
 
-  renderLoop(renderInfo);
+  animate(renderInfo);
 }
 
 /**
@@ -94,38 +217,103 @@ export const main = () => {
  *  camera: Camera;
  *  matrices: RenderMatrices;
  *  coords: Coords;
+ *  xzPlane: XZPlane;
+ *  cone: Cone;
+ *  disc: Disc;
+ *  sphere: Sphere;
+ *  cylinder: Cylinder;
  *  cube: Cube;
  *  fpsInfo: FpsInfo;
  *  keysPressed: Record<string, boolean>;}} renderInfo
  */
-function renderLoop(renderInfo) {
+function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
-  const canvas = renderInfo.canvas;
-  const camera = renderInfo.camera;
-
-  const matrices = renderInfo.matrices;
-  const modelMatrix = matrices.modelMatrix;
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
-    renderLoop(renderInfo);
+    animate(renderInfo);
   })
 
   fps.showFps();
+  renderInfo.camera.handleKeys(renderInfo.keysPressed, fps.dt);
+ 
+  renderInfo.canvas.clear({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
+  
+  drawMain(renderInfo);
+}
 
-  // ----------------------------------------------------
+/**
+ * @param {{
+ *  canvas: WebGLCanvas;
+ *  camera: Camera;
+ *  matrices: RenderMatrices;
+ *  coords: Coords;
+ *  xzPlane: XZPlane;
+ *  cone: Cone;
+ *  disc: Disc;
+ *  sphere: Sphere;
+ *  cylinder: Cylinder;
+ *  cube: Cube;
+ *  fpsInfo: FpsInfo;
+ *  keysPressed: Record<string, boolean>;}} renderInfo 
+ */
+function drawMain(renderInfo) {
+  const matrices = renderInfo.matrices;
+  const modelMatrix = matrices.modelMatrix;
 
-  canvas.clear({ r: 0.1, g: 0.1, b: 0.1, a: 1.0 });
-
-  camera.handleKeys(renderInfo.keysPressed, fps.dt);
-
+  // COORDS
   modelMatrix.setIdentity();
   renderInfo.coords.draw(matrices);
 
+  // CENTRAL CUBE
   modelMatrix.setIdentity();
   renderInfo.cube.draw(matrices);
 
+  // ONE CUBE
   modelMatrix.setIdentity();
-  modelMatrix.translate(10, 10, 10);
+  modelMatrix.translate(0, 0, 0);
+  modelMatrix.scale(10, 2.4, 0.3);
+  
+  cubeUColor.set([1.0, 0.0, 1.0]);
   renderInfo.cube.draw(matrices);
+
+  // ONE CUBE
+  modelMatrix.setIdentity();
+  modelMatrix.translate(1, 1, 1);
+  modelMatrix.rotate(90, 0, 1, 0);
+  modelMatrix.rotate(45, 1, 0, 0);
+  modelMatrix.scale(10, 2.4, 0.3);
+
+  cubeUColor.set([0.0, 1.0, 0.0]);
+  renderInfo.cube.draw(matrices);
+
+  // XZPLANE
+  xzPlaneUColor.set([0.0, 0.0, 0.4, 1.0]); 
+  modelMatrix.setIdentity();
+  renderInfo.xzPlane.draw(matrices);
+
+  // CONE
+  modelMatrix.setIdentity();
+  modelMatrix.translate(5, 0, 5);
+  renderInfo.cone.draw(matrices);
+
+  // DISC
+  xzPlaneUColor.set([0.4, 0.0, 0.4, 1.0]); 
+  
+  modelMatrix.setIdentity();
+  modelMatrix.translate(-5, 0, -5);
+  modelMatrix.scale(2, 2, 2);
+  renderInfo.disc.draw(matrices);
+
+  // SPHERE
+  modelMatrix.setIdentity();
+  modelMatrix.translate(-5, 0, 5);
+  modelMatrix.scale(2, 2, 2);
+  renderInfo.sphere.draw(matrices, renderInfo.canvas.gl.TRIANGLES);
+
+  // CYLINDER
+  modelMatrix.setIdentity();
+  modelMatrix.translate(5, 0, -5);
+  modelMatrix.scale(2, 2, 2);
+  renderInfo.cylinder.draw(matrices);
 }

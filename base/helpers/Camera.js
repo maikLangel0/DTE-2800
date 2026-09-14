@@ -10,7 +10,6 @@ export class Camera {
   #up;
 
   /**
-   * @param {*} gl
    * @param {{ x: number; y: number; z: number; }} [camPos={ x: 5, y: 20, z: 35 }]
    * @param {{ x: number; y: number; z: number; }} [lookAt={ x: 0, y: 0, z: 0 }]
    * @param {{ x: number; y: number; z: number; }} [up={x: 0, y: 1, z: 0 }]

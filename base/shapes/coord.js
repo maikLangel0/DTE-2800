@@ -13,7 +13,7 @@ export class Coords extends Drawable {
   constructor(gl, shader, camera, length) {
     super(gl, shader, camera);
 
-    this.positions =  [
+    this._positions =  [
       -length, 0, 0,
       length, 0, 0,
       0, -length, 0,
@@ -22,7 +22,7 @@ export class Coords extends Drawable {
       0, 0, -length,
     ];
     
-    this.colors = [
+    this._vertexColors = [
       1, 0, 0, 1,
       1, 0, 0, 1,
       0, 1, 0, 1,
@@ -32,7 +32,7 @@ export class Coords extends Drawable {
     ];
 
     /**@type {number} */
-    this.vertexCount = this.positions.length / 3;
+    this._vertexCount = this._positions.length / 3;
   }
 
   /**
@@ -40,7 +40,7 @@ export class Coords extends Drawable {
    * @param {RenderMatrices} matrices 
    * @param {number} glMode 
    */
-  draw(matrices, glMode = this.gl.LINES) {
+  draw(matrices, glMode = this._gl.LINES) {
     super.draw(matrices, glMode);
   }
 }
