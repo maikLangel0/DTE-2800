@@ -34,7 +34,7 @@ export class Drawable {
     this._indexCount = 0;
 
     /** @type {{
-     * name: string; 
+     * name: string;
      * getBuffer: (self: Drawable) => WebGLBuffer | null}[]
      } */
     this._attributeBindings = [
@@ -43,7 +43,7 @@ export class Drawable {
     ];
 
     /** @type {{
-     * name: string; 
+     * name: string;
      * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[]
      } */
     this._uniformBindings = [
@@ -129,7 +129,7 @@ export class Drawable {
   }
 
   /**
-   * Redefine how this Class' data maps onto shader attribute and/or uniform names. 
+   * Redefine how this Class' data maps onto shader attribute and/or uniform names.
    * Use after swapShader() if the new shader uses different names or data.
    * @param {{
    *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer | null}[];
@@ -144,28 +144,38 @@ export class Drawable {
   /**
    * @param {RenderMatrices} matrices
    * @param {number} glMode
+   * @param {boolean} drawAlpha
    */
-  draw(matrices, glMode = this._gl.TRIANGLES) {
+  draw(matrices, glMode = this._gl.TRIANGLES, drawAlpha = false) {
     if (!this.positionBuffer) {
-      throw Error("Buffers not instantiated; call bindBuffers() first.");
+      throw Error("Buffer(s) not instantiated; call bindBuffers() first.");
     }
+
+    const gl = this._gl;
 
     const shader = this._shader;
     shader.useProgram();
 
-    for (const { name, getBuffer } of this._attributeBindings) {
+    if (drawAlpha) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+    } else {
+      gl.disable(gl.BLEND);
+      gl.disable(gl.CULL_FACE);
+      gl.depthMask(true);
+    }
 
+    for (const { name, getBuffer } of this._attributeBindings) {
       const buffer = getBuffer(this);
       if (!buffer) {
         throw Error("Attribute-buffer defined with name " + name + " is not instanciated.");
       }
-      
       shader.connectAttribute(name, buffer);
     }
-    
+
     for (const { name, getValue } of this._uniformBindings) {
       const value = getValue(this, matrices);
-      
       shader.connectUniform(name, value);
     }
 
