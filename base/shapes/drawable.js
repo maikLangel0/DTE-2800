@@ -21,6 +21,14 @@ export class Drawable {
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
 
+    /**Map<label: string, coords: number[]>
+    *  @type {Map<string, WebGLBuffer>} */
+    this._textureBuffers = new Map();
+    /**Map<label: string, texture: WebGLTexture>
+     * @type {Map<string, WebGLTexture>} */
+    this._textures = new Map();
+
+
     /**@type {number[]} */
     this._vertexColors = [];
     /**@type {number[]} */
@@ -57,10 +65,14 @@ export class Drawable {
       { name: "uProjectionMatrix", getValue: (self, _) => {return self.camera.projectionMatrix.elements} },
     ];
 
+
+
     if (this.constructor === Drawable) {
       throw Error("Cannot be an abstract class Drawable");
     }
   }
+
+  // FUNCTIONS
 
   bindBuffers() {
     this.bindPositionBuffer();
@@ -114,18 +126,45 @@ export class Drawable {
   }
 
   /**
-   * @param {Shader} shader
+   * @param {string} label
+   * @param {number[]} textureCoordinates
+   * @param {HTMLImageElement} image
+   * @param {{target: number; }} settings
    */
-  swapShader(shader) {
-    this._shader = shader;
-  }
+  bindTexture(label, textureCoordinates, image, settings) {
+    const gl = this._gl; // For convenience
 
-  log() {
-    if (this.indexBuffer) {
-      console.log(`Positions: ${this._positions} | Indeces: ${this._indeces} | Colors: ${this._vertexColors}`)
-    } else {
-      console.log(`Positions: ${this._positions} | Colors: ${this._vertexColors}`)
-    }
+    const texture = gl.createTexture();
+    gl.bindTexture(settings.target, texture);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true) // Anticipates transparency
+
+    // NOTE : NOT THE SAME FUNCTION SIGNATURE AS IN cubemultitextured.js @LINE 277
+    gl.texImage2D(
+      settings.target,    // target
+      0,                  // LOD
+      gl.RGBA,            // Internal format
+      image.width,        // width
+      image.height,       // height
+      0,                  // border ("must be 0")
+      gl.RGBA,            // format (set to same as internal format)
+      gl.UNSIGNED_BYTE,   // type (size of each integer element in raw texel data)
+      image               // source
+    );
+
+    gl.texParameteri(settings.target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(settings.target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    gl.bindTexture(settings.target, null);
+
+    const textureBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, 0);
+
+    this._textureBuffers.set(label, textureBuffer);
+    this._textures.set(label, texture);
   }
 
   /**
@@ -139,6 +178,21 @@ export class Drawable {
   setShaderRelationship({ attributes, uniforms } = {}) {
     if (attributes) { this._attributeBindings = attributes };
     if (uniforms) { this._uniformBindings = uniforms };
+  }
+
+  /**
+   * @param {Shader} shader
+   */
+  swapShader(shader) {
+    this._shader = shader;
+  }
+
+  log() {
+    if (this.indexBuffer) {
+      console.log(`Positions: ${this._positions} | Indeces: ${this._indeces} | Colors: ${this._vertexColors}`)
+    } else {
+      console.log(`Positions: ${this._positions} | Colors: ${this._vertexColors}`)
+    }
   }
 
   /**

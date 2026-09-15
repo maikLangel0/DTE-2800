@@ -4,7 +4,6 @@ import { Shader } from "../helpers/WebGLShader";
 import { Drawable } from "./drawable";
 
 export class Cylinder extends Drawable {
-
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
@@ -32,13 +31,12 @@ export class Cylinder extends Drawable {
     // Sylinderens akse er langs y-aksen.
     let phi = stepInRadians;
     for (let sector = 0; sector <= sectors; sector++) {
-
       const x = Math.cos(phi);
       const y = 0;
       const z = Math.sin(phi);
 
-      this._positions.push(x,y,z);
-      this._positions.push(x,y+1,z);
+      this._positions.push(x, y, z);
+      this._positions.push(x, y + 1, z);
 
       if (color) {
         this._vertexColors.push(color.r, color.g, color.b, color.a);
