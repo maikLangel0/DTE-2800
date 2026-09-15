@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<head>
+    <header>Oblig 1</header>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <p>WASD to move camera</p>
+    <p>VB to Zoom in/out</p>
+    <p>JK to open/close door</p>
+    <p id="fps"></p>
+
+    <script id="base-vert-shader" type="x-shader/x-vertex">#version 300 es
+        in vec3 aVertexPosition;
+        in vec4 aVertexColor;
+
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+
+        out mediump vec4 vColor;
+
+        void main(void) {
+            gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+            vColor = aVertexColor;
+        }
+    </script>
+
+    <script id="base-frag-shader" type="x-shader/x-vertex">#version 300 es
+        precision mediump float;
+
+        in mediump vec4 vColor;
+        out mediump vec4 fragColor;
+
+        void main(void) {
+            fragColor = vColor;
+        }
+
+    </script>
+
+    <script id="coord-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+
+      void main(void) {
+          gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="coord-frag-shader" type="x-shader/x-vertex">#version 300 es
+        precision mediump float;
+
+        uniform mediump vec4 uColor;
+        out mediump vec4 fragColor;
+
+        void main(void) {
+            fragColor = uColor;
+        }
+
+    </script>
+
+    <script type="module">
+    'use strict';
+    import {main} from "./oblig1.js";
+    main();
+    </script>
+</body>

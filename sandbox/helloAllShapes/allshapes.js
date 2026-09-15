@@ -13,6 +13,7 @@ import { Disc } from "../../base/shapes/disc.js";
 import { Sphere } from "../../base/shapes/sphere.js";
 import { Cylinder } from "../../base/shapes/cylinder.js";
 import { Square } from "../../base/shapes/square.js";
+import { Triangle } from "../../base/shapes/triangle.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -140,6 +141,18 @@ export const main = () => {
   });
   sphere.bindBuffers();
 
+  const triangle = new Triangle(gl, coordShader, camera);
+  triangle.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
+    ],
+    uniforms: [
+      ...triangle._uniformBindings,
+      { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
+    ]
+  });
+  triangle.bindBuffers();
+
   const cylinder = new Cylinder(gl, coordShader, camera, 20);
   cylinder.setShaderRelationship({
     attributes: [
@@ -188,7 +201,8 @@ export const main = () => {
     *   matrices: RenderMatrices;
     *   coords: Coords;
     *   xzPlane: XZPlane,
-    *  square: Square;
+    *   square: Square;
+    *  triangle: Triangle;
     *   cone: Cone;
     *   disc: Disc;
     *   sphere: Sphere;
@@ -204,6 +218,7 @@ export const main = () => {
     coords: coords,
     xzPlane: xzPlane,
     square: square,
+    triangle: triangle,
     cone: cone,
     disc: disc,
     sphere: sphere,
@@ -228,6 +243,7 @@ export const main = () => {
  *  coords: Coords;
  *  xzPlane: XZPlane;
  *  square: Square;
+ *  triangle: Triangle;
  *  cone: Cone;
  *  disc: Disc;
  *  sphere: Sphere;
@@ -261,6 +277,7 @@ function animate(renderInfo) {
  *  coords: Coords;
  *  xzPlane: XZPlane;
  *  square: Square;
+ *  triangle: Triangle;
  *  cone: Cone;
  *  disc: Disc;
  *  sphere: Sphere;
@@ -344,6 +361,11 @@ function drawMain(renderInfo) {
   modelMatrix.translate(5, 0, -5);
   modelMatrix.scale(2, 2, 2);
   renderInfo.cylinder.draw(matrices);
+
+  // TRIANGLE
+  modelMatrix.setIdentity();
+  modelMatrix.translate(0, 2.4, 0);
+  renderInfo.triangle.draw(matrices);
 
   // CENTRAL SQUARE
   modelMatrix.setIdentity();

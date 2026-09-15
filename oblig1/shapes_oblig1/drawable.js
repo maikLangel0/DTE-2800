@@ -1,6 +1,6 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
+import { Camera } from "../helpers_oblig1/Camera";
+import { RenderMatrices } from "../helpers_oblig1/renderMatrices";
+import { Shader } from "../helpers_oblig1/WebGLShader";
 
 export class Drawable {
 
