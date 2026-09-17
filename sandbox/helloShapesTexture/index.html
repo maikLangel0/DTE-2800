@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <head>
-    <header>Oblig 1</header>
+    <header>Sandbox main</header>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <p>WASD to move camera</p>
-    <p>VB to Zoom in/out</p>
-    <p>JK to open/close door</p>
     <p id="fps"></p>
 
     <script id="base-vert-shader" type="x-shader/x-vertex">#version 300 es
@@ -36,32 +33,43 @@
 
     </script>
 
-    <script id="coord-vert-shader" type="x-shader/x-vertex">#version 300 es
+    <script id="texture-vert-shader" type="x-shader/x-vertex">#version 300 es
       in vec3 aVertexPosition;
+      in vec2 aVertexTextureCoord;
 
       uniform mat4 uModelViewMatrix;
       uniform mat4 uProjectionMatrix;
 
-      void main(void) {
-          gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+      out highp vec2 vTextureCoord;
+
+      void main() {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aVertexTextureCoord;
+
+        gl_PointSize = 10.0;
       }
     </script>
 
-    <script id="coord-frag-shader" type="x-shader/x-vertex">#version 300 es
-        precision mediump float;
+    <script id="texture-frag-shader" type="x-shader/x-fragment">#version 300 es
+      precision highp float;
 
-        uniform mediump vec4 uColor;
-        out mediump vec4 fragColor;
+      in highp vec2 vTextureCoord;
 
-        void main(void) {
-            fragColor = uColor;
-        }
+      uniform sampler2D uSampler0;
+      uniform sampler2D uSampler1;
+      uniform mediump vec4 uColor;
 
+      out highp vec4 fragColor;
+
+      void main() {
+        vec4 texColor = texture(uSampler0, vTextureCoord) * texture(uSampler1, vTextureCoord);
+        fragColor = texColor * uColor;
+      }
     </script>
 
     <script type="module">
     'use strict';
-    import {main} from "./oblig1.js";
+    import {main} from "./allShapesTexture.js";
     main();
     </script>
 </body>

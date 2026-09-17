@@ -25,6 +25,8 @@ export class XZPlane extends Drawable {
       );
     }
 
+    this._vertexCount = this._positions.length;
+    
     if (color) {
       this.setVertexColors(color);  
     }

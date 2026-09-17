@@ -227,7 +227,7 @@ export class Shader {
     }
 
     const samplerInfo = this.#locations.get(samplerName);
-    if (!locationInfo) {
+    if (!samplerInfo) {
       throw Error("Found no sampler named " + samplerName);
     }
 

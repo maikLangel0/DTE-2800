@@ -14,6 +14,9 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
+    // THESE ARE PUBLIC BECAUSE IF YOU setShaderRelationship() YOU NEED
+    // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
+
     /**@type {WebGLBuffer | null} */
     this.positionBuffer = null;
     /**@type {WebGLBuffer | null} */
@@ -21,24 +24,31 @@ export class Drawable {
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
 
-    // WORK IN PROGRESS --------------------
+    // Textures get handled differently. When binding texture(s), the user
+    // uses the bindTexture() func and passes in
+    //    textureCoordinates: number[],
+    //    image: HTMLImageElement,
+    //    settings: {target: number}
+    // instead of it being handled automatically by bindBuffers().
+    // Can also have multiple textures on the same object
+
+    /** @type {{
+     * uvBuffer: WebGLBuffer;
+     * texture: WebGLTexture;
+     * uvAttribName: string;
+     * samplerName: string;
+     * target: number;
+     * textureUnit: number;
+     }[]} */
+    this._textureBindings = [];
     
-    /**Map<label: string, coords: number[]>
-    *  @type {Map<string, WebGLBuffer>} */
-    this._textureBuffers = new Map();
-    /**Map<label: string, texture: WebGLTexture>
-     * @type {Map<string, WebGLTexture>} */
-    this._textures = new Map();
-
-    // END WORK IN PROGRESS --------------------
-
-
     /**@type {number[]} */
     this._vertexColors = [];
     /**@type {number[]} */
     this._positions = [];
     /**@type {number[]} */
     this._indeces = [];
+
 
     /**@type {number} */
     this._vertexCount = 0;
@@ -77,7 +87,8 @@ export class Drawable {
   }
 
   // FUNCTIONS
-
+  /** Binds the positionbuffer, and if theyre set in the class impl or 
+   * by the user, it binds the colorbuffer and/or indexbuffer */
   bindBuffers() {
     this.bindPositionBuffer();
 
@@ -132,47 +143,44 @@ export class Drawable {
   // WORK IN PROGRESS --------------------
   
   /**
-   * @param {string} label
-   * @param {number[]} textureCoordinates
+   * @param {number[]} uvCoordinates
    * @param {HTMLImageElement} image
-   * @param {{target: number; }} settings
+   * @param {{uvAttributeName: string; samplerName: string; target?: number}} settings
    */
-  bindTexture(label, textureCoordinates, image, settings) {
-    const gl = this._gl; // For convenience
-
+  bindTexture(uvCoordinates, image, settings) {
+    const gl = this._gl;
+    const target = settings.target ?? gl.TEXTURE_2D;
+  
     const texture = gl.createTexture();
-    gl.bindTexture(settings.target, texture);
-
-    //Merk: Bruker her premultiplied alpha, som gjør at hver texel multipliseres med sin egen alpha-verdi.
-    //Betyr: Sett gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); ved tegning av objektet, for å få riktig blending med bakgrunn.
+    gl.bindTexture(target, texture);
+  
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true) // Anticipates transparency
-
-    // NOTE : NOT THE SAME FUNCTION SIGNATURE AS IN cubemultitextured.js @LINE 288
-    gl.texImage2D(
-      settings.target,    // target
-      0,                  // LOD
-      gl.RGBA,            // Internal format
-      image.width,        // width
-      image.height,       // height
-      0,                  // border ("must be 0")
-      gl.RGBA,            // format (set to same as internal format)
-      gl.UNSIGNED_BYTE,   // type (size of each integer element in raw texel data)
-      image               // source
-    );
-
-    gl.texParameteri(settings.target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(settings.target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-
-    gl.bindTexture(settings.target, null);
-
-    const textureBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, 0);
-
-    this._textureBuffers.set(label, textureBuffer);
-    this._textures.set(label, texture);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  
+    gl.texImage2D(target, 0, gl.RGBA, image.width, image.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.bindTexture(target, null);
+  
+    const uvBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  
+    const textureUnit = this._textureBindings.length;
+    const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    if (textureUnit >= maxUnits) {
+      throw Error(`Cannot bind more than ${maxUnits} textures on this GPU.`);
+    }
+  
+    this._textureBindings.push({
+      uvBuffer,
+      texture,
+      uvAttribName: settings.uvAttributeName,
+      samplerName: settings.samplerName,
+      target,
+      textureUnit,
+    });
   }
 
   // END WORK IN PROGRESS --------------------
@@ -241,6 +249,16 @@ export class Drawable {
     for (const { name, getValue } of this._uniformBindings) {
       const value = getValue(this, matrices);
       shader.connectUniform(name, value);
+    }
+
+    for (const tb of this._textureBindings) {
+      shader.connectTexture(
+        tb.uvAttribName,
+        tb.samplerName,
+        tb.uvBuffer,
+        tb.texture,
+        { activeTexture: gl.TEXTURE0 + tb.textureUnit, target: tb.target }
+      );
     }
 
     this.#drawCall(glMode);
