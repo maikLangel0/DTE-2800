@@ -1,6 +1,6 @@
-import { Drawable } from "./drawable";
-import { Camera } from "../helpers/Camera";
-import { Shader } from "../helpers/WebGLShader";
+import { Drawable } from "./drawable.js";
+import { Camera } from "../helpers/Camera.js";
+import { Shader } from "../helpers/WebGLShader.js";
 
 export class Cube extends Drawable {
   
@@ -70,7 +70,7 @@ export class Cube extends Drawable {
     ]);
 
     if (color) {
-      super.setVertexColors(color)
+      super.setVertexColorSingle(color)
     }
   }  
 }

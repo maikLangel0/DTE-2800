@@ -1,14 +1,14 @@
-import { Camera } from "../../base/helpers/Camera";
-import { Color } from "../../base/helpers/color";
-import { FpsInfo } from "../../base/helpers/fpsInfo";
-import { ImageLoader } from "../../base/helpers/ImageLoader";
-import { KeyManager } from "../../base/helpers/keyManager";
-import { RenderMatrices } from "../../base/helpers/renderMatrices";
-import { WebGLCanvas } from "../../base/helpers/WebGLCanvas";
-import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader";
-import { Coords } from "../../base/shapes/coord";
-import { Cube } from "../../base/shapes/cube";
-import { XZPlane } from "../../base/shapes/xzPlane";
+import { Camera } from "../../base/helpers/Camera.js";
+import { Color } from "../../base/helpers/color.js";
+import { FpsInfo } from "../../base/helpers/fpsInfo.js";
+import { ImageLoader } from "../../base/helpers/ImageLoader.js";
+import { KeyManager } from "../../base/helpers/keyManager.js";
+import { RenderMatrices } from "../../base/helpers/renderMatrices.js";
+import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
+import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader.js";
+import { Coords } from "../../base/shapes/coord.js";
+import { Cube } from "../../base/shapes/cube.js";
+import { XZPlane } from "../../base/shapes/xzPlane.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -203,7 +203,7 @@ export const main = () => {
   xzPlane.bindBuffers();
 
   const cubeBrick = new Cube(gl, texShader, camera);
-  cubeBrick.setShaderRelationship({
+  cubeBrick.relateDataInClassToShader({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
     ],
@@ -296,6 +296,6 @@ function animate(renderInfo) {
 
   modelMatrix.setIdentity();
   modelMatrix.translate(0, 1.01, 0);
-  
+
   renderInfo.cubeBrick.draw(matrices, gl.TRIANGLES, true);
 }

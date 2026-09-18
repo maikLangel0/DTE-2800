@@ -1,7 +1,7 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
-import { Drawable } from "./drawable";
+import { Camera } from "../helpers/Camera.js";
+import { RenderMatrices } from "../helpers/renderMatrices.js";
+import { Shader } from "../helpers/WebGLShader.js";
+import { Drawable } from "./drawable.js";
 
 export class Cylinder extends Drawable {
   /**
@@ -20,11 +20,6 @@ export class Cylinder extends Drawable {
     this._positions.push(1, 0, 0);
     this._positions.push(1, 1, 0);
 
-    if (color) {
-      this._vertexColors.push(color.r, color.g, color.b, color.a);
-      this._vertexColors.push(color.r, color.g, color.b, color.a);
-    }
-
     // * Kjegla tegnes vha. TRIANGLE_FAN
     // * sector: FRA OG MED 0 TIL OG MED sectors, slik at den siste trekanten også kommer med.
     // Tegner en sylinder med høyde 1 og radius 1, og senter i origo.
@@ -38,23 +33,23 @@ export class Cylinder extends Drawable {
       this._positions.push(x, y, z);
       this._positions.push(x, y + 1, z);
 
-      if (color) {
-        this._vertexColors.push(color.r, color.g, color.b, color.a);
-        this._vertexColors.push(color.r, color.g, color.b, color.a);
-      }
-
       phi += stepInRadians;
     }
 
     this._vertexCount = this._positions.length / 3;
+
+    if (color) {
+      super.setVertexColorSingle(color);
+    }
   }
 
   /**
    * @override
    * @param {RenderMatrices} matrices
    * @param {number} glMode
+   * @param {boolean} drawAlpha 
    */
-  draw(matrices, glMode = this._gl.TRIANGLE_STRIP) {
-    super.draw(matrices, glMode);
+  draw(matrices, glMode = this._gl.TRIANGLE_STRIP, drawAlpha = false) {
+    super.draw(matrices, glMode, drawAlpha);
   }
 }

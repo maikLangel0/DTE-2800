@@ -1,7 +1,7 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
-import { Drawable } from "./drawable";
+import { Camera } from "../helpers/Camera.js";
+import { RenderMatrices } from "../helpers/renderMatrices.js";
+import { Shader } from "../helpers/WebGLShader.js";
+import { Drawable } from "./drawable.js";
 
 export class XZPlane extends Drawable {
   /**
@@ -27,11 +27,11 @@ export class XZPlane extends Drawable {
 
     this._vertexCount = this._positions.length;
 
-    this.is2D = true;
-    
     if (color) {
-      this.setVertexColors(color);  
+      this.setVertexColorSingle(color);  
     }
+    
+    this.is2D = true;
   }
 
   /**

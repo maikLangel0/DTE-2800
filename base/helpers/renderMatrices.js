@@ -1,4 +1,4 @@
-import { Matrix4 } from "../lib/cuon-matrix";
+import { Matrix4 } from "../lib/cuon-matrix.js";
 
 /**
  * Helper Class to hold the instances of matrices used during the renderloop

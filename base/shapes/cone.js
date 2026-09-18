@@ -1,7 +1,7 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
-import { Drawable } from "./drawable";
+import { Camera } from "../helpers/Camera.js";
+import { RenderMatrices } from "../helpers/renderMatrices.js";
+import { Shader } from "../helpers/WebGLShader.js";
+import { Drawable } from "./drawable.js";
 
 export class Cone extends Drawable {
   /**
@@ -22,40 +22,37 @@ export class Cone extends Drawable {
     let stepInRadians = (Math.PI / 180) * stepInDegrees;
 
     // Startpunkt (toppen av kjegla):
-    this._positions.push(0,2,0);
+    this._positions.push(0, 2, 0);
 
-    if (color) {
-      this._vertexColors.push(color.r, color.g, color.b, color.a);
-    }
     // Merk:
     // * Kjegla tegnes vha. TRIANGLE_FAN
     // * sector: FRA OG MED 0 TIL OG MED sectors, slik at den siste trekanten også kommer med.
     let phi = 0.0;
 
     for (let sector = 1; sector <= sectors + 2; sector++) {
-
       const x = Math.cos(phi);
       const y = 0;
       const z = Math.sin(phi);
 
       this._positions.push(x,y,z);
 
-      if (color) {
-        this._vertexColors.push(color.r, color.g, color.b, color.a);
-      }
-
       phi += stepInRadians;
     }
 
     this._vertexCount = this._positions.length / 3;
+
+    if (color) {
+      super.setVertexColorSingle(color);
+    }
   }
 
   /**
    * @override
    * @param {RenderMatrices} matrices
    * @param {number} glMode
+   * @param {boolean} drawAlpha 
    */
-  draw(matrices, glMode = this._gl.TRIANGLE_FAN) {
-    super.draw(matrices, glMode)
+  draw(matrices, glMode = this._gl.TRIANGLE_FAN, drawAlpha = false) {
+    super.draw(matrices, glMode, drawAlpha)
   }
 }

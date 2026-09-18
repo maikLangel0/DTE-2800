@@ -97,15 +97,21 @@ export class Drawable {
     this._vertexCount = positions.length / 3;
   }
 
-  /**
+  /** One color for all vertices
    * @param {{r: number;g: number;b: number;a: number;}} color
    */
-  setVertexColors(color) {
+  setVertexColorSingle(color) {
     this._vertexColors = [];
 
     for (let i = 0; i < this._vertexCount; i++) {
       this._vertexColors.push(color.r, color.g, color.b, color.a);
     }
+  }
+
+  /**@param {number[]} colors  */
+  setVertexColors(colors) {
+    if (colors.length % 4 !== 0) console.warn("SetVertexColors recieved a list not divisible by 4 (rbga).");
+    this._vertexColors = colors;
   }
 
   /**
@@ -208,18 +214,21 @@ export class Drawable {
       activeTexture,
     });
   }
+  unbindTextures() {
+    this._textureBindings = [];
+  }
 
   // SHADER SPESIFIC --------------------
   /**
    * Redefine how this Class' data maps onto shader attribute and/or uniform names.
-   * Do not refer to Attributes and Uniforms that are needed if you bindTexture()!
+   * DO NOT SET UNIFORMS OR ATTRIBUTES THAT ARE NEEDED WHEN YOU bindTexture()!
    * Use after swapShader() if the new shader uses different names or data.
    * @param {{
    *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer | null}[];
    *   uniforms?: {name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[];
    * }} relationship
    */
-  setShaderRelationship({ attributes, uniforms } = {}) {
+  relateDataInClassToShader({ attributes, uniforms } = {}) {
     if (attributes) { this._attributeBindings = attributes };
     if (uniforms) { this._uniformBindings = uniforms };
   }

@@ -1,7 +1,6 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
-import { Drawable } from "./drawable";
+import { Camera } from "../helpers/Camera.js";
+import { Shader } from "../helpers/WebGLShader.js";
+import { Drawable } from "./drawable.js";
 
 export class Square extends Drawable {
 
@@ -14,32 +13,20 @@ export class Square extends Drawable {
   constructor(gl, shader, camera, color = null) {
     super(gl, shader, camera);
 
-    this._positions.push(
+    super.setVertexPositions([
       -1, 0, -1,
       1, 0, 1,
       -1, 0, 1,
 
       -1, 0, -1,
       1, 0, -1,
-      1, 0, 1,
-    );
+      1, 0, 1
+    ]);
 
-    this._vertexCount = this._positions.length / 3;
+    if (color) {
+      super.setVertexColorSingle(color);
+    }
 
     this.is2D = true;
-    
-    if (color) {
-      super.setVertexColors(color);
-    }
-  }
-
-  /**
-   * @override
-   * @param {RenderMatrices} matrices 
-   * @param {number} glMode 
-   * @param {boolean} drawAlpha
-   */
-  draw(matrices, glMode = this._gl.TRIANGLES, drawAlpha = false) {
-    super.draw(matrices, glMode, drawAlpha);
   }
 }

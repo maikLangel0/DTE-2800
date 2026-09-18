@@ -1,4 +1,4 @@
-import { Drawable } from "../shapes/drawable";
+import { Drawable } from "../shapes/drawable.js";
 
 export class RenderQueue {
   /**@type {WebGL2RenderingContext} */

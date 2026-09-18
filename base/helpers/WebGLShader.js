@@ -321,6 +321,7 @@ export class Shader {
    * @param {{name: string; locationType: LocationType; dataType: DataType}} info
    */
   #findLocation(info) {
+    /**@type {WebGLUniformLocation | number | null} */
     let location;
 
     switch (info.locationType) {
