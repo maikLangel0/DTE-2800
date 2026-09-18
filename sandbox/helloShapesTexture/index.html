@@ -63,7 +63,7 @@
 
       void main() {
         vec4 texColor = texture(uSampler0, vTextureCoord) * texture(uSampler1, vTextureCoord);
-        fragColor = texColor * uColor;
+        fragColor = texColor;
       }
     </script>
 

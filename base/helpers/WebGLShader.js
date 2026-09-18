@@ -191,7 +191,8 @@ export class Shader {
     const locationInfo = this.#locations.get(name);
 
     if (!locationInfo) {
-      throw Error("Found no in/attribute named " + name);
+      console.warn("Cant connect in/attribute named " + name + ". Not found.");
+      return
     }
 
     this.#connectAttribute(locationInfo, buffer, settings);
@@ -249,7 +250,8 @@ export class Shader {
     const locationInfo = this.#locations.get(name);
 
     if (!locationInfo) {
-      throw Error("Found no uniform named " + name);
+      console.warn("Cant connect uniform " + name + ". Not found.");
+      return
     }
 
     this.#connectUniform(locationInfo, data);
@@ -295,13 +297,14 @@ export class Shader {
 
   /**
    * @param {string} name
-   * @returns {WebGLUniformLocation}
+   * @returns {WebGLUniformLocation | null}
    */
   #getUniformLocationChecked(name) {
     const location = this.#gl.getUniformLocation(this.#shaderProgram, name);
 
     if (!location) {
-      throw Error("Unable to get uniform location of uniform " + name);
+      console.warn("Unable to get uniform location of uniform " + name + ". Might be unused in shader.");
+      return null;
     }
 
     return location;
@@ -309,13 +312,14 @@ export class Shader {
 
   /**
    * @param {string} name
-   * @returns {number}
+   * @returns {number | null}
    */
   #getAttribLocationChecked(name) {
     const location = this.#gl.getAttribLocation(this.#shaderProgram, name);
 
     if (location === -1) {
-      throw Error("Unable to get attribute location of attribute" + name);
+      console.warn("Unable to get attribute location of attribute" + name + ". Might be unused in shader.");
+      return null;
     }
 
     return location;
@@ -325,18 +329,26 @@ export class Shader {
    * @param {{name: string; locationType: LocationType; dataType: DataType}} info
    */
   #findLocation(info) {
+    let location;
+
     switch (info.locationType) {
 
       case LocationType.UNIFORM:
+        location = this.#getUniformLocationChecked(info.name);
+        if (location === null) break;
+
         this.#locations.set(info.name, {
-          location: this.#getUniformLocationChecked(info.name),
+          location: location,
           dataType: info.dataType,
         })
         break
 
       case LocationType.IN:
+        location = this.#getAttribLocationChecked(info.name);
+        if (location === null) break;
+
         this.#locations.set(info.name, {
-          location: this.#getAttribLocationChecked(info.name),
+          location: location,
           dataType: info.dataType,
         })
         break
@@ -412,7 +424,7 @@ export class Shader {
    * @param {WebGLBuffer} buffer
    * @param {WebGLTexture} texture
    * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
-   * @param {{ activeTexture: number; target: number; }} [textureSettings]
+   * @param {{ activeTexture: number; target: number; }} textureSettings
    */
   #connectTextureAttribute(
     locationInfo,

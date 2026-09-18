@@ -38,7 +38,7 @@ export class Drawable {
      * uvAttribName: string;
      * samplerName: string;
      * target: number;
-     * textureUnit: number;
+     * activeTexture: number;
      }[]} */
     this._textureBindings = [];
     
@@ -130,6 +130,15 @@ export class Drawable {
   }
 
   /**
+   * If you want to alter the vertexPositions of the object. 
+   * For example useful when you need a spesific order to bindTexture() with UV.
+   * @param {number[]} positions 
+   */
+  setVertexPositions(positions) {
+    this._positions = positions;
+  }
+
+  /**
    * @param {{r: number;g: number;b: number;a: number;}} color
    */
   setVertexColors(color) {
@@ -139,8 +148,6 @@ export class Drawable {
       this._vertexColors.push(color.r, color.g, color.b, color.a);
     }
   }
-
-  // WORK IN PROGRESS --------------------
   
   /**
    * @param {number[]} uvCoordinates
@@ -157,9 +164,21 @@ export class Drawable {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
   
-    gl.texImage2D(target, 0, gl.RGBA, image.width, image.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texImage2D(
+      target,
+      0,
+      gl.RGBA,
+      image.width,
+      image.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      image
+    );
+
     gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
     gl.bindTexture(target, null);
   
     const uvBuffer = gl.createBuffer();
@@ -167,10 +186,11 @@ export class Drawable {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   
-    const textureUnit = this._textureBindings.length;
+    const activeTexture = this._textureBindings.length;
     const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-    if (textureUnit >= maxUnits) {
-      throw Error(`Cannot bind more than ${maxUnits} textures on this GPU.`);
+    
+    if (activeTexture >= maxUnits) {
+      throw Error(`Cant bind more than ${maxUnits} textures on this GPU`);
     }
   
     this._textureBindings.push({
@@ -179,14 +199,13 @@ export class Drawable {
       uvAttribName: settings.uvAttributeName,
       samplerName: settings.samplerName,
       target,
-      textureUnit,
+      activeTexture,
     });
   }
 
-  // END WORK IN PROGRESS --------------------
-
   /**
    * Redefine how this Class' data maps onto shader attribute and/or uniform names.
+   * Do not refer to Attributes and Uniforms that are needed if you bindTexture()!
    * Use after swapShader() if the new shader uses different names or data.
    * @param {{
    *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer | null}[];
@@ -257,7 +276,7 @@ export class Drawable {
         tb.samplerName,
         tb.uvBuffer,
         tb.texture,
-        { activeTexture: gl.TEXTURE0 + tb.textureUnit, target: tb.target }
+        { activeTexture: gl.TEXTURE0 + tb.activeTexture, target: tb.target }
       );
     }
 

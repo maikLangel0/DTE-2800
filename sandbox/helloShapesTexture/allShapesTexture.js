@@ -173,7 +173,6 @@ export const main = () => {
   cubeBrick.bindBuffers();
 
 
-
   // MODELMATRIX AND MODELVIEWMATRIX INSTANCIATION
   const matrices = new RenderMatrices();
 
@@ -217,6 +216,8 @@ function animate(renderInfo) {
     fps.updateFps(currentTime);
     animate(renderInfo);
   })
+
+  cubeColor.set([1.0, 1.0, 1.0, 1.0]); 
 
   renderInfo.coords.draw(renderInfo.matrices);
   renderInfo.xzPlane.draw(renderInfo.matrices);
