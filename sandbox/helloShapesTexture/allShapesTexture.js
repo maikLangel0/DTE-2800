@@ -283,7 +283,7 @@ function animate(renderInfo) {
     animate(renderInfo);
   })
 
-  cubeColor.set([0.8, 0.8, 0.8, 0.8]);
+  cubeColor.set([0.8, 0.8, 0.8, 0.7]);
 
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
