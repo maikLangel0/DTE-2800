@@ -46,7 +46,7 @@ export class Drawable {
         image: HTMLImageElement,
         settings: {target: number} |
       instead of it being handled automatically by bindBuffers().
-      Can also have multiple textures on the same object
+      Can also have multiple textures on the same object.
      * @type {{
      * uvBuffer: WebGLBuffer;
      * texture: WebGLTexture;
@@ -57,6 +57,7 @@ export class Drawable {
      }[]} */
     this._textureBindings = [];
 
+    // Should only map the names in the shader to data inside the class.
     /** @type {{
      * name: string;
      * getBuffer: (self: Drawable) => WebGLBuffer | null}[]
@@ -66,6 +67,7 @@ export class Drawable {
       { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
     ];
 
+    // Should only map the names in the shader to data inside the class vaguely (takes RenderMatrices aswell).
     /** @type {{
      * name: string;
      * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[]
