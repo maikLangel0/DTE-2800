@@ -26,6 +26,8 @@ export class Square extends Drawable {
 
     this._vertexCount = this._positions.length / 3;
 
+    this.is2D = true;
+    
     if (color) {
       super.setVertexColors(color);
     }

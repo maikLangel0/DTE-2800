@@ -189,11 +189,7 @@ export class Shader {
       offset: 0
     }) {
     const locationInfo = this.#locations.get(name);
-
-    if (!locationInfo) {
-      console.warn("Cant connect in/attribute named " + name + ". Not found.");
-      return
-    }
+    if (!locationInfo) return; // #getAttribLocationChecked() warns already if the attribute is not found, so I'll just return nothing here
 
     this.#connectAttribute(locationInfo, buffer, settings);
   }
@@ -248,12 +244,8 @@ export class Shader {
    */
   connectUniform(name, data) {
     const locationInfo = this.#locations.get(name);
-
-    if (!locationInfo) {
-      console.warn("Cant connect uniform " + name + ". Not found.");
-      return
-    }
-
+    if (!locationInfo) return; // #getUniformLocationChecked() warns already if the uniform is not found, so I'll just return nothing here
+    
     this.#connectUniform(locationInfo, data);
   }
 

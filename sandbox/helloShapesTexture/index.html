@@ -30,21 +30,23 @@
         void main(void) {
             fragColor = vColor;
         }
-
     </script>
 
     <script id="texture-vert-shader" type="x-shader/x-vertex">#version 300 es
       in vec3 aVertexPosition;
       in vec2 aVertexTextureCoord;
+      in vec2 aDiceTextureCoord;
 
       uniform mat4 uModelViewMatrix;
       uniform mat4 uProjectionMatrix;
 
       out highp vec2 vTextureCoord;
+      out highp vec2 vDiceCoord;
 
       void main() {
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
         vTextureCoord = aVertexTextureCoord;
+        vDiceCoord = aDiceTextureCoord;
 
         gl_PointSize = 10.0;
       }
@@ -54,16 +56,21 @@
       precision highp float;
 
       in highp vec2 vTextureCoord;
+      in highp vec2 vDiceCoord;
 
       uniform sampler2D uSampler0;
       uniform sampler2D uSampler1;
+      uniform sampler2D uSampler2;
+      
       uniform mediump vec4 uColor;
 
       out highp vec4 fragColor;
 
       void main() {
-        vec4 texColor = texture(uSampler0, vTextureCoord) * texture(uSampler1, vTextureCoord);
-        fragColor = texColor;
+        vec4 texColor = texture(uSampler0, vTextureCoord) 
+        * texture(uSampler1, vTextureCoord)
+        * texture(uSampler2, vDiceCoord);
+        fragColor = texColor * uColor;
       }
     </script>
 

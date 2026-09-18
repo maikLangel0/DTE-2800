@@ -22,6 +22,8 @@ export class Triangle extends Drawable {
 
     this._vertexCount = this._positions.length / 3;
 
+    this.is2D = true;
+
     if (color) {
       this.setVertexColors(color);
     }

@@ -1,6 +1,6 @@
-import { Camera } from "../helpers/Camera";
-import { RenderMatrices } from "../helpers/renderMatrices";
-import { Shader } from "../helpers/WebGLShader";
+import { Camera } from "../helpers/Camera.js";
+import { RenderMatrices } from "../helpers/renderMatrices.js";
+import { Shader } from "../helpers/WebGLShader.js";
 
 export class Drawable {
 
@@ -14,9 +14,13 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
-    // THESE ARE PUBLIC BECAUSE IF YOU setShaderRelationship() YOU NEED
-    // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
+    // For culling purposes, if object gets drawn with alpha
+    // and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing
+    /**@type {boolean} */
+    this.is2D = false;
 
+    // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
+    // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
     /**@type {WebGLBuffer | null} */
     this.positionBuffer = null;
     /**@type {WebGLBuffer | null} */
@@ -24,15 +28,26 @@ export class Drawable {
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
 
-    // Textures get handled differently. When binding texture(s), the user
-    // uses the bindTexture() func and passes in
-    //    textureCoordinates: number[],
-    //    image: HTMLImageElement,
-    //    settings: {target: number}
-    // instead of it being handled automatically by bindBuffers().
-    // Can also have multiple textures on the same object
+    /**@type {number[]} */
+    this._positions = [];
+    /**@type {number[]} */
+    this._vertexColors = [];
+    /**@type {number[]} */
+    this._indeces = [];
 
-    /** @type {{
+    /**@type {number} */
+    this._vertexCount = 0;
+    /**@type {number} */
+    this._indexCount = 0;
+
+    /**Textures get handled differently. When binding texture(s), the user
+      uses the bindTexture() func and passes in |
+        textureCoordinates: number[],
+        image: HTMLImageElement,
+        settings: {target: number} |
+      instead of it being handled automatically by bindBuffers().
+      Can also have multiple textures on the same object
+     * @type {{
      * uvBuffer: WebGLBuffer;
      * texture: WebGLTexture;
      * uvAttribName: string;
@@ -41,19 +56,6 @@ export class Drawable {
      * activeTexture: number;
      }[]} */
     this._textureBindings = [];
-    
-    /**@type {number[]} */
-    this._vertexColors = [];
-    /**@type {number[]} */
-    this._positions = [];
-    /**@type {number[]} */
-    this._indeces = [];
-
-
-    /**@type {number} */
-    this._vertexCount = 0;
-    /**@type {number} */
-    this._indexCount = 0;
 
     /** @type {{
      * name: string;
@@ -80,62 +82,19 @@ export class Drawable {
     ];
 
 
-
     if (this.constructor === Drawable) {
       throw Error("Cannot be an abstract class Drawable");
     }
   }
-
-  // FUNCTIONS
-  /** Binds the positionbuffer, and if theyre set in the class impl or 
-   * by the user, it binds the colorbuffer and/or indexbuffer */
-  bindBuffers() {
-    this.bindPositionBuffer();
-
-    if (this._vertexColors.length !== 0) {
-      this.bindColorBuffer();
-    }
-
-    if (this._indeces.length !== 0) {
-      this.bindIndexBuffer();
-    }
-  }
-
-  bindPositionBuffer() {
-    const positionBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, positionBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._positions), this._gl.STATIC_DRAW);
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
-
-    this.positionBuffer = positionBuffer;
-    this._vertexCount = this._positions.length / 3;
-  }
-
-  bindColorBuffer() {
-    const colorBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, colorBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._vertexColors), this._gl.STATIC_DRAW);
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
-
-    this.colorBuffer = colorBuffer;
-  }
-
-  bindIndexBuffer() {
-    const indexBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indeces), this._gl.STATIC_DRAW);
-
-    this.indexBuffer = indexBuffer;
-    this._indexCount = this._indeces.length;
-  }
-
+  // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' "PRIVATE" DATA --------------------
   /**
-   * If you want to alter the vertexPositions of the object. 
+   * If you want to alter the vertexPositions of the object.
    * For example useful when you need a spesific order to bindTexture() with UV.
-   * @param {number[]} positions 
+   * @param {number[]} positions
    */
   setVertexPositions(positions) {
     this._positions = positions;
+    this._vertexCount = positions.length / 3;
   }
 
   /**
@@ -148,7 +107,54 @@ export class Drawable {
       this._vertexColors.push(color.r, color.g, color.b, color.a);
     }
   }
-  
+
+  /**
+   * @param {number[]} indeces
+   */
+  setIndeces(indeces) {
+    this._indeces = indeces;
+    this._indexCount = indeces.length;
+  }
+
+  // BINDING FUNCTIONS --------------------
+  /** Binds the positionbuffer, and if theyre set in the class impl or
+   * by the user, it binds the colorbuffer and/or indexbuffer */
+  bindBuffers() {
+    this.bindPositionBuffer();
+
+    if (this._vertexColors.length !== 0) {
+      this.bindColorBuffer();
+    }
+
+    if (this._indeces.length !== 0) {
+      this.bindIndexBuffer();
+    }
+  }
+  bindPositionBuffer() {
+    const positionBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, positionBuffer);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._positions), this._gl.STATIC_DRAW);
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
+
+    this.positionBuffer = positionBuffer;
+    this._vertexCount = this._positions.length / 3;
+  }
+  bindColorBuffer() {
+    const colorBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, colorBuffer);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._vertexColors), this._gl.STATIC_DRAW);
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
+
+    this.colorBuffer = colorBuffer;
+  }
+  bindIndexBuffer() {
+    const indexBuffer = this._gl.createBuffer();
+    this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indeces), this._gl.STATIC_DRAW);
+
+    this.indexBuffer = indexBuffer;
+    this._indexCount = this._indeces.length;
+  }
   /**
    * @param {number[]} uvCoordinates
    * @param {HTMLImageElement} image
@@ -157,13 +163,13 @@ export class Drawable {
   bindTexture(uvCoordinates, image, settings) {
     const gl = this._gl;
     const target = settings.target ?? gl.TEXTURE_2D;
-  
+
     const texture = gl.createTexture();
     gl.bindTexture(target, texture);
-  
+
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  
+
     gl.texImage2D(
       target,
       0,
@@ -180,19 +186,19 @@ export class Drawable {
     gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
     gl.bindTexture(target, null);
-  
+
     const uvBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
-  
+
     const activeTexture = this._textureBindings.length;
     const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-    
+
     if (activeTexture >= maxUnits) {
-      throw Error(`Cant bind more than ${maxUnits} textures on this GPU`);
+      throw Error(`Cant bind more than ${maxUnits} textures.`);
     }
-  
+
     this._textureBindings.push({
       uvBuffer,
       texture,
@@ -203,6 +209,7 @@ export class Drawable {
     });
   }
 
+  // SHADER SPESIFIC --------------------
   /**
    * Redefine how this Class' data maps onto shader attribute and/or uniform names.
    * Do not refer to Attributes and Uniforms that are needed if you bindTexture()!
@@ -216,7 +223,6 @@ export class Drawable {
     if (attributes) { this._attributeBindings = attributes };
     if (uniforms) { this._uniformBindings = uniforms };
   }
-
   /**
    * @param {Shader} shader
    */
@@ -238,24 +244,13 @@ export class Drawable {
    * @param {boolean} drawAlpha
    */
   draw(matrices, glMode = this._gl.TRIANGLES, drawAlpha = false) {
-    if (!this.positionBuffer) {
-      throw Error("Buffer(s) not instantiated; call bindBuffers() first.");
-    }
-
     const gl = this._gl;
-
     const shader = this._shader;
-    shader.useProgram();
 
-    if (drawAlpha) {
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.depthMask(false);
-    } else {
-      gl.disable(gl.BLEND);
-      gl.disable(gl.CULL_FACE);
-      gl.depthMask(true);
-    }
+    if (!this.positionBuffer)
+      throw Error("Buffer(s) not instantiated; call bindBuffers() first.");
+
+    shader.useProgram();
 
     for (const { name, getBuffer } of this._attributeBindings) {
       const buffer = getBuffer(this);
@@ -280,19 +275,52 @@ export class Drawable {
       );
     }
 
-    this.#drawCall(glMode);
+    this.#drawCall(glMode, drawAlpha);
   }
 
-  /**@param {number} glMode*/
-  #drawCall(glMode) {
-    if (this.indexBuffer && this._indexCount > 0)
-    {
-      this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-      this._gl.drawElements(glMode, this._indexCount, this._gl.UNSIGNED_SHORT, 0);
+  // PRIVATE FUNCTIONS --------------------
+
+  /**
+   * @param {number} glMode
+   * @param {boolean} drawAlpha
+   */
+  #drawCall(glMode, drawAlpha) {
+    const gl = this._gl;
+
+    if (drawAlpha) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+
+      this.is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE);
+    } else {
+      gl.disable(gl.BLEND);
+      gl.disable(gl.CULL_FACE);
+      gl.depthMask(true);
     }
-    else
-    {
-      this._gl.drawArrays(glMode, 0, this._vertexCount);
+
+    if (this.indexBuffer && this._indexCount > 0) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
+      if (drawAlpha && !this.is2D) {
+        gl.cullFace(gl.FRONT); // Hides the front
+        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+
+        gl.cullFace(gl.BACK); // Hides the back
+        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+      } else {
+        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+      }
+    } else {
+      if (drawAlpha && !this.is2D) {
+        gl.cullFace(gl.FRONT); // Hides the front
+        gl.drawArrays(glMode, 0, this._vertexCount);
+
+        gl.cullFace(gl.BACK); // Hides the back
+        gl.drawArrays(glMode, 0, this._vertexCount);
+      } else {
+        gl.drawArrays(glMode, 0, this._vertexCount);
+      }
     }
   }
 }

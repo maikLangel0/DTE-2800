@@ -47,6 +47,8 @@ export class Disc extends Drawable {
     }
 
     this._vertexCount = this._positions.length / 3;
+
+    this.is2D = true;
   }
 
   /**
