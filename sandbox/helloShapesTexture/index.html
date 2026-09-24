@@ -68,15 +68,15 @@
 
       void main() {
         vec4 texColor = texture(uSampler0, vTextureCoord) 
-        * texture(uSampler1, vTextureCoord)
-        * texture(uSampler2, vDiceCoord);
+          * texture(uSampler1, vTextureCoord)
+          * texture(uSampler2, vDiceCoord);
         fragColor = texColor * uColor;
       }
     </script>
 
     <script type="module">
-    'use strict';
-    import {main} from "./allShapesTexture.js";
-    main();
+      'use strict';
+      import {main} from "./allShapesTexture.js";
+      main();
     </script>
 </body>

@@ -18,6 +18,9 @@ export class Drawable {
     // and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing
     /**@type {boolean} */
     this.is2D = false;
+    // For drawing when alpha
+    /**@type {boolean} */
+    this._isAlpha = false;
 
     // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
     // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
@@ -122,6 +125,13 @@ export class Drawable {
   setIndeces(indeces) {
     this._indeces = indeces;
     this._indexCount = indeces.length;
+  }
+
+  /**@param {boolean} bool
+   * Set if the object gets drawn with alpha.
+   */
+  setAlpha(bool) {
+    this._isAlpha = bool;
   }
 
   // BINDING FUNCTIONS --------------------
@@ -230,7 +240,7 @@ export class Drawable {
    *   uniforms?: {name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[];
    * }} relationship
    */
-  relateDataInClassToShader({ attributes, uniforms } = {}) {
+  setShaderRelationship({ attributes, uniforms } = {}) {
     if (attributes) { this._attributeBindings = attributes };
     if (uniforms) { this._uniformBindings = uniforms };
   }
@@ -254,7 +264,7 @@ export class Drawable {
    * @param {number} glMode
    * @param {boolean} drawAlpha
    */
-  draw(matrices, glMode = this._gl.TRIANGLES, drawAlpha = false) {
+  draw(matrices, glMode = this._gl.TRIANGLES) {
     const gl = this._gl;
     const shader = this._shader;
 
@@ -286,19 +296,18 @@ export class Drawable {
       );
     }
 
-    this.#drawCall(glMode, drawAlpha);
+    this.#drawCall(glMode);
   }
 
   // PRIVATE FUNCTIONS --------------------
 
   /**
    * @param {number} glMode
-   * @param {boolean} drawAlpha
    */
-  #drawCall(glMode, drawAlpha) {
+  #drawCall(glMode) {
     const gl = this._gl;
 
-    if (drawAlpha) {
+    if (this._isAlpha) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
@@ -313,7 +322,7 @@ export class Drawable {
     if (this.indexBuffer && this._indexCount > 0) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
-      if (drawAlpha && !this.is2D) {
+      if (this._isAlpha && !this.is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
         gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
 
@@ -323,7 +332,7 @@ export class Drawable {
         gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
       }
     } else {
-      if (drawAlpha && !this.is2D) {
+      if (this._isAlpha && !this.is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
         gl.drawArrays(glMode, 0, this._vertexCount);
 

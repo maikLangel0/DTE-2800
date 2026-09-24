@@ -106,7 +106,7 @@ export const main = () => {
   square.bindBuffers();
 
   const cone = new Cone(gl, coordShader, camera, 20);
-  cone.relateDataInClassToShader({
+  cone.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -118,7 +118,7 @@ export const main = () => {
   cone.bindBuffers();
 
   const disc = new Disc(gl, coordShader, camera, 20);
-  disc.relateDataInClassToShader({
+  disc.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -130,7 +130,7 @@ export const main = () => {
   disc.bindBuffers();
 
   const sphere = new Sphere(gl, coordShader, camera);
-  sphere.relateDataInClassToShader({
+  sphere.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -142,7 +142,7 @@ export const main = () => {
   sphere.bindBuffers();
 
   const triangle = new Triangle(gl, coordShader, camera);
-  triangle.relateDataInClassToShader({
+  triangle.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -154,7 +154,7 @@ export const main = () => {
   triangle.bindBuffers();
 
   const cylinder = new Cylinder(gl, coordShader, camera, 20);
-  cylinder.relateDataInClassToShader({
+  cylinder.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -166,7 +166,7 @@ export const main = () => {
   cylinder.bindBuffers();
 
   const xzPlane = new XZPlane(gl, coordShader, camera, { amount: 100, spacing: 1, length: 50 });
-  xzPlane.relateDataInClassToShader({
+  xzPlane.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -180,7 +180,7 @@ export const main = () => {
   const cube = new Cube(gl, baseShader, camera);
 
   cube.swapShader(coordShader);
-  cube.relateDataInClassToShader({
+  cube.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
@@ -288,7 +288,7 @@ function animate(renderInfo) {
  */
 function drawMain(renderInfo) {
   const gl = renderInfo.gl;
-  
+
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
 
@@ -369,5 +369,7 @@ function drawMain(renderInfo) {
 
   // CENTRAL SQUARE
   modelMatrix.setIdentity();
-  renderInfo.square.draw(matrices, gl.TRIANGLES, true);
+  renderInfo.square.setAlpha(true);
+  renderInfo.square.draw(matrices, gl.TRIANGLES);
+  renderInfo.square.setAlpha(false);
 }

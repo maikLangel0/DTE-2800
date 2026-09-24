@@ -47,7 +47,7 @@ const baseShaderVariables = [
     name: "uProjectionMatrix",
     locationType: LocationType.UNIFORM,
     dataType: DataType.MAT4f
-  },
+  }
 ]
 
 /**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
@@ -114,50 +114,140 @@ brickMetalUvCoords = brickMetalUvCoords.concat(tl, bl, br, tl, br, tr);
 brickMetalUvCoords = brickMetalUvCoords.concat(tl, bl, br, tl, br, tr);
 brickMetalUvCoords = brickMetalUvCoords.concat(tl, bl, br, tl, br, tr);
 
-/**@type {number[]} */
+// CLANKER OUTPUT START --------------------
+/** @type {number[]} */
 let diceUvCoords = [];
 
-//Front (1-tallet):
-let tl1=[0,1];
-let bl1=[0,0.5];
-let tr1=[0.33333,1];
-let br1=[0.33333,0.5];
-diceUvCoords = diceUvCoords.concat(tl1, bl1, br1, tl1, br1, tr1);
+// =========================
+// Front = 1
+// =========================
+//
+// Vertices:
+// 0: (-1,  1, 1) = TL
+// 1: (-1, -1, 1) = BL
+// 2: ( 1, -1, 1) = BR
+// 3: (-1,  1, 1) = TL
+// 4: ( 1, -1, 1) = BR
+// 5: ( 1,  1, 1) = TR
 
-//Høyre side (2-tallet):
-let tl2=[0.33333,1];
-let bl2=[0.33333,0.5];
-let tr2=[0.66666,1];
-let br2=[0.66666,0.5];
-diceUvCoords = diceUvCoords.concat(tl2, bl2, br2, tl2, br2, tr2);
+diceUvCoords = diceUvCoords.concat(
+    [0, 1],       // TL
+    [0, 0.5],     // BL
+    [0.33333, 0.5], // BR
 
-//Baksiden (6-tallet):
-let tl3=[0.66666,0.5];
-let bl3=[0.66666,0];
-let tr3=[1,0.5];
-let br3=[1,0];
-diceUvCoords = diceUvCoords.concat(bl3, br3, tl3, br3, tr3, tl3);
+    [0, 1],       // TL
+    [0.33333, 0.5], // BR
+    [0.33333, 1]  // TR
+);
 
-//Venstre (5-tallet):
-let tl4=[0.33333,0.5];
-let bl4=[0.33333,0];
-let tr4=[0.66666,0.5];
-let br4=[0.66666,0];
-diceUvCoords = diceUvCoords.concat(bl4, tr4, tl4, br4, tr4, bl4);
 
-//Toppen (3-tallet):
-let tl5=[0.66666,1];
-let bl5=[0.66666,0.5];
-let tr5=[1,1];
-let br5=[1,0.5];
-diceUvCoords = diceUvCoords.concat(bl5, br5, tl5, tl5, br5, tr5);
+// =========================
+// Right = 2
+// =========================
+//
+// Vertex order is:
+// A = ( 1,  1,  1)
+// B = ( 1, -1,  1)
+// C = ( 1, -1, -1)
+// D = ( 1,  1, -1)
+//
+// When looking at the right side from outside,
+// A is TR, B is BR, C is BL, D is TL.
 
-//Bunnen (4-tallet):
-let tl6=[0,0.5];
-let bl6=[0,0];
-let tr6=[0.33333,0.5];
-let br6=[0.33333,0];
-diceUvCoords = diceUvCoords.concat(tr6, bl6, br6,tr6,tl6, bl6);
+diceUvCoords = diceUvCoords.concat(
+    [0.66666, 1],   // TR
+    [0.66666, 0.5], // BR
+    [0.33333, 0.5], // BL
+
+    [0.66666, 1],   // TR
+    [0.33333, 0.5], // BL
+    [0.33333, 1]    // TL
+);
+
+
+// =========================
+// Top = 3
+// =========================
+//
+// Vertex order:
+// A = (-1, 1, -1) = TL
+// B = (-1, 1,  1) = BL
+// C = ( 1, 1,  1) = BR
+// D = ( 1, 1, -1) = TR
+
+diceUvCoords = diceUvCoords.concat(
+    [0.66666, 1],   // TL
+    [0.66666, 0.5], // BL
+    [1, 0.5],       // BR
+
+    [0.66666, 1],   // TL
+    [1, 0.5],       // BR
+    [1, 1]          // TR
+);
+
+
+// =========================
+// Left = 5
+// =========================
+//
+// Vertex order:
+// A = (-1,  1, -1) = TL
+// B = (-1, -1, -1) = BL
+// C = (-1, -1,  1) = BR
+// D = (-1,  1,  1) = TR
+
+diceUvCoords = diceUvCoords.concat(
+    [0.33333, 0.5], // TL
+    [0.33333, 0],   // BL
+    [0.66666, 0],   // BR
+
+    [0.33333, 0.5], // TL
+    [0.66666, 0],   // BR
+    [0.66666, 0.5]  // TR
+);
+
+
+// =========================
+// Back = 6
+// =========================
+//
+// Vertex order:
+// A = ( 1,  1, -1) = TR
+// B = ( 1, -1, -1) = BR
+// C = (-1, -1, -1) = BL
+// D = (-1,  1, -1) = TL
+
+diceUvCoords = diceUvCoords.concat(
+    [1, 0.5],       // TR
+    [1, 0],         // BR
+    [0.66666, 0],   // BL
+
+    [1, 0.5],       // TR
+    [0.66666, 0],   // BL
+    [0.66666, 0.5]  // TL
+);
+
+
+// =========================
+// Bottom = 4
+// =========================
+//
+// Vertex order:
+// A = (-1, -1,  1) = TL
+// B = (-1, -1, -1) = BL
+// C = ( 1, -1, -1) = BR
+// D = ( 1, -1,  1) = TR
+
+diceUvCoords = diceUvCoords.concat(
+    [0, 0.5],       // TL
+    [0, 0],         // BL
+    [0.33333, 0],   // BR
+
+    [0, 0.5],       // TL
+    [0.33333, 0],   // BR
+    [0.33333, 0.5]  // TR
+);
+// CLANKER OUTPUT END --------------------
 
 let xzPlaneColor = new Color([0.0, 0.4, 0.4, 1.0]);
 let cubeColor = new Color([1.0, 0.45, 0.9, 1.0]);
@@ -203,7 +293,7 @@ export const main = () => {
   xzPlane.bindBuffers();
 
   const cubeBrick = new Cube(gl, texShader, camera);
-  cubeBrick.relateDataInClassToShader({
+  cubeBrick.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
     ],
@@ -220,6 +310,7 @@ export const main = () => {
       }},
     ]
   })
+  cubeBrick.setAlpha(true);
 
   cubeBrick.bindTexture(brickMetalUvCoords, brickImage, {
     uvAttributeName: "aVertexTextureCoord",
@@ -238,7 +329,6 @@ export const main = () => {
   })
   cubeBrick.bindBuffers();
 
-
   // MODELMATRIX AND MODELVIEWMATRIX INSTANCIATION
   const matrices = new RenderMatrices();
 
@@ -254,7 +344,7 @@ export const main = () => {
     coords: coords,
     xzPlane: xzPlane,
     cubeBrick: cubeBrick,
-  }
+    }
 
   animate(renderInfo);
 }
@@ -283,11 +373,12 @@ function animate(renderInfo) {
     animate(renderInfo);
   })
 
-  cubeColor.set([0.8, 0.8, 0.8, 0.7]);
+  cubeColor.set([1.0, 0.8, 0.8, 0.8]);
 
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
-  const gl = renderInfo.gl;
+
+  // Drawing --------------------
 
   modelMatrix.setIdentity();
 
@@ -295,7 +386,7 @@ function animate(renderInfo) {
   renderInfo.xzPlane.draw(matrices);
 
   modelMatrix.setIdentity();
-  modelMatrix.translate(0, 1.01, 0);
+  modelMatrix.translate(0, 1.001, 0);
 
-  renderInfo.cubeBrick.draw(matrices, gl.TRIANGLES, true);
+  renderInfo.cubeBrick.draw(matrices);
 }
