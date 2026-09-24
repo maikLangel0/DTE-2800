@@ -232,12 +232,36 @@ export class Drawable {
 
   // SHADER SPESIFIC --------------------
   /**
-   * Redefine how this Class' data maps onto shader attribute and/or uniform names.
-   * DO NOT SET UNIFORMS OR ATTRIBUTES THAT ARE NEEDED WHEN YOU bindTexture()!
-   * Use after swapShader() if the new shader uses different names or data.
+   * Defines what data each shader variable should use.
+   *
+   * Shader variables can point to:
+   *
+   * - Data inside this class:
+   *   `getBuffer = (it) => { it.positionBuffer }`
+   *
+   * - Data outside this class:
+   *   `getValue = () => { color.raw }`
+   *
+   * **Important**
+   *
+   * Do not set uniforms or attributes that are needed when calling
+   * `bindTexture()`.
+   *
+   * Call this after `swapShader()` if the new shader uses different variable
+   * names or data.
+   *
    * @param {{
-   *   attributes?: {name: string; getBuffer: (self: Drawable) => WebGLBuffer | null}[];
-   *   uniforms?: {name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[];
+   *   attributes?: {
+   *     name: string;
+   *     getBuffer: (self: Drawable) => WebGLBuffer | null;
+   *   }[];
+   *   uniforms?: {
+   *     name: string;
+   *     getValue: (
+   *       self: Drawable,
+   *       matrices: RenderMatrices
+   *     ) => Float32Array | number;
+   *   }[];
    * }} relationship
    */
   setShaderRelationship({ attributes, uniforms } = {}) {
