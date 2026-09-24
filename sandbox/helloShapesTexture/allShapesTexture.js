@@ -140,7 +140,6 @@ diceUvCoords = diceUvCoords.concat(
     [0.33333, 1]  // TR
 );
 
-
 // =========================
 // Right = 2
 // =========================
@@ -155,15 +154,14 @@ diceUvCoords = diceUvCoords.concat(
 // A is TR, B is BR, C is BL, D is TL.
 
 diceUvCoords = diceUvCoords.concat(
-    [0.66666, 1],   // TR
+    [0.33333, 1],   // TL
+    [0.33333, 0.5], // BL
     [0.66666, 0.5], // BR
-    [0.33333, 0.5], // BL
 
-    [0.66666, 1],   // TR
-    [0.33333, 0.5], // BL
-    [0.33333, 1]    // TL
+    [0.33333, 1],   // TL
+    [0.66666, 0.5], // BR
+    [0.66666, 1]    // TR
 );
-
 
 // =========================
 // Top = 3
@@ -185,7 +183,6 @@ diceUvCoords = diceUvCoords.concat(
     [1, 1]          // TR
 );
 
-
 // =========================
 // Left = 5
 // =========================
@@ -206,7 +203,6 @@ diceUvCoords = diceUvCoords.concat(
     [0.66666, 0.5]  // TR
 );
 
-
 // =========================
 // Back = 6
 // =========================
@@ -218,15 +214,14 @@ diceUvCoords = diceUvCoords.concat(
 // D = (-1,  1, -1) = TL
 
 diceUvCoords = diceUvCoords.concat(
-    [1, 0.5],       // TR
+    [0.66666, 0.5], // TL
+    [0.66666, 0],   // BL
     [1, 0],         // BR
-    [0.66666, 0],   // BL
 
-    [1, 0.5],       // TR
-    [0.66666, 0],   // BL
-    [0.66666, 0.5]  // TL
+    [0.66666, 0.5], // TL
+    [1, 0],         // BR
+    [1, 0.5]        // TR
 );
-
 
 // =========================
 // Bottom = 4
@@ -275,7 +270,7 @@ export const main = () => {
     }, {
       // camPos
       x: 10,
-      y: 0,
+      y: 5,
       z: 5,
     }
   );
@@ -385,8 +380,11 @@ function animate(renderInfo) {
   renderInfo.coords.draw(matrices);
   renderInfo.xzPlane.draw(matrices);
 
+  const factor = 3;
+
   modelMatrix.setIdentity();
-  modelMatrix.translate(0, 1.001, 0);
+  modelMatrix.translate(0, 0.01 + factor, 0);
+  modelMatrix.scale(factor, factor, factor);
 
   renderInfo.cubeBrick.draw(matrices);
 }

@@ -83,7 +83,7 @@ export class Drawable {
           modelViewMatrix.multiply(matrices.modelMatrix);
 
           return modelViewMatrix.elements }},
-      { name: "uProjectionMatrix", getValue: (self, _) => {return self.camera.projectionMatrix.elements} },
+      { name: "uProjectionMatrix", getValue: (self) => {return self.camera.projectionMatrix.elements} },
     ];
 
 
@@ -119,9 +119,7 @@ export class Drawable {
     this._vertexColors = colors;
   }
 
-  /**
-   * @param {number[]} indeces
-   */
+  /**@param {number[]} indeces */
   setIndeces(indeces) {
     this._indeces = indeces;
     this._indexCount = indeces.length;
