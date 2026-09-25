@@ -390,7 +390,7 @@ function animate(renderInfo) {
     x: 0,
     y: 0.01,
     z: 0
-  });
+  }, fps.dt);
 
   modelMatrix.setIdentity();
   modelMatrix.translate(1, 0, 1);
