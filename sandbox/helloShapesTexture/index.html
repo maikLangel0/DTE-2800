@@ -43,7 +43,7 @@
       out highp vec2 vTextureCoord;
       out highp vec2 vDiceCoord;
 
-      void main() {
+      void main() {        
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
         vTextureCoord = aVertexTextureCoord;
         vDiceCoord = aDiceTextureCoord;
@@ -70,6 +70,7 @@
         vec4 texColor = texture(uSampler0, vTextureCoord) 
           * texture(uSampler1, vTextureCoord)
           * texture(uSampler2, vDiceCoord);
+
         fragColor = texColor * uColor;
       }
     </script>

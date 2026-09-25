@@ -68,8 +68,12 @@ export class Camera {
   }
 
   /**@param {{x: number; y: number; z: number;}} pos */
-  setPosition(pos) {
+  setWorldPosition(pos) {
     this.#camPos = pos;
+  }
+  /** @returns {{x: number; y: number; z: number;}} */
+  getWorldPosition() {
+    return this.#camPos;
   }
 
   /**@param {{x: number; y: number; z: number;}} lookAt */

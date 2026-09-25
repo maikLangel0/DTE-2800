@@ -14,6 +14,14 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
+    // Storing the position so you can possibly calc the dist to camera
+    /**@type {{x: number; y: number; z: number;}} */
+    this._worldPosition = { x: 0, y: 0, z: 0 };
+    // Own copy of the matrices needed to render because of TORS order when translating
+    // the _worldPosition so its done in the correct order
+    /**@type {RenderMatrices} */
+    this._matrices = new RenderMatrices();
+
     // For culling purposes, if object gets drawn with alpha
     // and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing
     /**@type {boolean} */
@@ -130,6 +138,11 @@ export class Drawable {
    */
   setAlpha(bool) {
     this._isAlpha = bool;
+  }
+
+  /**@param {{x: number; y: number; z: number}} pos  */
+  setWorldPosition(pos) {
+    this._worldPosition = pos;
   }
 
   // BINDING FUNCTIONS --------------------
@@ -282,9 +295,21 @@ export class Drawable {
   }
 
   /**
+   * Gets the distance from the object center to the cameras world-position.
+  @returns {number} */
+  getDistanceToCamera() {
+    const camPos = this.camera.getWorldPosition();
+
+    return Math.sqrt(
+      (this._worldPosition.x - camPos.x) ** 2 +
+      (this._worldPosition.y - camPos.y) ** 2 +
+      (this._worldPosition.z - camPos.z) ** 2
+    )
+  }
+
+  /**
    * @param {RenderMatrices} matrices
    * @param {number} glMode
-   * @param {boolean} drawAlpha
    */
   draw(matrices, glMode = this._gl.TRIANGLES) {
     const gl = this._gl;
@@ -295,6 +320,16 @@ export class Drawable {
 
     shader.useProgram();
 
+    // Setting the translation of the worldPosition of the object into local matrices
+    this._matrices.modelMatrix.setIdentity();
+    this._matrices.modelMatrix.translate(
+      this._worldPosition.x,
+      this._worldPosition.y,
+      this._worldPosition.z
+    );
+    this._matrices.modelMatrix.multiply(matrices.modelMatrix);
+    this._matrices.modelViewMatrix = matrices.modelViewMatrix;
+
     for (const { name, getBuffer } of this._attributeBindings) {
       const buffer = getBuffer(this);
       if (!buffer) {
@@ -304,7 +339,7 @@ export class Drawable {
     }
 
     for (const { name, getValue } of this._uniformBindings) {
-      const value = getValue(this, matrices);
+      const value = getValue(this, this._matrices);
       shader.connectUniform(name, value);
     }
 

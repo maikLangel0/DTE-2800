@@ -247,6 +247,8 @@ diceUvCoords = diceUvCoords.concat(
 let xzPlaneColor = new Color([0.0, 0.4, 0.4, 1.0]);
 let cubeColor = new Color([1.0, 0.45, 0.9, 1.0]);
 
+const CUBEBRICK_SCALEFACTOR = 3;
+
 export const main = () => {
   const canvas = new WebGLCanvas("canvas", 720, 720);
   const aspectRatio = canvas.aspectRatio;
@@ -305,6 +307,11 @@ export const main = () => {
       }},
     ]
   })
+  cubeBrick.setWorldPosition({
+    x: 0,
+    y: 0.01 + CUBEBRICK_SCALEFACTOR,
+    z: 0
+  });
   cubeBrick.setAlpha(true);
 
   cubeBrick.bindTexture(brickMetalUvCoords, brickImage, {
@@ -380,11 +387,14 @@ function animate(renderInfo) {
   renderInfo.coords.draw(matrices);
   renderInfo.xzPlane.draw(matrices);
 
-  const factor = 3;
-
   modelMatrix.setIdentity();
-  modelMatrix.translate(0, 0.01 + factor, 0);
-  modelMatrix.scale(factor, factor, factor);
-
+  modelMatrix.translate(1, 0, 1);
+  modelMatrix.rotate(45, 0, 1, 0);
+  modelMatrix.scale(
+    CUBEBRICK_SCALEFACTOR,
+    CUBEBRICK_SCALEFACTOR,
+    CUBEBRICK_SCALEFACTOR
+  );
+  
   renderInfo.cubeBrick.draw(matrices);
 }
