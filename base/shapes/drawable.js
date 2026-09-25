@@ -144,6 +144,14 @@ export class Drawable {
   setWorldPosition(pos) {
     this._worldPosition = pos;
   }
+  /**
+   * @param {{x: number; y: number; z: number}} pos  
+   * @param {number} dt  */
+  updateWorldPosition(pos, dt = 0.016) {
+    this._worldPosition.x += pos.x * dt;
+    this._worldPosition.y += pos.y * dt;
+    this._worldPosition.z += pos.z * dt;
+  }
 
   // BINDING FUNCTIONS --------------------
   /** Binds the positionbuffer, and if theyre set in the class impl or

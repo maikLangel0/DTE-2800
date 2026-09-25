@@ -244,6 +244,7 @@ diceUvCoords = diceUvCoords.concat(
 );
 // CLANKER OUTPUT END --------------------
 
+let canvasColor = new Color([0.8, 0.8, 0.8, 1.0]);
 let xzPlaneColor = new Color([0.0, 0.4, 0.4, 1.0]);
 let cubeColor = new Color([1.0, 0.45, 0.9, 1.0]);
 
@@ -335,7 +336,6 @@ export const main = () => {
   const matrices = new RenderMatrices();
 
   const renderInfo = {
-    gl: gl,
     canvas: canvas,
     camera: camera,
     matrices: matrices,
@@ -353,7 +353,6 @@ export const main = () => {
 
 /**
  * @param {{
- *  gl: WebGL2RenderingContext,
  *  canvas: WebGLCanvas;
  *  camera: Camera;
  *  matrices: RenderMatrices;
@@ -367,7 +366,7 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
-  renderInfo.canvas.clear({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
+  renderInfo.canvas.clear(canvasColor.rgba);
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
 
   window.requestAnimationFrame((currentTime) => {
@@ -387,6 +386,12 @@ function animate(renderInfo) {
   renderInfo.coords.draw(matrices);
   renderInfo.xzPlane.draw(matrices);
 
+  renderInfo.cubeBrick.updateWorldPosition({
+    x: 0,
+    y: 0.01,
+    z: 0
+  });
+
   modelMatrix.setIdentity();
   modelMatrix.translate(1, 0, 1);
   modelMatrix.rotate(45, 0, 1, 0);
@@ -395,6 +400,6 @@ function animate(renderInfo) {
     CUBEBRICK_SCALEFACTOR,
     CUBEBRICK_SCALEFACTOR
   );
-  
+
   renderInfo.cubeBrick.draw(matrices);
 }
