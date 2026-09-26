@@ -4,7 +4,7 @@ export class KeyManager {
 
   constructor() {
     /**@type {Record<string, boolean>}*/
-    this.keysPressed = [];
+    this.keysPressed = {};
     this.#events = new Map();
 
     document.addEventListener('keyup', (event) => {
@@ -16,9 +16,9 @@ export class KeyManager {
     });
   }
 
-  /**@param {string} eventCode
+  /**If key of eventCode gets held down, execute the callback
+   * @param {string} eventCode
    * @param {(dt: number) => void} callback
-   * If key of eventCode gets held down, execute the callback
    */
   setEventOn(eventCode, callback) {
     this.#events.set(eventCode, callback);

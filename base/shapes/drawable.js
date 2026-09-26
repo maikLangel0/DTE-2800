@@ -81,7 +81,7 @@ export class Drawable {
     // Should only map the names in the shader to data inside the class vaguely (takes RenderMatrices aswell).
     /** @type {{
      * name: string;
-     * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number}[]
+     * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[]
      } */
     this._uniformBindings = [
       { name: "uModelViewMatrix", getValue: (self, matrices) => {
@@ -151,6 +151,11 @@ export class Drawable {
     this._worldPosition.x += pos.x * dt;
     this._worldPosition.y += pos.y * dt;
     this._worldPosition.z += pos.z * dt;
+  }
+
+  /**@returns {{x: number; y: number; z: number}} */
+  getWorldPosition() {
+    return this._worldPosition;
   }
 
   // BINDING FUNCTIONS --------------------
@@ -279,7 +284,7 @@ export class Drawable {
    *     getValue: (
    *       self: Drawable,
    *       matrices: RenderMatrices
-   *     ) => Float32Array | number;
+   *     ) => Float32Array | number[] |number;
    *   }[];
    * }} relationship
    */

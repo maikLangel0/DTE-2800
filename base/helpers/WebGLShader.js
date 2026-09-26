@@ -240,7 +240,7 @@ export class Shader {
 
   /**
    * @param {string} name
-   * @param {Float32Array | number} data
+   * @param {Float32Array | number[] | number} data
    */
   connectUniform(name, data) {
     const locationInfo = this.#locations.get(name);
@@ -354,7 +354,7 @@ export class Shader {
 
   /**
    * @param {DataType} type
-   * @param {WebGLBuffer | Float32Array | number} data
+   * @param {WebGLBuffer | Float32Array | number[] | number} data
    * @returns {boolean}
    */
   #isDataTypeCompatible(type, data) {
@@ -456,7 +456,7 @@ export class Shader {
 
   /**
    * @param {{location: WebGLUniformLocation, dataType: DataType}} locationInfo
-   * @param {Float32Array | number} data
+   * @param {Float32Array | number[] | number} data
   */
   #connectUniform(locationInfo, data) {
     const gl = this.#gl; // for ease-of-use
@@ -464,6 +464,7 @@ export class Shader {
     const type = locationInfo.dataType;
     const location = locationInfo.location;
 
+    // This guarantees that gl.uniform*() gets correct data of possible type
     if (!this.#isDataTypeCompatible(type, data)) {
       throw Error(`DataType: ${type} not compatible with data: ${data}`);
     }

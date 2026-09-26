@@ -75,9 +75,42 @@
       }
     </script>
 
+    <script id="tree-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+      in vec2 aVertexTextureCoord;
+    
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+    
+      out highp vec2 vTextureCoord;
+    
+      void main() {        
+        gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aVertexTextureCoord;
+    
+        gl_PointSize = 10.0;
+      }
+    </script>
+
+    <script id="tree-frag-shader" type="x-shader/x-fragment">#version 300 es 
+      precision highp float;
+    
+      in highp vec2 vTextureCoord;
+
+      uniform sampler2D uSampler0;
+      uniform mediump vec4 uColor;
+
+      out highp vec4 fragColor;
+
+      void main() {
+        vec4 texColor = texture(uSampler0, vTextureCoord);
+        fragColor = texColor * uColor;
+      }
+    </script>
+
     <script type="module">
       'use strict';
-      import {main} from "./allShapesTexture.js";
+      import {main} from "./multiTextured.js";
       main();
     </script>
 </body>

@@ -1,18 +1,19 @@
 export class FpsInfo {
   #previousTime;
   #frameCount;
-  #dtTotal;
+  #dtInterval;
   #fpsInDoc;
 
-  /**
-   * @param {string} idInHtml 
-   */
+  /**@param {string} idInHtml */
   constructor(idInHtml) {
+    /** Time between previous frame and current frame. @type {number} */
     this.dt = 0;
+    /** Total time since start of program. @type {number}*/
+    this.totalTime = 0;
 
+    this.#dtInterval = 0;
     this.#previousTime = 0;
     this.#frameCount = 0;
-    this.#dtTotal = 0;
 
     const fpsInDoc = document.getElementById(idInHtml);
     if (!fpsInDoc) {
@@ -22,29 +23,28 @@ export class FpsInfo {
     this.#fpsInDoc = fpsInDoc;
   }
 
-  /**
-   * @param {number} everyXseconds 
-   */
+  /**@param {number} everyXseconds */
   showFps(everyXseconds = 1.0) {
-    if (this.#dtTotal >= everyXseconds) {
+    
+    if (this.#dtInterval >= everyXseconds) {
       const fps = Math.round(this.#frameCount);
-      
       this.#fpsInDoc.innerHTML = `FPS: ${fps}`;
-      
-      this.#dtTotal = 0;
+
+      this.#dtInterval = 0;
       this.#frameCount = 0;
     }
   }
 
   /**
-   * Call this inside the renderLoop to update what 
+   * Call this inside the renderLoop to update the fps.
    * @param {number} currentTime 
    */
   updateFps(currentTime) {
     this.dt = (currentTime - this.#previousTime) / 1000;
+    this.totalTime += this.dt;
   
     this.#previousTime = currentTime;
-    this.#dtTotal += this.dt;
+    this.#dtInterval += this.dt;
     this.#frameCount++;
   }
 
