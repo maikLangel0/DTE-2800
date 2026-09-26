@@ -116,7 +116,7 @@ export class Camera {
    * @param {number} dt
    * @param {number} degrees
    */
-  handleKeys(currentlyPressedKeys, dt, degrees = 2) {
+  handleKeys(currentlyPressedKeys, dt = 0.016, degrees = 2) {
     let camPosVec = vec3.fromValues(this.#camPos.x, this.#camPos.y, this.#camPos.z);
     const deltaMove = degrees * dt * 100;
 

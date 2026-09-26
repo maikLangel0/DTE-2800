@@ -145,9 +145,9 @@ export class Drawable {
     this._worldPosition = pos;
   }
   /**
-   * @param {{x: number; y: number; z: number}} pos  
+   * @param {{x: number; y: number; z: number}} pos
    * @param {number} dt  */
-  updateWorldPosition(pos, dt = 0.016) {
+  updateWorldPosition(pos, dt = 0.016) { // dt default at 60fps
     this._worldPosition.x += pos.x * dt;
     this._worldPosition.y += pos.y * dt;
     this._worldPosition.z += pos.z * dt;

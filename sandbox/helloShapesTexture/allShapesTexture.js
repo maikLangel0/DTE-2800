@@ -335,18 +335,28 @@ export const main = () => {
   // MODELMATRIX AND MODELVIEWMATRIX INSTANCIATION
   const matrices = new RenderMatrices();
 
+  const keyManager = new KeyManager();
+
   const renderInfo = {
     canvas: canvas,
     camera: camera,
     matrices: matrices,
 
     fpsInfo: new FpsInfo("fps"),
-    keyManager: new KeyManager(),
+    keyManager: keyManager,
 
     coords: coords,
     xzPlane: xzPlane,
     cubeBrick: cubeBrick,
-    }
+    animations: { cubeBrickRotationY: 0 }
+  }
+  
+  keyManager.setEventOn("KeyJ", (dt) => { 
+    renderInfo.animations.cubeBrickRotationY += 100 * dt % 360;
+  })
+  keyManager.setEventOn("KeyK", (dt) => { 
+    renderInfo.animations.cubeBrickRotationY -= 100 * dt % 360;
+  })
 
   animate(renderInfo);
 }
@@ -360,14 +370,17 @@ export const main = () => {
  *  keyManager: KeyManager;
  *  coords: Coords;
  *  xzPlane: XZPlane;
- *  cubeBrick: Cube}} renderInfo
+ *  cubeBrick: Cube
+ *  animations: { cubeBrickRotationY: number }}} renderInfo
  */
 function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
   renderInfo.canvas.clear(canvasColor.rgba);
+
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
+  renderInfo.keyManager.handleEvents(fps.dt);
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
@@ -393,7 +406,8 @@ function animate(renderInfo) {
   }, fps.dt);
 
   modelMatrix.setIdentity();
-  modelMatrix.translate(1, 0, 1);
+  modelMatrix.translate(10, 0, 10);
+  modelMatrix.rotate(renderInfo.animations.cubeBrickRotationY, 0, 1, 0);
   modelMatrix.rotate(45, 0, 1, 0);
   modelMatrix.scale(
     CUBEBRICK_SCALEFACTOR,
