@@ -76,15 +76,14 @@ export class MatrixStack {
     translateDirections,
     rotationsAround = [],
    ) {
-    let modelMatrix = this.peek(); // Parents' modelMatrix
+    let modelMatrix = this.peek(); // Parent modelMatrix
 
     this.#translateOn(modelMatrix, parentDimentions, translateDirections);
     this.#rotateOn(modelMatrix, rotationsAround);
     this.#translateOn(modelMatrix, childDimentions, translateDirections);
 
-    this.push(modelMatrix); // Now its the childs' modelMatrix
+    this.push(modelMatrix); // Now it's the child modelMatrix
   }
-
 
   // PRIVATE HELPERS --------------------
 

@@ -292,8 +292,9 @@ let g_treeColor = new Color([0.59, 0.29, 0.0, 1.0]);
 
 const CUBEBRICK_SCALEFACTOR = 0.33;
 
-const STEM = { x: 0.1, y: 3, z: 0.1 }
-const BRANCH = { x: 0.04, y: 1, z: 0.04 }
+const STEM = { x: 0.2, y: 3, z: 0.2 }
+const BRANCH = { x: 0.1, y: 1, z: 0.1 }
+const LEAF = { x: 0.05, y: 0.3, z: 0.05 };
 
 export const main = () => {
   const canvas = new WebGLCanvas("canvas", 720, 720);
@@ -429,7 +430,7 @@ export const main = () => {
     treePiece: treePiece,
 
     animations: { cubeBrickRotationY: 0 },
-    treeAnimations: { stemRotationZ: 0, branchRotationZ: 5, leafRotationZ: 3 },
+    treeAnimations: { stemRotationZ: 0, branchRotationZ: 0, leafRotationZ: 0 },
   }
 
   keyManager.setEventOn("KeyJ", (dt) => {
@@ -449,6 +450,12 @@ export const main = () => {
   })
   keyManager.setEventOn("KeyP", (dt) => {
     renderInfo.treeAnimations.branchRotationZ -= 25 * dt % 360;
+  })
+  keyManager.setEventOn("KeyM", (dt) => {
+    renderInfo.treeAnimations.leafRotationZ += 25 * dt % 360;
+  })
+  keyManager.setEventOn("KeyN", (dt) => {
+    renderInfo.treeAnimations.leafRotationZ -= 25 * dt % 360;
   })
 
   animate(renderInfo);
@@ -542,7 +549,6 @@ function drawTree(renderInfo) {
 
   // ROOT IN ALL OF TREE
   modelMatrix.setIdentity();
-
   matrixStack.push(modelMatrix);
 
   matrixStack.createChildAndPush(
@@ -551,21 +557,39 @@ function drawTree(renderInfo) {
     [TranslateDirection.UP],
     [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.stemRotationZ }]
   );
-
   drawTreePart(renderInfo, STEM);
 
-  g_treeColor.set([0.05, 0.9, 0.05, 1.0]);
   for (const dist of [1, 0, -1]) {
+    g_treeColor.set([0.79, 0.52, 0.05, 1.0]);
+
     matrixStack.createChildAndPush(
       STEM,
       BRANCH,
       [TranslateDirection.UP],
-      [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.branchRotationZ * dist }]
+      [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.branchRotationZ - (dist * 30) }]
     );
-
     drawTreePart(renderInfo, BRANCH);
+
+    g_treeColor.set([0.05, 0.9, 0.05, 0.5]);
+    renderInfo.treePiece.setAlpha(true);
+    
+    for (const j of [1, 0, -1]) {
+      matrixStack.createChildAndPush(
+        BRANCH,
+        LEAF,
+        [TranslateDirection.UP],
+        [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.leafRotationZ - (j * 30) }]
+      )
+      drawTreePart(renderInfo, LEAF);
+
+      matrixStack.pop();
+    }
+    renderInfo.treePiece.setAlpha(false);
+
     matrixStack.pop();
   }
+
+  matrixStack.pop();
 }
 
 /**
