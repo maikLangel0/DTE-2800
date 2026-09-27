@@ -1,6 +1,7 @@
 import { Camera } from "../helpers/Camera.js";
 import { RenderMatrices } from "../helpers/renderMatrices.js";
 import { Shader } from "../helpers/WebGLShader.js";
+import { Matrix4 } from "../lib/cuon-matrix.js";
 
 export class Drawable {
 
@@ -138,6 +139,16 @@ export class Drawable {
    */
   setAlpha(bool) {
     this._isAlpha = bool;
+  }
+
+  /**Copies the **mat** into the object.
+   * @param {Matrix4} mat */
+  setModelMatrix(mat) {
+    this._matrices.modelMatrix = new Matrix4(mat);
+  }
+
+  setModelMatrixIdentity() {
+    this._matrices.modelMatrix.setIdentity();
   }
 
   /**@param {{x: number; y: number; z: number}} pos  */

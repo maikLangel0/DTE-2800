@@ -6,6 +6,7 @@ export class ImageLoader {
 	constructor() {
 	}
 
+	/**@param {string[]} urls  */
 	load(urls) {
     const promises = [];
     const images = [];

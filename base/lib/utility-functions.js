@@ -1,4 +1,4 @@
-import { Matrix4 } from "./cuon-matrix";
+import { Matrix4 } from "./cuon-matrix.js";
 
 /**
  * Creates listeners for keyup and keydown events, and

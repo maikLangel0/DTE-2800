@@ -29,11 +29,14 @@ export class MatrixStack {
     this.#stack.push(copy);
   }
 
+  /**@returns {Matrix4} */
   pop() {
-    if (this.#stack.length === 0) {
+    const popped = this.#stack.pop();
+    
+    if (!popped) {
       throw Error("MatrixStack is empty so it can't pop.");
     }
-    this.#stack.pop();
+    return popped;
   }
 
   /**@returns {Matrix4} */
@@ -64,11 +67,11 @@ export class MatrixStack {
   }
 
   /**
-   * Translations happen instantly, while rotations can happen over time given the **angle** in **rotationsAround.
+   * Translations happen instantly, while rotations can happen over time given the **angle** in **rotationsAround**.
    * @param {{x: number; y: number; z: number;}} parentDimentions
    * @param {{x: number; y: number; z: number;}} childDimentions
-   * @param {TranslateDirection[]} translateDirections
-   * @param {{around: RotateAround, angle: number}[]} rotationsAround
+   * @param {("up" | "down" | "left" | "right" | "front" | "back")[]} translateDirections
+   * @param {{around: ("x" | "y" | "z"); angle: number}[]} rotationsAround
    */
   createChildAndPush(
     parentDimentions,
@@ -90,7 +93,7 @@ export class MatrixStack {
   /**
    * @param {Matrix4} matrix
    * @param {{x: number; y: number; z: number;}} dimentions
-   * @param {TranslateDirection[]} translateDirections
+   * @param {("up" | "down" | "left" | "right" | "front" | "back")[]} translateDirections
    */
   #translateOn(matrix, dimentions, translateDirections) {
     const halfDimentions = { x: dimentions.x / 2, y: dimentions.y / 2, z: dimentions.z / 2 }
@@ -126,7 +129,7 @@ export class MatrixStack {
 
   /**
    * @param {Matrix4} matrix
-   * @param {{around: RotateAround, angle: number}[]} rotationsAround
+   * @param {{around: ("x" | "y" | "z"); angle: number}[]} rotationsAround
    */
   #rotateOn(matrix, rotationsAround) {
     for (let {around, angle} of rotationsAround) {

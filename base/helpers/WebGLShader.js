@@ -79,7 +79,7 @@ export class Shader {
   }
 
   /**
-   * @param {{name: string; locationType: LocationType, dataType: DataType}[]} locationInfo
+   * @param {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} locationInfo
    */
   findLocations(locationInfo) {
     for (let info of locationInfo) {
@@ -318,7 +318,7 @@ export class Shader {
   }
 
   /**
-   * @param {{name: string; locationType: LocationType; dataType: DataType}} info
+   * @param {{name: string; locationType: ("in" | "uniform"); dataType: DataType}} info
    */
   #findLocation(info) {
     /**@type {WebGLUniformLocation | number | null} */

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<head>
+    <header>Oblig dva</header>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <p id="fps"></p>
+    <hr>
+    <p>CAMERA | WASD to move; VB to zoom</p>
+    <p>BASE | RE to rotate around Y axis</p>
+    <dl>
+        <dt>JOINTS:</dt>
+        <dd>ALL JOINTS | OP to rotate around Z axis</dd>
+        <dd>JOINT1 | NM to rotate around Z axis</dd>
+        <dd>JOINT2 | JK to rotate around Z axis</dd>
+        <dd>JOINT3 | UI to rotate around Z axis</dd>
+    </dl>
+    <p>FINGERS | ZX to pinch around Z axis</p>
+
+    <script id="crane-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+      in vec2 aVertexTextureCoord;
+
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+
+      out highp vec2 vTextureCoord;
+
+      void main() {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aVertexTextureCoord;
+
+        gl_PointSize = 10.0;
+      }
+    </script>
+
+    <script id="crane-frag-shader" type="x-shader/x-fragment">#version 300 es
+      precision highp float;
+
+      in highp vec2 vTextureCoord;
+
+      uniform sampler2D uSampler0;
+      uniform mediump vec4 uColor;
+
+      out highp vec4 fragColor;
+
+      void main() {
+        vec4 texColor = texture(uSampler0, vTextureCoord);
+        fragColor = texColor * uColor;
+      }
+    </script>
+
+    <script type="module">
+      'use strict';
+      import {main} from "./oblig2.js";
+      main();
+    </script>
+</body>

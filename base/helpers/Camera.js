@@ -47,18 +47,25 @@ export class Camera {
     this.#set();
   }
   #set() {
-    // ViewMatrix is your is a 4x4 matrix containing where your cam is positioned,
-    // where it looks, and what up is defined as. The reason it is a 4x4 matrix and
-    // not a 3x3 is because the extra rows allows for translation and perspective
-    // projection only using matrix multiplication.
+    this.#setViewMatrix();
+    this.#setProjectionMatrix();
+  }
+
+  // ViewMatrix is your is a 4x4 matrix containing where your cam is positioned,
+  // where it looks, and what up is defined as. The reason it is a 4x4 matrix and
+  // not a 3x3 is because the extra rows allows for translation and perspective
+  // projection only using matrix multiplication.
+  #setViewMatrix() {
     this.viewMatrix.setLookAt(
       this.#camPos.x, this.#camPos.y, this.#camPos.z,
       this.#lookAt.x, this.#lookAt.y, this.#lookAt.z,
       this.#up.x, this.#up.y, this.#up.z
     );
+  }
 
-    // ProjectionMatrix is how the world is percieved through the "lens" of the camera.
-    // It does a translation
+  // ProjectionMatrix is how the world is percieved through the "lens" of the camera.
+  // It does a translation
+  #setProjectionMatrix() {
     this.projectionMatrix.setPerspective(
       this.#projectionOptions.fov,
       this.#projectionOptions.aspectRatio,
@@ -70,6 +77,7 @@ export class Camera {
   /**@param {{x: number; y: number; z: number;}} pos */
   setWorldPosition(pos) {
     this.#camPos = pos;
+    this.#setViewMatrix();
   }
   /** @returns {{x: number; y: number; z: number;}} */
   getWorldPosition() {
@@ -79,11 +87,13 @@ export class Camera {
   /**@param {{x: number; y: number; z: number;}} lookAt */
   setLookAt(lookAt) {
     this.#lookAt = lookAt;
+    this.#setViewMatrix();
   }
 
   /**@param {{x: number; y: number; z: number;}} up */
   setUp(up) {
     this.#up = up;
+    this.#setViewMatrix();
   }
 
   setprojectionOptions(options = {
@@ -93,21 +103,25 @@ export class Camera {
     far: 10000,
   }) {
     this.#projectionOptions = options;
+    this.#setProjectionMatrix();
   }
 
   /**@param {number} fov  */
   setFov(fov) {
     this.#projectionOptions.fov = fov;
+    this.#setProjectionMatrix();
   }
 
   /**@param {number} near  */
   setNear(near) {
     this.#projectionOptions.near = near;
+    this.#setProjectionMatrix();
   }
 
   /**@param {number} far  */
   setFar(far) {
     this.#projectionOptions.far = far;
+    this.#setProjectionMatrix();
   }
 
   /**

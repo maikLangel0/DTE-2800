@@ -10,6 +10,8 @@ import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader.j
 import { Matrix4 } from "../../base/lib/cuon-matrix.js";
 import { Coords } from "../../base/shapes/coord.js";
 import { Cube } from "../../base/shapes/cube.js";
+import { Cylinder } from "../../base/shapes/cylinder.js";
+import { Drawable } from "../../base/shapes/drawable.js";
 import { Square } from "../../base/shapes/square.js";
 import { XZPlane } from "../../base/shapes/xzPlane.js";
 
@@ -32,7 +34,7 @@ const imageLoader = new ImageLoader();
 /**@type {[HTMLImageElement, HTMLImageElement, HTMLImageElement]} */
 const [brickImage, metalImage, diceImage] = await imageLoader.load(textureUrls);
 
-/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+/**@type {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} */
 const baseShaderVariables = [
   {
     name: "aVertexPosition",
@@ -56,7 +58,7 @@ const baseShaderVariables = [
   }
 ]
 
-/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+/**@type {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} */
 const texShaderVariables = [
   {
     name: "aVertexPosition",
@@ -105,7 +107,7 @@ const texShaderVariables = [
   },
 ]
 
-/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+/**@type {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} */
 const treeShaderVariables = [
   {
     name: "aVertexPosition",
@@ -294,10 +296,10 @@ const CUBEBRICK_SCALEFACTOR = 0.33;
 
 const STEM = { x: 0.2, y: 3, z: 0.2 }
 const BRANCH = { x: 0.1, y: 1, z: 0.1 }
-const LEAF = { x: 0.05, y: 0.3, z: 0.05 };
+const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 720, 720);
+  const canvas = new WebGLCanvas("canvas", 900, 900);
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
@@ -409,6 +411,33 @@ export const main = () => {
   });
   treePiece.bindBuffers();
 
+  const stem = new Cylinder(gl, treeShader, camera, 12);
+  stem.setShaderRelationship({
+    attributes: [
+      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+    ],
+    uniforms: [
+      { name: "uColor", getValue: () => g_treeColor.raw },
+      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
+      {
+        name: "uModelViewMatrix", getValue: (self, matrices) => {
+          const modelViewMatrix = matrices.modelViewMatrix;
+
+          modelViewMatrix.set(self.camera.viewMatrix);
+          modelViewMatrix.multiply(matrices.modelMatrix);
+
+          return modelViewMatrix.elements
+        }
+      },
+    ]
+  });
+  stem.bindTexture(brickMetalUvCoords, brickImage, {
+    uvAttributeName: "aVertexTextureCoord",
+    samplerName: "uSampler0",
+    target: gl.TEXTURE_2D,
+  });
+  stem.bindBuffers();
+
   // MODELMATRIX AND MODELVIEWMATRIX INSTANCIATION
   const matrices = new RenderMatrices();
 
@@ -416,6 +445,7 @@ export const main = () => {
   const matrixStack = new MatrixStack();
 
   const renderInfo = {
+    gl: gl,
     canvas: canvas,
     camera: camera,
     matrices: matrices,
@@ -427,34 +457,42 @@ export const main = () => {
     coords: coords,
     xzPlane: xzPlane,
     cubeBrick: cubeBrick,
+    treeStem: stem,
     treePiece: treePiece,
 
     animations: { cubeBrickRotationY: 0 },
-    treeAnimations: { stemRotationZ: 0, branchRotationZ: 0, leafRotationZ: 0 },
+    treeAnimations: {
+      stemRotationZ: 0,
+      stemBaseRotationZ: 0,
+      branchRotationZ: 0,
+      branchBaseRotationZ: 0,
+      leafRotationZ: 0,
+      leafBaseRotationZ: 0
+    },
   }
 
-  keyManager.setEventOn("KeyJ", (dt) => {
+  keyManager.setEventOn("KeyZ", (dt) => {
     renderInfo.animations.cubeBrickRotationY += 100 * dt % 360;
   })
-  keyManager.setEventOn("KeyK", (dt) => {
+  keyManager.setEventOn("KeyX", (dt) => {
     renderInfo.animations.cubeBrickRotationY -= 100 * dt % 360;
   })
-  keyManager.setEventOn("KeyU", (dt) => {
+  keyManager.setEventOn("KeyN", (dt) => {
     renderInfo.treeAnimations.stemRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyI", (dt) => {
+  keyManager.setEventOn("KeyM", (dt) => {
     renderInfo.treeAnimations.stemRotationZ -= 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyO", (dt) => {
+  keyManager.setEventOn("KeyJ", (dt) => {
     renderInfo.treeAnimations.branchRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyP", (dt) => {
+  keyManager.setEventOn("KeyK", (dt) => {
     renderInfo.treeAnimations.branchRotationZ -= 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyM", (dt) => {
+  keyManager.setEventOn("KeyU", (dt) => {
     renderInfo.treeAnimations.leafRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyN", (dt) => {
+  keyManager.setEventOn("KeyI", (dt) => {
     renderInfo.treeAnimations.leafRotationZ -= 25 * dt % 360;
   })
 
@@ -463,6 +501,7 @@ export const main = () => {
 
 /**
  * @param {{
+ *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
  *  matrices: RenderMatrices;
@@ -472,9 +511,18 @@ export const main = () => {
  *  coords: Coords;
  *  xzPlane: XZPlane;
  *  cubeBrick: Cube;
+ *  treeStem: Cylinder;
  *  treePiece: Square;
  *  animations: { cubeBrickRotationY: number }
- *  treeAnimations: {stemRotationZ: number; branchRotationZ: number; leafRotationZ: number;}}} renderInfo
+ *  treeAnimations: {
+ *    stemRotationZ: number;
+ *    stemBaseRotationZ: number;
+ *    branchRotationZ: number;
+ *    branchBaseRotationZ: number;
+ *    leafRotationZ: number;
+ *    leafBaseRotationZ: number;
+ *  }
+ * }} renderInfo
  */
 function animate(renderInfo) {
   const matrices = renderInfo.matrices;
@@ -503,6 +551,7 @@ function animate(renderInfo) {
   renderInfo.xzPlane.draw(matrices);
 
   // TREEDRAW ENTRYPOINT
+  animateTree(renderInfo.treeAnimations, fps.totalTime);
   drawTree(renderInfo);
   renderInfo.matrixStack.empty();
 
@@ -528,6 +577,7 @@ function animate(renderInfo) {
 
 /**
  * @param {{
+ *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
  *  matrices: RenderMatrices;
@@ -537,15 +587,25 @@ function animate(renderInfo) {
  *  coords: Coords;
  *  xzPlane: XZPlane;
  *  cubeBrick: Cube;
+ *  treeStem: Cylinder;
  *  treePiece: Square;
  *  animations: { cubeBrickRotationY: number }
- *  treeAnimations: {stemRotationZ: number; branchRotationZ: number; leafRotationZ: number;}}} renderInfo
+ *  treeAnimations: {
+ *    stemRotationZ: number;
+ *    stemBaseRotationZ: number;
+ *    branchRotationZ: number;
+ *    branchBaseRotationZ: number;
+ *    leafRotationZ: number;
+ *    leafBaseRotationZ: number;
+ *  }
+ * }} renderInfo
  */
 function drawTree(renderInfo) {
-  g_treeColor.set([0.59, 0.29, 0.0, 1.0]);
-
+  const matrices = renderInfo.matrices;
+  const modelMatrix = matrices.modelMatrix;
   const matrixStack = renderInfo.matrixStack;
-  const modelMatrix = renderInfo.matrices.modelMatrix;
+  
+  const treeAnimations = renderInfo.treeAnimations;
 
   // ROOT IN ALL OF TREE
   modelMatrix.setIdentity();
@@ -555,68 +615,98 @@ function drawTree(renderInfo) {
     { x: 0, y: 0, z: 0 },
     STEM,
     [TranslateDirection.UP],
-    [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.stemRotationZ }]
+    [
+      {
+        around: RotateAround.Z,
+        angle: treeAnimations.stemRotationZ + treeAnimations.stemBaseRotationZ
+      }
+    ]
   );
-  drawTreePart(renderInfo, STEM);
 
-  for (const dist of [1, 0, -1]) {
-    g_treeColor.set([0.79, 0.52, 0.05, 1.0]);
+  for (const dist of [3,2, 1, 0, -1, -2, -3]) {
+    g_treeColor.set([0.89, 0.42, 0.15, 1.0]); // Color for the BRANCH
 
     matrixStack.createChildAndPush(
       STEM,
       BRANCH,
       [TranslateDirection.UP],
-      [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.branchRotationZ - (dist * 30) }]
+      [
+        {
+          around: RotateAround.Z,
+          angle: treeAnimations.branchRotationZ + treeAnimations.branchBaseRotationZ - (dist * 25)
+        }
+      ]
     );
-    drawTreePart(renderInfo, BRANCH);
 
-    g_treeColor.set([0.05, 0.9, 0.05, 0.5]);
-    renderInfo.treePiece.setAlpha(true);
-    
+    const modelMatrixPart = matrixStack.peek(); 
+    drawTreePart(modelMatrixPart, matrices, BRANCH, renderInfo.treePiece);
+
+    g_treeColor.set([0.05, 0.9, 0.05, 0.5]); // Color for the LEAF
+    renderInfo.treePiece.setAlpha(true); // Should draw LEAF with alpha
+
     for (const j of [1, 0, -1]) {
       matrixStack.createChildAndPush(
         BRANCH,
         LEAF,
         [TranslateDirection.UP],
-        [{ around: RotateAround.Z, angle: renderInfo.treeAnimations.leafRotationZ - (j * 30) }]
+        [
+          {
+            around: RotateAround.Z,
+            angle: treeAnimations.leafRotationZ + treeAnimations.leafBaseRotationZ - (j * 30)
+          }
+        ]
       )
-      drawTreePart(renderInfo, LEAF);
-
-      matrixStack.pop();
+      
+      const modelMatrixPart = matrixStack.pop(); 
+      drawTreePart(modelMatrixPart, matrices, LEAF, renderInfo.treePiece);
     }
-    renderInfo.treePiece.setAlpha(false);
-
+    renderInfo.treePiece.setAlpha(false); // Turn off alpha when LEAF finished drawing
     matrixStack.pop();
   }
 
-  matrixStack.pop();
+  g_treeColor.set([0.59, 0.29, 0.0, 1.0]); // Color for the STEM
+
+  // Cylinder goes from 1 -> 0, instead of 1 -> -1 like Square,
+  // so need to translate and scale appropriately
+  const modelMatrixPart = matrixStack.pop();
+  modelMatrixPart.translate(0, -STEM.y / 2, 0);
+  modelMatrixPart.scale(1, 2, 1);
+  
+  drawTreePart(modelMatrixPart, matrices, STEM, renderInfo.treeStem);
+}
+
+/**
+ * @param {Matrix4} modelMatrix  
+ * @param {RenderMatrices} matrices
+ * @param {{x: number; y: number; z: number;}} dimentions
+ * @param {Drawable} drawable 
+ */
+function drawTreePart(modelMatrix, matrices, dimentions, drawable) {
+  modelMatrix.scale(
+    dimentions.x / 2,
+    dimentions.y / 2,
+    dimentions.z / 2
+  );
+
+  matrices.modelMatrix.multiply(modelMatrix);
+  drawable.draw(matrices);
+  matrices.modelMatrix.setIdentity();
 }
 
 /**
  * @param {{
- *  canvas: WebGLCanvas;
- *  camera: Camera;
- *  matrices: RenderMatrices;
- *  fpsInfo: FpsInfo;
- *  keyManager: KeyManager;
- *  matrixStack: MatrixStack;
- *  coords: Coords;
- *  xzPlane: XZPlane;
- *  cubeBrick: Cube;
- *  treePiece: Square;
- *  animations: { cubeBrickRotationY: number }
- *  treeAnimations: {stemRotationZ: number; branchRotationZ: number; leafRotationZ: number;}}} renderInfo
- * @param {{x: number; y: number; z: number;}} dimentions
- */
-function drawTreePart(renderInfo, dimentions) {
-  const halfDim = { x: dimentions.x / 2, y: dimentions.y / 2, z: dimentions.z / 2 };
-
-  const modelMatrixCopy = renderInfo.matrixStack.peek();
-  const matrices = new RenderMatrices();
-
-  modelMatrixCopy.scale(halfDim.x, halfDim.y, halfDim.z);
-  matrices.modelMatrix = modelMatrixCopy;
-
-  renderInfo.treePiece.draw(matrices)
-  matrices.modelMatrix.setIdentity();
+ *    stemRotationZ: number;
+ *    stemBaseRotationZ: number;
+ *    branchRotationZ: number;
+ *    branchBaseRotationZ: number;
+ *    leafRotationZ: number;
+ *    leafBaseRotationZ: number;
+ * }} treeAnimations
+ * @param {number} time
+ * @param {number} amplitude
+*/
+function animateTree(treeAnimations, time, amplitude = 8) {
+  treeAnimations.stemBaseRotationZ = amplitude * Math.sin(time);
+  treeAnimations.branchBaseRotationZ = amplitude * Math.sin(time + 1);
+  treeAnimations.leafBaseRotationZ = amplitude * Math.sin(time + 2);
 }
