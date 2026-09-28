@@ -27,13 +27,16 @@ export class Drawable {
   #is2D;
 
   /**@type {number[]} */
-  #positions;
+  #vertices;
   /**@type {number[]} */
   #vertexColors;
   /**@type {number[]} */
   #indeces;
 
-  /**@type {number} */
+  /** Name is a tad misleading, as when drawing with e.g gl.LINES, it gets set to
+   *
+   * *this.#vertices.length*, not *this.#vertices.length / 3*.
+   * @type {number} */
   #vertexCount;
   /**@type {number} */
   #indexCount;
@@ -74,7 +77,7 @@ export class Drawable {
     this.#isAlpha = false;
     this.#is2D = false;
 
-    this.#positions = [];
+    this.#vertices = [];
     this.#vertexColors = [];
     this.#indeces = [];
 
@@ -122,6 +125,7 @@ export class Drawable {
     }
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
+
   /**
    * If you want to alter the vertexPositions of the object.
    * Useful when you need a spesific order to bindTexture() with UV.
@@ -129,11 +133,17 @@ export class Drawable {
    * Uses glMode to also set the vertexCount.
    *
    * Call setGLMode(glMode) before this function to set correct vertexCount.
-   * @param {number[]} positions
+   * @param {number[]} vertices
    */
-  setVertices(positions) {
-    this.#positions = positions;
+  setVertices(vertices) {
+    this.#vertices = vertices;
     this.setVertexCount();
+  }
+
+  /** Useful when you want to .setVertexColors(colors) and need the vertexCount to size your colors correctly.
+   * @returns {number} */
+  getVertexCount() {
+    return this.#vertices.length / 3;
   }
 
   /**
@@ -143,9 +153,9 @@ export class Drawable {
    */
   setVertexCount() {
     if (this.#glMode === this.#gl.LINES) {
-      this.#vertexCount = this.#positions.length;
+      this.#vertexCount = this.#vertices.length;
     } else {
-      this.#vertexCount = this.#positions.length / 3;
+      this.#vertexCount = this.#vertices.length / 3;
     }
   }
 
@@ -240,11 +250,11 @@ export class Drawable {
   bindPositionBuffer() {
     const positionBuffer = this.#gl.createBuffer();
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, positionBuffer);
-    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#positions), this.#gl.STATIC_DRAW);
+    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertices), this.#gl.STATIC_DRAW);
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
     this.positionBuffer = positionBuffer;
-    this.#vertexCount = this.#positions.length / 3;
+    this.#vertexCount = this.#vertices.length / 3;
   }
   bindColorBuffer() {
     const colorBuffer = this.#gl.createBuffer();
@@ -364,9 +374,9 @@ export class Drawable {
 
   log() {
     if (this.indexBuffer) {
-      console.log(`Positions: ${this.#positions} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
+      console.log(`Positions: ${this.#vertices} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
     } else {
-      console.log(`Positions: ${this.#positions} | Colors: ${this.#vertexColors}`)
+      console.log(`Positions: ${this.#vertices} | Colors: ${this.#vertexColors}`)
     }
   }
 
