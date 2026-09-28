@@ -1,5 +1,4 @@
 import { Camera } from "../helpers/Camera.js";
-import { RenderMatrices } from "../helpers/renderMatrices.js";
 import { Shader } from "../helpers/WebGLShader.js";
 import { Drawable } from "./drawable.js";
 

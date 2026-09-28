@@ -15,16 +15,21 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
-    /**Storing the position so you can possibly calc the dist to camera. @type {{x: number; y: number; z: number;}} */
+    /**Storing the position so you can possibly calc the dist to camera.
+     * @type {{x: number; y: number; z: number;}} */
     this._worldPosition = { x: 0, y: 0, z: 0 };
-    /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order. @type {RenderMatrices} */
+    /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order.
+     * @type {RenderMatrices} */
     this._matrices = new RenderMatrices();
 
-    /**What mode to draw with. @type {number} */
+    /**What mode to draw with.
+     * @type {number} */
     this._glMode = gl.TRIANGLES;
-    /**For drawing when alpha. @type {boolean} */
+    /**For drawing when alpha.
+     * @type {boolean} */
     this._isAlpha = false;
-    /**For culling purposes, if object gets drawn with alpha and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing. @type {boolean} */
+    /**For culling purposes, if object gets drawn with alpha and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing.
+    * @type {boolean} */
     this._is2D = false;
 
     // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
@@ -353,9 +358,7 @@ export class Drawable {
     )
   }
 
-  /**
-   * @param {RenderMatrices} matrices
-   */
+  /**@param {RenderMatrices} matrices */
   draw(matrices) {
     const gl = this._gl;
     const shader = this._shader;

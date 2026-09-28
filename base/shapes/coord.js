@@ -1,5 +1,4 @@
 import { Camera } from "../helpers/Camera.js";
-import { RenderMatrices } from "../helpers/renderMatrices.js";
 import { Shader } from "../helpers/WebGLShader.js";
 import { Drawable } from "./drawable.js";
 
@@ -14,7 +13,7 @@ export class Coords extends Drawable {
     super(gl, shader, camera);
 
     this.setGLMode(gl.LINES);
-    
+
     this.setVertices([
       -length, 0, 0,
       length, 0, 0,
@@ -33,6 +32,6 @@ export class Coords extends Drawable {
       0, 0, 1, 1
     ]);
 
-    this.is2D = true;
+    this._is2D = true;
   }
 }
