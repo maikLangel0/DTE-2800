@@ -39,13 +39,31 @@ export class Drawable {
   #indexCount;
 
   /**
+   * Textures get handled differently. When binding texture(s), the user uses the bindTexture() func and passes in
+   *
+   * *textureCoordinates: number[],
+   * image: HTMLImageElement,
+   * settings: {target: number}*
+   *
+   * instead of it being handled automatically by bindBuffers().
+   * Can also have multiple textures on the same object.
+   *
+   * @type {{
+   * uvBuffer: WebGLBuffer;
+   * texture: WebGLTexture;
+   * uvAttribName: string;
+   * samplerName: string;
+   * target: number;
+   * activeTexture: number;
+  }[]} */
+  #textureBindings;
+
+  /**
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
    * @param {Camera} camera
    */
   constructor(gl, shader, camera) {
-    this.camera = camera; // Public so that setShaderRelationship can access the matrices of the camera if need be.
-
     this.#gl = gl;
     this.#shader = shader;
 
@@ -63,8 +81,14 @@ export class Drawable {
     this.#vertexCount = 0;
     this.#indexCount = 0;
 
-    // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
-    // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
+    this.#textureBindings = [];
+
+    // PUBLIC VARIABLES --------------------
+
+    /** This variable is public so that you can access the camera when you e.g do .setShaderRelationship()
+     * @type {Camera} */
+    this.camera = camera;
+
     /**@type {WebGLBuffer | null} */
     this.positionBuffer = null;
     /**@type {WebGLBuffer | null} */
@@ -72,32 +96,15 @@ export class Drawable {
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
 
-    /**Textures get handled differently. When binding texture(s), the user
-      uses the bindTexture() func and passes in |
-        textureCoordinates: number[],
-        image: HTMLImageElement,
-        settings: {target: number} |
-      instead of it being handled automatically by bindBuffers().
-      Can also have multiple textures on the same object.
-     * @type {{
-     * uvBuffer: WebGLBuffer;
-     * texture: WebGLTexture;
-     * uvAttribName: string;
-     * samplerName: string;
-     * target: number;
-     * activeTexture: number;
-     }[]} */
-    this.textureBindings = [];
-
-    // Should only map the names in the shader to data inside the class.
-    /** @type { { name: string; getBuffer: (self: Drawable) => WebGLBuffer | null }[] } */
+    /** This variable is public so that you can reuse previous attributeBindings when you e.g do .setShaderRelationship()
+     * @type { { name: string; getBuffer: (self: Drawable) => WebGLBuffer | null }[] } */
     this.attributeBindings = [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
       { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
     ];
 
-    // Should only map the names in the shader to data inside the class vaguely (takes RenderMatrices aswell).
-    /** @type { { name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[] } */
+    /** This variable is public so that you can reuse previous uniformBindings when you e.g do .setShaderRelationship()
+     * @type { { name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[] } */
     this.uniformBindings = [
       { name: "uModelViewMatrix", getValue: (self, matrices) => {
           const modelViewMatrix = matrices.modelViewMatrix;
@@ -292,14 +299,14 @@ export class Drawable {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    const activeTexture = this.textureBindings.length;
+    const activeTexture = this.#textureBindings.length;
     const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
 
     if (activeTexture >= maxUnits) {
       throw Error(`Cant bind more than ${maxUnits} textures.`);
     }
 
-    this.textureBindings.push({
+    this.#textureBindings.push({
       uvBuffer,
       texture,
       uvAttribName: settings.uvAttributeName,
@@ -309,7 +316,7 @@ export class Drawable {
     });
   }
   unbindTextures() {
-    this.textureBindings = [];
+    this.#textureBindings = [];
   }
 
   // SHADER SPESIFIC --------------------
@@ -409,7 +416,7 @@ export class Drawable {
       shader.connectUniform(name, value);
     }
 
-    for (const tb of this.textureBindings) {
+    for (const tb of this.#textureBindings) {
       shader.connectTexture(
         tb.uvAttribName,
         tb.samplerName,
