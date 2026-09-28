@@ -140,7 +140,8 @@ export class Drawable {
     this.setVertexCount();
   }
 
-  /** Useful when you want to .setVertexColors(colors) and need the vertexCount to size your colors correctly.
+  /**
+   * Useful when you want to .setVertexColors(colors) and need the vertexCount to size your colors correctly.
    * @returns {number} */
   getVertexCount() {
     return this.#vertices.length / 3;
