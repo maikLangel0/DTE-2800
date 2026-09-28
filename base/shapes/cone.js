@@ -42,7 +42,7 @@ export class Cone extends Drawable {
     this.setVertices(positions);
 
     if (color) {
-      super.setVertexColorSingle(color);
+      this.setVertexColorSingle(color);
     }
   }
 }

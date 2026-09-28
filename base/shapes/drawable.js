@@ -4,7 +4,35 @@ import { Shader } from "../helpers/WebGLShader.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
 
 export class Drawable {
+  /**Storing the position so you can possibly calc the dist to camera.
+  * @type {{x: number; y: number; z: number;}} */
+  #worldPosition;
+  /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order.
+  * @type {RenderMatrices} */
+  #matrices;
 
+  /**What mode to draw with.
+  * @type {number} */
+  #glMode;
+  /**For drawing when alpha.
+  * @type {boolean} */
+  #isAlpha;
+  /**For culling purposes, if object gets drawn with alpha and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing.
+  * @type {boolean} */
+  #is2D;
+
+  /**@type {number[]} */
+  #positions;
+  /**@type {number[]} */
+  #vertexColors;
+  /**@type {number[]} */
+  #indeces;
+
+  /**@type {number} */
+  #vertexCount;
+  /**@type {number} */
+  #indexCount;
+  
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
@@ -15,23 +43,20 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
-    /**Storing the position so you can possibly calc the dist to camera.
-     * @type {{x: number; y: number; z: number;}} */
-    this._worldPosition = { x: 0, y: 0, z: 0 };
-    /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order.
-     * @type {RenderMatrices} */
-    this._matrices = new RenderMatrices();
+    this.#worldPosition = { x: 0, y: 0, z: 0 };
+    this.#matrices = new RenderMatrices();
 
-    /**What mode to draw with.
-     * @type {number} */
-    this._glMode = gl.TRIANGLES;
-    /**For drawing when alpha.
-     * @type {boolean} */
-    this._isAlpha = false;
-    /**For culling purposes, if object gets drawn with alpha and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing.
-    * @type {boolean} */
-    this._is2D = false;
+    this.#glMode = gl.TRIANGLES;
+    this.#isAlpha = false;
+    this.#is2D = false;
 
+    this.#positions = [];
+    this.#vertexColors = [];
+    this.#indeces = [];
+
+    this.#vertexCount = 0;
+    this.#indexCount = 0;
+    
     // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
     // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
     /**@type {WebGLBuffer | null} */
@@ -40,18 +65,6 @@ export class Drawable {
     this.colorBuffer = null;
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
-
-    /**@type {number[]} */
-    this._positions = [];
-    /**@type {number[]} */
-    this._vertexColors = [];
-    /**@type {number[]} */
-    this._indeces = [];
-
-    /**@type {number} */
-    this._vertexCount = 0;
-    /**@type {number} */
-    this._indexCount = 0;
 
     /**Textures get handled differently. When binding texture(s), the user
       uses the bindTexture() func and passes in |
@@ -68,14 +81,11 @@ export class Drawable {
      * target: number;
      * activeTexture: number;
      }[]} */
-    this._textureBindings = [];
+    this.textureBindings = [];
 
     // Should only map the names in the shader to data inside the class.
-    /** @type {{
-     * name: string;
-     * getBuffer: (self: Drawable) => WebGLBuffer | null}[]
-     } */
-    this._attributeBindings = [
+    /** @type { { name: string; getBuffer: (self: Drawable) => WebGLBuffer | null }[] } */
+    this.attributeBindings = [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
       { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
     ];
@@ -85,7 +95,7 @@ export class Drawable {
      * name: string;
      * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[]
      } */
-    this._uniformBindings = [
+    this.uniformBindings = [
       { name: "uModelViewMatrix", getValue: (self, matrices) => {
           const modelViewMatrix = matrices.modelViewMatrix;
 
@@ -112,20 +122,20 @@ export class Drawable {
    * @param {number[]} positions
    */
   setVertices(positions) {
-    this._positions = positions;
+    this.#positions = positions;
     this.setVertexCount();
   }
 
   /**
-   * Sets the vertexCount based on this._glMode.
+   * Sets the vertexCount based on this.#glMode.
    *
    * If you update the drawMode/glMode using .setGLMode(glMode), use this function to set/update the vertexCount.
    */
   setVertexCount() {
-    if (this._glMode === this._gl.LINES) {
-      this._vertexCount = this._positions.length;
+    if (this.#glMode === this._gl.LINES) {
+      this.#vertexCount = this.#positions.length;
     } else {
-      this._vertexCount = this._positions.length / 3;
+      this.#vertexCount = this.#positions.length / 3;
     }
   }
 
@@ -133,30 +143,30 @@ export class Drawable {
    * @param {{r: number;g: number;b: number;a: number;}} color
    */
   setVertexColorSingle(color) {
-    this._vertexColors = [];
+    this.#vertexColors = [];
 
-    for (let i = 0; i < this._vertexCount; i++) {
-      this._vertexColors.push(color.r, color.g, color.b, color.a);
+    for (let i = 0; i < this.#vertexCount; i++) {
+      this.#vertexColors.push(color.r, color.g, color.b, color.a);
     }
   }
 
   /**@param {number[]} colors  */
   setVertexColors(colors) {
     if (colors.length % 4 !== 0) console.warn("SetVertexColors recieved a list not divisible by 4 (rbga).");
-    this._vertexColors = colors;
+    this.#vertexColors = colors;
   }
 
   /**@param {number[]} indeces */
   setIndeces(indeces) {
-    this._indeces = indeces;
-    this._indexCount = indeces.length;
+    this.#indeces = indeces;
+    this.#indexCount = indeces.length;
   }
 
   /**@param {boolean} bool
    * Set if the object gets drawn with alpha.
    */
   setAlpha(bool) {
-    this._isAlpha = bool;
+    this.#isAlpha = bool;
   }
 
   /**
@@ -165,36 +175,43 @@ export class Drawable {
    * If you're dynamically changing the GLMode, remember to resize the vertexCount using .setVertexCount() .
    * @param {number} glMode */
   setGLMode(glMode) {
-    this._glMode = glMode;
+    this.#glMode = glMode;
+  }
+
+  /**@param {boolean} bool
+   * Set if the object is 2D or not for culling purposes.
+   */
+  is2D(bool) {
+    this.#is2D = bool;
   }
 
   /**Copies the **mat** into the object.
    * @param {Matrix4} mat */
   setModelMatrix(mat) {
-    this._matrices.modelMatrix = new Matrix4(mat);
+    this.#matrices.modelMatrix = new Matrix4(mat);
   }
 
   setModelMatrixIdentity() {
-    this._matrices.modelMatrix.setIdentity();
+    this.#matrices.modelMatrix.setIdentity();
   }
 
   /**@param {{x: number; y: number; z: number}} pos  */
   setWorldPosition(pos) {
-    this._worldPosition = pos;
+    this.#worldPosition = pos;
   }
 
   /**
    * @param {{x: number; y: number; z: number}} pos
    * @param {number} dt defaults for 60fps*/
   updateWorldPosition(pos, dt = 0.016) {
-    this._worldPosition.x += pos.x * dt;
-    this._worldPosition.y += pos.y * dt;
-    this._worldPosition.z += pos.z * dt;
+    this.#worldPosition.x += pos.x * dt;
+    this.#worldPosition.y += pos.y * dt;
+    this.#worldPosition.z += pos.z * dt;
   }
 
   /**@returns {{x: number; y: number; z: number}} */
   getWorldPosition() {
-    return this._worldPosition;
+    return this.#worldPosition;
   }
 
   // BINDING FUNCTIONS --------------------
@@ -202,27 +219,27 @@ export class Drawable {
   bindBuffers() {
     this.bindPositionBuffer();
 
-    if (this._vertexColors.length !== 0) {
+    if (this.#vertexColors.length !== 0) {
       this.bindColorBuffer();
     }
 
-    if (this._indeces.length !== 0) {
+    if (this.#indeces.length !== 0) {
       this.bindIndexBuffer();
     }
   }
   bindPositionBuffer() {
     const positionBuffer = this._gl.createBuffer();
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, positionBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._positions), this._gl.STATIC_DRAW);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this.#positions), this._gl.STATIC_DRAW);
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
 
     this.positionBuffer = positionBuffer;
-    this._vertexCount = this._positions.length / 3;
+    this.#vertexCount = this.#positions.length / 3;
   }
   bindColorBuffer() {
     const colorBuffer = this._gl.createBuffer();
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, colorBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this._vertexColors), this._gl.STATIC_DRAW);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this.#vertexColors), this._gl.STATIC_DRAW);
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
 
     this.colorBuffer = colorBuffer;
@@ -230,10 +247,10 @@ export class Drawable {
   bindIndexBuffer() {
     const indexBuffer = this._gl.createBuffer();
     this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indeces), this._gl.STATIC_DRAW);
+    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.#indeces), this._gl.STATIC_DRAW);
 
     this.indexBuffer = indexBuffer;
-    this._indexCount = this._indeces.length;
+    this.#indexCount = this.#indeces.length;
   }
   /**
    * @param {number[]} uvCoordinates
@@ -272,14 +289,14 @@ export class Drawable {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    const activeTexture = this._textureBindings.length;
+    const activeTexture = this.textureBindings.length;
     const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
 
     if (activeTexture >= maxUnits) {
       throw Error(`Cant bind more than ${maxUnits} textures.`);
     }
 
-    this._textureBindings.push({
+    this.textureBindings.push({
       uvBuffer,
       texture,
       uvAttribName: settings.uvAttributeName,
@@ -289,7 +306,7 @@ export class Drawable {
     });
   }
   unbindTextures() {
-    this._textureBindings = [];
+    this.textureBindings = [];
   }
 
   // SHADER SPESIFIC --------------------
@@ -327,21 +344,19 @@ export class Drawable {
    * }} relationship
    */
   setShaderRelationship({ attributes, uniforms } = {}) {
-    if (attributes) { this._attributeBindings = attributes };
-    if (uniforms) { this._uniformBindings = uniforms };
+    if (attributes) { this.attributeBindings = attributes };
+    if (uniforms) { this.uniformBindings = uniforms };
   }
-  /**
-   * @param {Shader} shader
-   */
+  /** @param {Shader} shader */
   swapShader(shader) {
     this._shader = shader;
   }
 
   log() {
     if (this.indexBuffer) {
-      console.log(`Positions: ${this._positions} | Indeces: ${this._indeces} | Colors: ${this._vertexColors}`)
+      console.log(`Positions: ${this.#positions} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
     } else {
-      console.log(`Positions: ${this._positions} | Colors: ${this._vertexColors}`)
+      console.log(`Positions: ${this.#positions} | Colors: ${this.#vertexColors}`)
     }
   }
 
@@ -352,9 +367,9 @@ export class Drawable {
     const camPos = this.camera.getWorldPosition();
 
     return Math.sqrt(
-      (this._worldPosition.x - camPos.x) ** 2 +
-      (this._worldPosition.y - camPos.y) ** 2 +
-      (this._worldPosition.z - camPos.z) ** 2
+      (this.#worldPosition.x - camPos.x) ** 2 +
+      (this.#worldPosition.y - camPos.y) ** 2 +
+      (this.#worldPosition.z - camPos.z) ** 2
     )
   }
 
@@ -369,16 +384,16 @@ export class Drawable {
     shader.useProgram();
 
     // Setting the translation of the worldPosition of the object into local matrices
-    this._matrices.modelMatrix.setIdentity();
-    this._matrices.modelMatrix.translate(
-      this._worldPosition.x,
-      this._worldPosition.y,
-      this._worldPosition.z
+    this.#matrices.modelMatrix.setIdentity();
+    this.#matrices.modelMatrix.translate(
+      this.#worldPosition.x,
+      this.#worldPosition.y,
+      this.#worldPosition.z
     );
-    this._matrices.modelMatrix.multiply(matrices.modelMatrix);
-    this._matrices.modelViewMatrix = matrices.modelViewMatrix;
+    this.#matrices.modelMatrix.multiply(matrices.modelMatrix);
+    this.#matrices.modelViewMatrix = matrices.modelViewMatrix;
 
-    for (const { name, getBuffer } of this._attributeBindings) {
+    for (const { name, getBuffer } of this.attributeBindings) {
       const buffer = getBuffer(this);
       if (!buffer) {
         throw Error("Attribute-buffer defined with name " + name + " is not instanciated.");
@@ -386,12 +401,12 @@ export class Drawable {
       shader.connectAttribute(name, buffer);
     }
 
-    for (const { name, getValue } of this._uniformBindings) {
-      const value = getValue(this, this._matrices);
+    for (const { name, getValue } of this.uniformBindings) {
+      const value = getValue(this, this.#matrices);
       shader.connectUniform(name, value);
     }
 
-    for (const tb of this._textureBindings) {
+    for (const tb of this.textureBindings) {
       shader.connectTexture(
         tb.uvAttribName,
         tb.samplerName,
@@ -408,17 +423,17 @@ export class Drawable {
 
   #drawCall() {
     const gl = this._gl;
-    const glMode = this._glMode;
+    const glMode = this.#glMode;
 
-    const indexCount = this._indexCount;
-    const vertexCount = this._vertexCount;
+    const indexCount = this.#indexCount;
+    const vertexCount = this.#vertexCount;
 
-    if (this._isAlpha) {
+    if (this.#isAlpha) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
 
-      this._is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE); // funnE syntax
+      this.#is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE); // funnE syntax
     } else {
       gl.disable(gl.BLEND);
       gl.disable(gl.CULL_FACE);
@@ -428,7 +443,7 @@ export class Drawable {
     if (this.indexBuffer && indexCount > 0) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
-      if (this._isAlpha && !this._is2D) {
+      if (this.#isAlpha && !this.#is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
         gl.drawElements(glMode, indexCount, gl.UNSIGNED_SHORT, 0);
 
@@ -438,7 +453,7 @@ export class Drawable {
         gl.drawElements(glMode, indexCount, gl.UNSIGNED_SHORT, 0);
       }
     } else {
-      if (this._isAlpha && !this._is2D) {
+      if (this.#isAlpha && !this.#is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
         gl.drawArrays(glMode, 0, vertexCount);
 

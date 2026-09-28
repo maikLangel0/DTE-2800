@@ -111,7 +111,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...cone._uniformBindings,
+      ...cone.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -123,7 +123,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...disc._uniformBindings,
+      ...disc.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -135,7 +135,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...sphere._uniformBindings,
+      ...sphere.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -147,7 +147,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...triangle._uniformBindings,
+      ...triangle.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -159,7 +159,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...cylinder._uniformBindings,
+      ...cylinder.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -171,7 +171,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...xzPlane._uniformBindings,
+      ...xzPlane.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(xzPlaneUColor.raw) } },
     ]
   });
@@ -185,7 +185,7 @@ export const main = () => {
       { name: "aVertexPosition", getBuffer: (self) => { return self.positionBuffer } },
     ],
     uniforms: [
-      ...cube._uniformBindings,
+      ...cube.uniformBindings,
       { name: "uColor", getValue: () => { return new Float32Array(cubeUColor.raw) } },
     ]
   });

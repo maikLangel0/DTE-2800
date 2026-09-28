@@ -62,7 +62,7 @@ export class Sphere extends Drawable {
     this.setIndeces(indeces);
 
     if (color) {
-      super.setVertexColorSingle(color);
+      this.setVertexColorSingle(color);
     }
   }
 }

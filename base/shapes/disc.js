@@ -41,9 +41,9 @@ export class Disc extends Drawable {
     this.setVertices(positions);
 
     if (color) {
-      super.setVertexColorSingle(color);
+      this.setVertexColorSingle(color);
     }
 
-    this._is2D = true;
+    this.is2D(true);
   }
 }
