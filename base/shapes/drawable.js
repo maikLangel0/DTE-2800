@@ -4,6 +4,11 @@ import { Shader } from "../helpers/WebGLShader.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
 
 export class Drawable {
+  /** @type {WebGL2RenderingContext} */
+  #gl;
+  /** @type {Shader} */
+  #shader;
+
   /**Storing the position so you can possibly calc the dist to camera.
   * @type {{x: number; y: number; z: number;}} */
   #worldPosition;
@@ -32,16 +37,17 @@ export class Drawable {
   #vertexCount;
   /**@type {number} */
   #indexCount;
-  
+
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
    * @param {Camera} camera
    */
   constructor(gl, shader, camera) {
-    this._gl = gl;
-    this._shader = shader;
-    this.camera = camera;
+    this.camera = camera; // Public so that setShaderRelationship can access the matrices of the camera if need be.
+
+    this.#gl = gl;
+    this.#shader = shader;
 
     this.#worldPosition = { x: 0, y: 0, z: 0 };
     this.#matrices = new RenderMatrices();
@@ -56,7 +62,7 @@ export class Drawable {
 
     this.#vertexCount = 0;
     this.#indexCount = 0;
-    
+
     // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
     // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
     /**@type {WebGLBuffer | null} */
@@ -91,10 +97,7 @@ export class Drawable {
     ];
 
     // Should only map the names in the shader to data inside the class vaguely (takes RenderMatrices aswell).
-    /** @type {{
-     * name: string;
-     * getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[]
-     } */
+    /** @type { { name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[] } */
     this.uniformBindings = [
       { name: "uModelViewMatrix", getValue: (self, matrices) => {
           const modelViewMatrix = matrices.modelViewMatrix;
@@ -108,10 +111,10 @@ export class Drawable {
 
 
     if (this.constructor === Drawable) {
-      throw Error("Cannot be an abstract class Drawable");
+      throw Error("Cannot be an abstract class Drawable.");
     }
   }
-  // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' "PRIVATE" DATA --------------------
+  // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
   /**
    * If you want to alter the vertexPositions of the object.
    * Useful when you need a spesific order to bindTexture() with UV.
@@ -132,7 +135,7 @@ export class Drawable {
    * If you update the drawMode/glMode using .setGLMode(glMode), use this function to set/update the vertexCount.
    */
   setVertexCount() {
-    if (this.#glMode === this._gl.LINES) {
+    if (this.#glMode === this.#gl.LINES) {
       this.#vertexCount = this.#positions.length;
     } else {
       this.#vertexCount = this.#positions.length / 3;
@@ -228,26 +231,26 @@ export class Drawable {
     }
   }
   bindPositionBuffer() {
-    const positionBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, positionBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this.#positions), this._gl.STATIC_DRAW);
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
+    const positionBuffer = this.#gl.createBuffer();
+    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, positionBuffer);
+    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#positions), this.#gl.STATIC_DRAW);
+    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
     this.positionBuffer = positionBuffer;
     this.#vertexCount = this.#positions.length / 3;
   }
   bindColorBuffer() {
-    const colorBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, colorBuffer);
-    this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(this.#vertexColors), this._gl.STATIC_DRAW);
-    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
+    const colorBuffer = this.#gl.createBuffer();
+    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, colorBuffer);
+    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertexColors), this.#gl.STATIC_DRAW);
+    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
     this.colorBuffer = colorBuffer;
   }
   bindIndexBuffer() {
-    const indexBuffer = this._gl.createBuffer();
-    this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.#indeces), this._gl.STATIC_DRAW);
+    const indexBuffer = this.#gl.createBuffer();
+    this.#gl.bindBuffer(this.#gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this.#gl.bufferData(this.#gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.#indeces), this.#gl.STATIC_DRAW);
 
     this.indexBuffer = indexBuffer;
     this.#indexCount = this.#indeces.length;
@@ -258,7 +261,7 @@ export class Drawable {
    * @param {{uvAttributeName: string; samplerName: string; target?: number}} settings
    */
   bindTexture(uvCoordinates, image, settings) {
-    const gl = this._gl;
+    const gl = this.#gl;
     const target = settings.target ?? gl.TEXTURE_2D;
 
     const texture = gl.createTexture();
@@ -349,7 +352,7 @@ export class Drawable {
   }
   /** @param {Shader} shader */
   swapShader(shader) {
-    this._shader = shader;
+    this.#shader = shader;
   }
 
   log() {
@@ -375,8 +378,8 @@ export class Drawable {
 
   /**@param {RenderMatrices} matrices */
   draw(matrices) {
-    const gl = this._gl;
-    const shader = this._shader;
+    const gl = this.#gl;
+    const shader = this.#shader;
 
     if (!this.positionBuffer)
       throw Error("Buffer(s) not instantiated; call bindBuffers() first.");
@@ -422,7 +425,7 @@ export class Drawable {
   // PRIVATE FUNCTIONS --------------------
 
   #drawCall() {
-    const gl = this._gl;
+    const gl = this.#gl;
     const glMode = this.#glMode;
 
     const indexCount = this.#indexCount;
