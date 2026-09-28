@@ -354,7 +354,7 @@ function drawMain(renderInfo) {
   modelMatrix.setIdentity();
   modelMatrix.translate(-5, 0, 5);
   modelMatrix.scale(2, 2, 2);
-  renderInfo.sphere.draw(matrices, gl.TRIANGLES);
+  renderInfo.sphere.draw(matrices);
 
   // CYLINDER
   modelMatrix.setIdentity();
@@ -370,6 +370,6 @@ function drawMain(renderInfo) {
   // CENTRAL SQUARE
   modelMatrix.setIdentity();
   renderInfo.square.setAlpha(true);
-  renderInfo.square.draw(matrices, gl.TRIANGLES);
+  renderInfo.square.draw(matrices);
   renderInfo.square.setAlpha(false);
 }

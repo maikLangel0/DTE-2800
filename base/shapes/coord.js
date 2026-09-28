@@ -13,7 +13,9 @@ export class Coords extends Drawable {
   constructor(gl, shader, camera, length) {
     super(gl, shader, camera);
 
-    super.setVertexPositions([
+    this.setGLMode(gl.LINES);
+    
+    this.setVertices([
       -length, 0, 0,
       length, 0, 0,
       0, -length, 0,
@@ -22,7 +24,7 @@ export class Coords extends Drawable {
       0, 0, -length,
     ]);
 
-    super.setVertexColors([
+    this.setVertexColors([
       1, 0, 0, 1,
       1, 0, 0, 1,
       0, 1, 0, 1,
@@ -32,15 +34,5 @@ export class Coords extends Drawable {
     ]);
 
     this.is2D = true;
-  }
-
-  /**
-   * @override
-   * @param {RenderMatrices} matrices 
-   * @param {number} glMode 
-   * @param {boolean} drawAlpha 
-   */
-  draw(matrices, glMode = this._gl.LINES, drawAlpha = false) {
-    super.draw(matrices, glMode, drawAlpha);
   }
 }

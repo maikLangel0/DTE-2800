@@ -512,7 +512,7 @@ export const main = () => {
  *  xzPlane: XZPlane;
  *  cubeBrick: Cube;
  *  treeStem: Cylinder;
- *  treePiece: Square;
+ *  treePiece: Cube;
  *  animations: { cubeBrickRotationY: number }
  *  treeAnimations: {
  *    stemRotationZ: number;
@@ -588,7 +588,7 @@ function animate(renderInfo) {
  *  xzPlane: XZPlane;
  *  cubeBrick: Cube;
  *  treeStem: Cylinder;
- *  treePiece: Square;
+ *  treePiece: Cube;
  *  animations: { cubeBrickRotationY: number }
  *  treeAnimations: {
  *    stemRotationZ: number;
@@ -604,7 +604,7 @@ function drawTree(renderInfo) {
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
   const matrixStack = renderInfo.matrixStack;
-  
+
   const treeAnimations = renderInfo.treeAnimations;
 
   // ROOT IN ALL OF TREE
@@ -638,7 +638,7 @@ function drawTree(renderInfo) {
       ]
     );
 
-    const modelMatrixPart = matrixStack.peek(); 
+    const modelMatrixPart = matrixStack.peek();
     drawTreePart(modelMatrixPart, matrices, BRANCH, renderInfo.treePiece);
 
     g_treeColor.set([0.05, 0.9, 0.05, 0.5]); // Color for the LEAF
@@ -656,8 +656,8 @@ function drawTree(renderInfo) {
           }
         ]
       )
-      
-      const modelMatrixPart = matrixStack.pop(); 
+
+      const modelMatrixPart = matrixStack.pop();
       drawTreePart(modelMatrixPart, matrices, LEAF, renderInfo.treePiece);
     }
     renderInfo.treePiece.setAlpha(false); // Turn off alpha when LEAF finished drawing
@@ -671,15 +671,15 @@ function drawTree(renderInfo) {
   const modelMatrixPart = matrixStack.pop();
   modelMatrixPart.translate(0, -STEM.y / 2, 0);
   modelMatrixPart.scale(1, 2, 1);
-  
+
   drawTreePart(modelMatrixPart, matrices, STEM, renderInfo.treeStem);
 }
 
 /**
- * @param {Matrix4} modelMatrix  
+ * @param {Matrix4} modelMatrix
  * @param {RenderMatrices} matrices
  * @param {{x: number; y: number; z: number;}} dimentions
- * @param {Drawable} drawable 
+ * @param {Drawable} drawable
  */
 function drawTreePart(modelMatrix, matrices, dimentions, drawable) {
   modelMatrix.scale(

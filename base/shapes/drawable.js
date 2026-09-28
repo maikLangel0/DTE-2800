@@ -15,21 +15,17 @@ export class Drawable {
     this._shader = shader;
     this.camera = camera;
 
-    // Storing the position so you can possibly calc the dist to camera
-    /**@type {{x: number; y: number; z: number;}} */
+    /**Storing the position so you can possibly calc the dist to camera. @type {{x: number; y: number; z: number;}} */
     this._worldPosition = { x: 0, y: 0, z: 0 };
-    // Own copy of the matrices needed to render because of TORS order when translating
-    // the _worldPosition so its done in the correct order
-    /**@type {RenderMatrices} */
+    /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order. @type {RenderMatrices} */
     this._matrices = new RenderMatrices();
 
-    // For culling purposes, if object gets drawn with alpha
-    // and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing
-    /**@type {boolean} */
-    this.is2D = false;
-    // For drawing when alpha
-    /**@type {boolean} */
+    /**What mode to draw with. @type {number} */
+    this._glMode = gl.TRIANGLES;
+    /**For drawing when alpha. @type {boolean} */
     this._isAlpha = false;
+    /**For culling purposes, if object gets drawn with alpha and is 2D, then dont gl.enable(gl.CULL_FACE) when drawing. @type {boolean} */
+    this._is2D = false;
 
     // THESE ARE "PUBLIC" (no underscore) BECAUSE IF YOU setShaderRelationship() YOU NEED
     // TO BE ABLE TO POINT TO THE BUFFERS OF THE CLASS.
@@ -103,12 +99,29 @@ export class Drawable {
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' "PRIVATE" DATA --------------------
   /**
    * If you want to alter the vertexPositions of the object.
-   * For example useful when you need a spesific order to bindTexture() with UV.
+   * Useful when you need a spesific order to bindTexture() with UV.
+   *
+   * Uses glMode to also set the vertexCount.
+   *
+   * Call setGLMode(glMode) before this function to set correct vertexCount.
    * @param {number[]} positions
    */
-  setVertexPositions(positions) {
+  setVertices(positions) {
     this._positions = positions;
-    this._vertexCount = positions.length / 3;
+    this.setVertexCount();
+  }
+
+  /**
+   * Sets the vertexCount based on this._glMode.
+   *
+   * If you update the drawMode/glMode using .setGLMode(glMode), use this function to set/update the vertexCount.
+   */
+  setVertexCount() {
+    if (this._glMode === this._gl.LINES) {
+      this._vertexCount = this._positions.length;
+    } else {
+      this._vertexCount = this._positions.length / 3;
+    }
   }
 
   /** One color for all vertices
@@ -141,6 +154,15 @@ export class Drawable {
     this._isAlpha = bool;
   }
 
+  /**
+   * Sets the GLMode.
+   *
+   * If you're dynamically changing the GLMode, remember to resize the vertexCount using .setVertexCount() .
+   * @param {number} glMode */
+  setGLMode(glMode) {
+    this._glMode = glMode;
+  }
+
   /**Copies the **mat** into the object.
    * @param {Matrix4} mat */
   setModelMatrix(mat) {
@@ -155,10 +177,11 @@ export class Drawable {
   setWorldPosition(pos) {
     this._worldPosition = pos;
   }
+
   /**
    * @param {{x: number; y: number; z: number}} pos
-   * @param {number} dt  */
-  updateWorldPosition(pos, dt = 0.016) { // dt default at 60fps
+   * @param {number} dt defaults for 60fps*/
+  updateWorldPosition(pos, dt = 0.016) {
     this._worldPosition.x += pos.x * dt;
     this._worldPosition.y += pos.y * dt;
     this._worldPosition.z += pos.z * dt;
@@ -170,8 +193,7 @@ export class Drawable {
   }
 
   // BINDING FUNCTIONS --------------------
-  /** Binds the positionbuffer, and if theyre set in the class impl or
-   * by the user, it binds the colorbuffer and/or indexbuffer */
+  /** Binds the positionbuffer, and indexbuffer + colorbuffer if theyre set previously. */
   bindBuffers() {
     this.bindPositionBuffer();
 
@@ -333,9 +355,8 @@ export class Drawable {
 
   /**
    * @param {RenderMatrices} matrices
-   * @param {number} glMode
    */
-  draw(matrices, glMode = this._gl.TRIANGLES) {
+  draw(matrices) {
     const gl = this._gl;
     const shader = this._shader;
 
@@ -377,15 +398,12 @@ export class Drawable {
       );
     }
 
-    this.#drawCall(glMode);
+    this.#drawCall();
   }
 
   // PRIVATE FUNCTIONS --------------------
 
-  /**
-   * @param {number} glMode
-   */
-  #drawCall(glMode) {
+  #drawCall() {
     const gl = this._gl;
 
     if (this._isAlpha) {
@@ -393,7 +411,7 @@ export class Drawable {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
 
-      this.is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE);
+      this._is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE);
     } else {
       gl.disable(gl.BLEND);
       gl.disable(gl.CULL_FACE);
@@ -403,24 +421,24 @@ export class Drawable {
     if (this.indexBuffer && this._indexCount > 0) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
-      if (this._isAlpha && !this.is2D) {
+      if (this._isAlpha && !this._is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
-        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
 
         gl.cullFace(gl.BACK); // Hides the back
-        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
       } else {
-        gl.drawElements(glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
       }
     } else {
-      if (this._isAlpha && !this.is2D) {
+      if (this._isAlpha && !this._is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(this._glMode, 0, this._vertexCount);
 
         gl.cullFace(gl.BACK); // Hides the back
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(this._glMode, 0, this._vertexCount);
       } else {
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(this._glMode, 0, this._vertexCount);
       }
     }
   }

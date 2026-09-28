@@ -13,7 +13,8 @@ export class Triangle extends Drawable {
   constructor(gl, shader, camera, color = null) {
     super(gl, shader, camera);
 
-    super.setVertexPositions([
+    this.setGLMode(gl.TRIANGLES);
+    this.setVertices([
       -1, 0, -1,
       -1, 0, 1,
       1, 0, 0,

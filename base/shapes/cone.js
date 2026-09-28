@@ -14,15 +14,15 @@ export class Cone extends Drawable {
   constructor(gl, shader, camera, sectors = 6, color = null) {
     super(gl, shader, camera);
 
-    if (sectors < 3) {
-      sectors = 3;
-    }
+    if (sectors < 3) sectors = 3;
+    
+    let stepRadians = (Math.PI * 2) / sectors;
 
-    let stepInDegrees = 360 / sectors;
-    let stepInRadians = (Math.PI / 180) * stepInDegrees;
+    /**@type {number[]} */
+    const positions = [];
 
     // Startpunkt (toppen av kjegla):
-    this._positions.push(0, 2, 0);
+    positions.push(0, 2, 0);
 
     // Merk:
     // * Kjegla tegnes vha. TRIANGLE_FAN
@@ -34,25 +34,16 @@ export class Cone extends Drawable {
       const y = 0;
       const z = Math.sin(phi);
 
-      this._positions.push(x,y,z);
+      positions.push(x,y,z);
 
-      phi += stepInRadians;
+      phi += stepRadians;
     }
 
-    this._vertexCount = this._positions.length / 3;
+    this.setGLMode(gl.TRIANGLE_FAN);
+    this.setVertices(positions);
 
     if (color) {
       super.setVertexColorSingle(color);
     }
-  }
-
-  /**
-   * @override
-   * @param {RenderMatrices} matrices
-   * @param {number} glMode
-   * @param {boolean} drawAlpha 
-   */
-  draw(matrices, glMode = this._gl.TRIANGLE_FAN, drawAlpha = false) {
-    super.draw(matrices, glMode, drawAlpha)
   }
 }

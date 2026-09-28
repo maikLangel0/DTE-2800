@@ -14,14 +14,13 @@ export class Disc extends Drawable {
   constructor(gl, shader, camera, sectors = 6, color = null) {
     super(gl, shader, camera);
 
-    if (sectors < 3) {
-      sectors = 3;
-    }
+    sectors < 3 ? sectors = 3 : sectors; // Silli syntax
 
-    let stepInDegrees = 360.0 / sectors;
-    let stepInRadians = (Math.PI / 180) * stepInDegrees;
+    const stepRadians = Math.PI * 2 / sectors;
 
-    this._positions.push(0, 0, 0);
+    /**@type {number[]} */
+    const positions = [];
+    positions.push(0, 0, 0);
 
     // Merk:
     // * Sirkelen tegnes vha. TRIANGLE_FAN
@@ -34,27 +33,18 @@ export class Disc extends Drawable {
       const y = 0;
       const z = Math.sin(phi);
 
-      this._positions.push(x, y, z);
+      positions.push(x, y, z);
 
-      phi += stepInRadians;
+      phi += stepRadians;
     }
 
-    this._vertexCount = this._positions.length / 3;
+    this.setGLMode(gl.TRIANGLE_FAN);
+    this.setVertices(positions);
 
     if (color) {
       super.setVertexColorSingle(color);
     }
 
     this.is2D = true;
-  }
-
-  /**
-   * @override
-   * @param {RenderMatrices} matrices
-   * @param {number} glMode
-   * @param {boolean} drawAlpha
-   */
-  draw(matrices, glMode = this._gl.TRIANGLE_FAN, drawAlpha = false) {
-    super.draw(matrices, glMode, drawAlpha)
   }
 }

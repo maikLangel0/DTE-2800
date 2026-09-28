@@ -13,7 +13,8 @@ export class Square extends Drawable {
   constructor(gl, shader, camera, color = null) {
     super(gl, shader, camera);
 
-    super.setVertexPositions([
+    this.setGLMode(gl.TRIANGLES);
+    this.setVertices([
       -1, 0, -1,
       1, 0, 1,
       -1, 0, 1,
@@ -24,7 +25,7 @@ export class Square extends Drawable {
     ]);
 
     if (color) {
-      super.setVertexColorSingle(color);
+      this.setVertexColorSingle(color);
     }
 
     this.is2D = true;

@@ -13,7 +13,8 @@ export class Cube extends Drawable {
   constructor(gl, shader, camera, color = null) {
     super(gl, shader, camera);
 
-    super.setVertexPositions([
+    this.setGLMode(gl.TRIANGLES);
+    this.setVertices([
       //Forsiden (pos):
       -1, 1, 1,
       -1, -1, 1,
@@ -70,7 +71,7 @@ export class Cube extends Drawable {
     ]);
 
     if (color) {
-      super.setVertexColorSingle(color)
+      this.setVertexColorSingle(color)
     }
   }  
 }

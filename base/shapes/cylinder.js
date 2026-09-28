@@ -14,11 +14,13 @@ export class Cylinder extends Drawable {
   constructor(gl, shader, camera, sectors = 12, color = null) {
     super(gl, shader, camera);
 
-    let stepInDegrees = 360 / sectors;
-    let stepInRadians = (Math.PI / 180) * stepInDegrees;
+    const stepInRadians = Math.PI * 2 / sectors;
 
-    this._positions.push(1, 0, 0);
-    this._positions.push(1, 1, 0);
+    /**@type {number[]} */
+    const positions = [];
+
+    positions.push(1, 0, 0);
+    positions.push(1, 1, 0);
 
     // * Kjegla tegnes vha. TRIANGLE_FAN
     // * sector: FRA OG MED 0 TIL OG MED sectors, slik at den siste trekanten også kommer med.
@@ -30,26 +32,17 @@ export class Cylinder extends Drawable {
       const y = 0;
       const z = Math.sin(phi);
 
-      this._positions.push(x, y, z);
-      this._positions.push(x, y + 1, z);
+      positions.push(x, y, z);
+      positions.push(x, y + 1, z);
 
       phi += stepInRadians;
     }
 
-    this._vertexCount = this._positions.length / 3;
+    this.setGLMode(gl.TRIANGLE_STRIP);
+    this.setVertices(positions);
 
     if (color) {
       super.setVertexColorSingle(color);
     }
-  }
-
-  /**
-   * @override
-   * @param {RenderMatrices} matrices
-   * @param {number} glMode
-   * @param {boolean} drawAlpha 
-   */
-  draw(matrices, glMode = this._gl.TRIANGLE_STRIP, drawAlpha = false) {
-    super.draw(matrices, glMode, drawAlpha);
   }
 }

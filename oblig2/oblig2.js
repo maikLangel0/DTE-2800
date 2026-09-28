@@ -110,7 +110,7 @@ export const main = () => {
   );
 
   // DRAWABLE OBJECTS
-  const ground = new Square(gl, craneShader, camera, { r: 0.0, g: 0.9, b: 0.0, a: 1.0 });
+  const ground = new Square(gl, craneShader, camera);
   ground.setShaderRelationship({
     attributes: [
       { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
@@ -141,8 +141,9 @@ export const main = () => {
     ], grassTexture, {
     uvAttributeName: "aVertexTextureCoord",
     samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
+    target: gl.TEXTURE_2D
+  }
+  );
   ground.bindBuffers();
 
   const craneBase = new Cylinder(gl, craneShader, camera, 6);
@@ -231,6 +232,7 @@ export const main = () => {
   const matrices = new RenderMatrices();
   const keyManager = new KeyManager();
   const matrixStack = new MatrixStack();
+  const fpsInfo = new FpsInfo("fps");
 
   const renderInfo = {
     gl: gl,
@@ -238,7 +240,7 @@ export const main = () => {
     camera: camera,
     matrices: matrices,
 
-    fpsInfo: new FpsInfo("fps"),
+    fpsInfo: fpsInfo,
     keyManager: keyManager,
     matrixStack: matrixStack,
 
@@ -329,7 +331,7 @@ export const main = () => {
  *    fingerPinchZ: number;
  *  }
  * }} renderInfo
- */
+*/
 function animate(renderInfo) {
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
@@ -410,7 +412,6 @@ function drawCrane(renderInfo) {
 
   // ROOT IN ALL OF CRANE
   modelMatrix.setIdentity();
-  // modelMatrix.translate(0, BASE.y / 2, 0);
   matrixStack.push(modelMatrix);
 
   // CREATE JOINT1 ON STACK (ORDER OF ROTATIONS IMPORTANT)
