@@ -405,40 +405,43 @@ export class Drawable {
 
   #drawCall() {
     const gl = this._gl;
+    const glMode = this._glMode;
+
+    const indexCount = this._indexCount;
 
     if (this._isAlpha) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
 
-      this._is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE);
+      this._is2D ? gl.disable(gl.CULL_FACE) : gl.enable(gl.CULL_FACE); // funnE syntax
     } else {
       gl.disable(gl.BLEND);
       gl.disable(gl.CULL_FACE);
       gl.depthMask(true);
     }
 
-    if (this.indexBuffer && this._indexCount > 0) {
+    if (this.indexBuffer && indexCount > 0) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
       if (this._isAlpha && !this._is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
-        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(glMode, indexCount, gl.UNSIGNED_SHORT, 0);
 
         gl.cullFace(gl.BACK); // Hides the back
-        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(glMode, indexCount, gl.UNSIGNED_SHORT, 0);
       } else {
-        gl.drawElements(this._glMode, this._indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(glMode, indexCount, gl.UNSIGNED_SHORT, 0);
       }
     } else {
       if (this._isAlpha && !this._is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
-        gl.drawArrays(this._glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, this._vertexCount);
 
         gl.cullFace(gl.BACK); // Hides the back
-        gl.drawArrays(this._glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, this._vertexCount);
       } else {
-        gl.drawArrays(this._glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, this._vertexCount);
       }
     }
   }
