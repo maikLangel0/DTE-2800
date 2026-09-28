@@ -408,6 +408,7 @@ export class Drawable {
     const glMode = this._glMode;
 
     const indexCount = this._indexCount;
+    const vertexCount = this._vertexCount;
 
     if (this._isAlpha) {
       gl.enable(gl.BLEND);
@@ -436,12 +437,12 @@ export class Drawable {
     } else {
       if (this._isAlpha && !this._is2D) {
         gl.cullFace(gl.FRONT); // Hides the front
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, vertexCount);
 
         gl.cullFace(gl.BACK); // Hides the back
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, vertexCount);
       } else {
-        gl.drawArrays(glMode, 0, this._vertexCount);
+        gl.drawArrays(glMode, 0, vertexCount);
       }
     }
   }
