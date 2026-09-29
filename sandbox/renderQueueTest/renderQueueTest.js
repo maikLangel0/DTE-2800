@@ -23,7 +23,7 @@ const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
 const coordVertShader = document.getElementById("coord-vert-shader").innerHTML;
 const coordFragShader = document.getElementById("coord-frag-shader").innerHTML;
 
-/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+/**@type {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} */
 const baseShaderVariables = [
   {
     name: "aVertexPosition",
@@ -47,7 +47,7 @@ const baseShaderVariables = [
   },
 ]
 
-/**@type {{name: string; locationType: LocationType, dataType: DataType}[]} */
+/**@type {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} */
 const coordShaderVariables = [
   {
     name: "aVertexPosition",
@@ -119,21 +119,21 @@ export const main = () => {
     keyManager: new KeyManager(),
     fpsInfo: new FpsInfo("fps"),
     renderQueue: renderQueue,
-    
+
   }
 
   animate(renderInfo);
 }
 
 /**
- * 
+ *
  * @param {{
  *  canvas: WebGLCanvas,
  *  camera: Camera,
  *  keyManager: KeyManager,
  *  fpsInfo: FpsInfo,
  *  renderQueue: RenderQueue,
- * }} renderInfo 
+ * }} renderInfo
  */
 function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;

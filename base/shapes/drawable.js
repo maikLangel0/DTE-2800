@@ -60,8 +60,8 @@ export class Drawable {
   /** Fully local modelMatrix, used so that TORS gets applied in the intended order given the object's `#localTransforms` and `#position`
    * @type {Matrix4} */
   #localModelMatrix;
-  
-  /** Contains the lambdas that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
+
+  /** Contains a lambda that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
    * transforms that the user want to do on the object.
    * @type {((internal: Matrix4, self: Drawable) => void)} */
   #localTransforms;

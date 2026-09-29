@@ -118,16 +118,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_whiteColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self) => {
-          const modelViewMatrix = self.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(self.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   ground.bindTexture(
@@ -154,16 +145,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_baseColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self) => {
-          const modelViewMatrix = self.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(self.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   craneBase.bindTexture(cubeUvCoords, brickTexture, {
@@ -199,16 +181,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_sheetColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self) => {
-          const modelViewMatrix = self.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(self.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   joint.bindTexture(cubeUvCoords, sheetMetalTexture, {
