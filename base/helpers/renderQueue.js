@@ -1,20 +1,41 @@
 import { Drawable } from "../shapes/drawable.js";
+import { RenderMatrices } from "./renderMatrices.js";
 
 export class RenderQueue {
-  /**@type {WebGL2RenderingContext} */
-  #gl;
-  /**@type {Drawable[]} */
+  /**label, Drawable */
+  /**@type {[string | null, Drawable][]} */
   #baseQueue;
-  /**@type {Drawable[]} */
+  /**label, Drawable */
+  /**@type {[string | null, Drawable][]} */
   #deferredQueue;
 
-  /**
-   * @param {WebGL2RenderingContext} gl 
-   */
-  constructor(gl) {
-    this.#gl = gl;
-
+  constructor() {
     this.#baseQueue = [];
     this.#deferredQueue = [];
+  }
+
+  /**
+   * @param {Drawable} obj
+   * @param {string | null} label
+   */
+  append(obj, label = null) {
+    if (obj.getAlpha()) {
+      this.#deferredQueue.push([label, obj.clone()]);
+    } else {
+      this.#baseQueue.push([label, obj.clone()]);
+    }
+  }
+
+  render() {
+    this.#deferredQueue.sort((first, second) => first[1].getDistanceToCamera() - second[1].getDistanceToCamera());
+
+    let tmp = new RenderMatrices();
+    
+    for (let [_, obj] of this.#baseQueue) {
+      obj.draw(tmp);
+    }
+    for (let [_, obj] of this.#deferredQueue) {
+      obj.draw(tmp);
+    }
   }
 }

@@ -32,6 +32,6 @@ export class Coords extends Drawable {
       0, 0, 1, 1
     ]);
 
-    this.is2D(true);
+    this.set2D(true);
   }
 }

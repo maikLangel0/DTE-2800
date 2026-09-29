@@ -28,6 +28,6 @@ export class Square extends Drawable {
       this.setVertexColorSingle(color);
     }
 
-    this.is2D(true);
+    this.set2D(true);
   }
 }

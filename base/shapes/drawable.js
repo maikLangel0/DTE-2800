@@ -118,11 +118,6 @@ export class Drawable {
           return modelViewMatrix.elements }},
       { name: "uProjectionMatrix", getValue: (self) => {return self.camera.projectionMatrix.elements} },
     ];
-
-
-    if (this.constructor === Drawable) {
-      throw Error("Cannot be an abstract class Drawable.");
-    }
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
 
@@ -190,6 +185,13 @@ export class Drawable {
     this.#isAlpha = bool;
   }
 
+  /**@returns {boolean}
+   * Returns true if the obj is set to be drawn with alpha.
+   */
+  getAlpha() {
+    return this.#isAlpha;
+  }
+
   /**
    * Sets the GLMode.
    *
@@ -202,8 +204,15 @@ export class Drawable {
   /**@param {boolean} bool
    * Set if the object is 2D or not for culling purposes.
    */
-  is2D(bool) {
+  set2D(bool) {
     this.#is2D = bool;
+  }
+
+  /**@returns {boolean}
+   * Return true if mesh is 2D
+   */
+  is2D() {
+    return this.#is2D;
   }
 
   /**Copies the **mat** into the object.
@@ -334,13 +343,13 @@ export class Drawable {
   /**
    * Defines what data each shader variable should use.
    *
-   * Shader variables can point to:
+   * Shader variables can point to data inside the class, and outside the class:
    *
-   * - Data inside this class:
-   *   `getBuffer = (it) => { it.positionBuffer }`
+   * - Example of Data inside this class:
+   *   `'aVertexPosition', getBuffer = (it) => { it.positionBuffer }`
    *
-   * - Data outside this class:
-   *   `getValue = () => { color.raw }`
+   * - Example of data outside this class:
+   *   `'uColor', getValue = () => { color }`
    *
    * **Important**
    *
@@ -383,7 +392,7 @@ export class Drawable {
 
   /**
    * Gets the distance from the object center to the cameras world-position.
-  @returns {number} */
+   @returns {number} */
   getDistanceToCamera() {
     const camPos = this.camera.getWorldPosition();
 
@@ -392,6 +401,35 @@ export class Drawable {
       (this.#worldPosition.y - camPos.y) ** 2 +
       (this.#worldPosition.z - camPos.z) ** 2
     )
+  }
+
+  /**
+   * Deepcopy of the class and its' data.
+   * @returns {Drawable}
+   */
+  clone() {
+    const clone = new Drawable(this.#gl, this.#shader, this.camera);
+
+    clone.#worldPosition = { ...this.#worldPosition };
+
+    clone.#matrices = new RenderMatrices();
+    clone.#matrices.modelMatrix.multiply(this.#matrices.modelMatrix);
+    clone.#matrices.modelViewMatrix.multiply(this.#matrices.modelViewMatrix);
+
+    clone.#glMode = this.#glMode;
+    clone.#isAlpha = this.#isAlpha;
+    clone.#is2D = this.#is2D;
+
+    clone.#vertexCount = this.#vertexCount;
+    clone.#indexCount = this.#indexCount;
+
+    // TODO: HOW TO DEEPCOPY WATAFAK :(
+    clone.positionBuffer = this.positionBuffer;
+    clone.colorBuffer = this.colorBuffer;
+    clone.indexBuffer = this.indexBuffer;
+    clone.#textureBindings = [...this.#textureBindings];
+
+    return clone;
   }
 
   /**@param {RenderMatrices} matrices */

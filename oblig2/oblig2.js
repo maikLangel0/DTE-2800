@@ -404,6 +404,7 @@ function animate(renderInfo) {
 function drawCrane(renderInfo) {
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
+
   const matrixStack = renderInfo.matrixStack;
 
   const animations = renderInfo.animations;
@@ -422,10 +423,11 @@ function drawCrane(renderInfo) {
     [{
       around: RotateAround.Y,
       angle: animations.baseRotationY
-    }, {
+    },
+    {
       around: RotateAround.Z,
       angle: animations.joint1RotationZ + animations.jointsRotationZ
-    }
+      }
     ]
   )
 
