@@ -1,5 +1,4 @@
 import { Camera } from "../helpers/Camera.js";
-import { RenderMatrices } from "../helpers/renderMatrices.js";
 import { Shader } from "../helpers/WebGLShader.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
 
@@ -11,10 +10,7 @@ export class Drawable {
 
   /**Storing the position so you can possibly calc the dist to camera.
   * @type {{x: number; y: number; z: number;}} */
-  #worldPosition;
-  /**Own copy of the matrices needed to render because of TORS order when translating the _worldPosition so its done in the correct order.
-  * @type {RenderMatrices} */
-  #matrices;
+  #position;
 
   /**What mode to draw with.
   * @type {number} */
@@ -61,6 +57,15 @@ export class Drawable {
   }[]} */
   #textureBindings;
 
+  /** Fully local modelMatrix, used so that TORS gets applied in the intended order given the object's `#localTransforms` and `#position`
+   * @type {Matrix4} */
+  #localModelMatrix;
+  
+  /** Contains the lambdas that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
+   * transforms that the user want to do on the object.
+   * @type {((internal: Matrix4, self: Drawable) => void)} */
+  #localTransforms;
+
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {Shader} shader
@@ -70,8 +75,7 @@ export class Drawable {
     this.#gl = gl;
     this.#shader = shader;
 
-    this.#worldPosition = { x: 0, y: 0, z: 0 };
-    this.#matrices = new RenderMatrices();
+    this.#position = { x: 0, y: 0, z: 0 };
 
     this.#glMode = gl.TRIANGLES;
     this.#isAlpha = false;
@@ -86,11 +90,25 @@ export class Drawable {
 
     this.#textureBindings = [];
 
+    this.#localModelMatrix = new Matrix4();
+    this.#localTransforms = () => {};
+
     // PUBLIC VARIABLES --------------------
 
-    /** This variable is public so that you can access the camera when you e.g do .setShaderRelationship()
+    /** This variable is public so that you can access the camera when you e.g do `.setShaderRelationship()`
      * @type {Camera} */
     this.camera = camera;
+
+    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`
+     *
+     * This class' owned modelMatrix.
+     * @type {Matrix4} */
+    this.modelMatrix = new Matrix4();
+    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`
+     *
+     * This class' owned modelViewMatrix.
+     * @type {Matrix4} */
+    this.modelViewMatrix = new Matrix4();
 
     /**@type {WebGLBuffer | null} */
     this.positionBuffer = null;
@@ -107,52 +125,83 @@ export class Drawable {
     ];
 
     /** This variable is public so that you can reuse previous uniformBindings when you e.g do .setShaderRelationship()
-     * @type { { name: string; getValue: (self: Drawable, matrices: RenderMatrices) => Float32Array | number[] | number}[] } */
+     * @type { { name: string; getValue: (self: Drawable) => Float32Array | number[] | number}[] } */
     this.uniformBindings = [
-      { name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
-
-          return modelViewMatrix.elements }},
-      { name: "uProjectionMatrix", getValue: (self) => {return self.camera.projectionMatrix.elements} },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
+      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
     ];
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
 
+  /**Creates a callback that is intended to operate on self.modelMatrix.
+   *
+   * This callback will be invoked when you call `.draw()`.
+   * @param {((local: Matrix4, self: Drawable) => void)} callback */
+  setLocalTransforms(callback) {
+    this.#localTransforms = callback;
+  }
+
+  /** Handles all of the updates to the ModelMatrix and ModelViewMatrix.
+   *
+   * Follows the TORS order, and executes the `#localTransforms` if the user provided them.
+   * @param {Matrix4 | null} parent */
+  updateMatrices(parent = null) {
+    const modelMatrix = this.modelMatrix;
+    const local = this.#localModelMatrix.setIdentity();
+
+    this.#localTransforms(local, this);
+
+    if (parent) { modelMatrix.set(parent) }
+    else { modelMatrix.setIdentity() };
+
+    modelMatrix.translate(
+      this.#position.x,
+      this.#position.y,
+      this.#position.z
+    );
+    modelMatrix.multiply(local);
+
+    this.modelViewMatrix.set(this.camera.viewMatrix);
+    this.modelViewMatrix.multiply(modelMatrix);
+  }
+
+  /**@param {{x: number;y: number;z: number;}} pos  */
+  setPosition(pos) {
+    this.#position = { ...pos };
+  }
+  /**@returns {{x: number;y: number;z: number;}} */
+  getPosition() {
+    return { ...this.#position };
+  }
+
+  /** Actual world-space origin of the mesh (includes parent and local transforms). */
+  /**@returns {{x: number; y: number; z: number}} */
+  getWorldPosition() {
+    const elements = this.modelMatrix.elements;
+    const [x, y, z] = [elements[12], elements[13], elements[14]];
+
+    if (x !== undefined && y !== undefined && z !== undefined) {
+      return { x, y, z };
+    } else {
+      throw Error("What getWorldPosition failed.");
+    }
+  }
+
   /**
    * If you want to alter the vertexPositions of the object.
    * Useful when you need a spesific order to bindTexture() with UV.
-   *
-   * Uses glMode to also set the vertexCount.
-   *
-   * Call setGLMode(glMode) before this function to set correct vertexCount.
    * @param {number[]} vertices
    */
   setVertices(vertices) {
     this.#vertices = vertices;
-    this.setVertexCount();
+    this.#vertexCount = vertices.length / 3;
   }
 
   /**
    * Useful when you want to .setVertexColors(colors) and need the vertexCount to size your colors correctly.
    * @returns {number} */
   getVertexCount() {
-    return this.#vertices.length / 3;
-  }
-
-  /**
-   * Sets the vertexCount based on this.#glMode.
-   *
-   * If you update the drawMode/glMode using .setGLMode(glMode), use this function to set/update the vertexCount.
-   */
-  setVertexCount() {
-    if (this.#glMode === this.#gl.LINES) {
-      this.#vertexCount = this.#vertices.length;
-    } else {
-      this.#vertexCount = this.#vertices.length / 3;
-    }
+    return this.#vertexCount;
   }
 
   /** One color for all vertices
@@ -192,11 +241,7 @@ export class Drawable {
     return this.#isAlpha;
   }
 
-  /**
-   * Sets the GLMode.
-   *
-   * If you're dynamically changing the GLMode, remember to resize the vertexCount using .setVertexCount() .
-   * @param {number} glMode */
+  /**@param {number} glMode */
   setGLMode(glMode) {
     this.#glMode = glMode;
   }
@@ -215,33 +260,13 @@ export class Drawable {
     return this.#is2D;
   }
 
-  /**Copies the **mat** into the object.
-   * @param {Matrix4} mat */
-  setModelMatrix(mat) {
-    this.#matrices.modelMatrix = new Matrix4(mat);
-  }
-
-  setModelMatrixIdentity() {
-    this.#matrices.modelMatrix.setIdentity();
-  }
-
-  /**@param {{x: number; y: number; z: number}} pos  */
-  setWorldPosition(pos) {
-    this.#worldPosition = pos;
-  }
-
   /**
    * @param {{x: number; y: number; z: number}} pos
    * @param {number} dt defaults for 60fps*/
-  updateWorldPosition(pos, dt = 0.016) {
-    this.#worldPosition.x += pos.x * dt;
-    this.#worldPosition.y += pos.y * dt;
-    this.#worldPosition.z += pos.z * dt;
-  }
-
-  /**@returns {{x: number; y: number; z: number}} */
-  getWorldPosition() {
-    return this.#worldPosition;
+  updatePosition(pos, dt = 0.016) {
+    this.#position.x += pos.x * dt;
+    this.#position.y += pos.y * dt;
+    this.#position.z += pos.z * dt;
   }
 
   // BINDING FUNCTIONS --------------------
@@ -366,10 +391,7 @@ export class Drawable {
    *   }[];
    *   uniforms?: {
    *     name: string;
-   *     getValue: (
-   *       self: Drawable,
-   *       matrices: RenderMatrices
-   *     ) => Float32Array | number[] |number;
+   *     getValue: (self: Drawable) => Float32Array | number[] |number;
    *   }[];
    * }} relationship
    */
@@ -395,11 +417,12 @@ export class Drawable {
    @returns {number} */
   getDistanceToCamera() {
     const camPos = this.camera.getWorldPosition();
+    const worldPos = this.getWorldPosition();
 
     return Math.sqrt(
-      (this.#worldPosition.x - camPos.x) ** 2 +
-      (this.#worldPosition.y - camPos.y) ** 2 +
-      (this.#worldPosition.z - camPos.z) ** 2
+      (worldPos.x - camPos.x) ** 2 +
+      (worldPos.y - camPos.y) ** 2 +
+      (worldPos.z - camPos.z) ** 2
     )
   }
 
@@ -410,11 +433,10 @@ export class Drawable {
   clone() {
     const clone = new Drawable(this.#gl, this.#shader, this.camera);
 
-    clone.#worldPosition = { ...this.#worldPosition };
+    clone.#position = { ...this.#position };
 
-    clone.#matrices = new RenderMatrices();
-    clone.#matrices.modelMatrix.multiply(this.#matrices.modelMatrix);
-    clone.#matrices.modelViewMatrix.multiply(this.#matrices.modelViewMatrix);
+    clone.modelMatrix = new Matrix4(this.modelMatrix);
+    clone.modelViewMatrix = new Matrix4(this.modelViewMatrix);
 
     clone.#glMode = this.#glMode;
     clone.#isAlpha = this.#isAlpha;
@@ -432,8 +454,16 @@ export class Drawable {
     return clone;
   }
 
-  /**@param {RenderMatrices} matrices */
-  draw(matrices) {
+  /** Draws the object to the canvas.
+   *
+   * You can supply `modelMatrix` if you construct it in your renderLoop/animationLoop.
+   *
+   * modelMatrix can either be **the** modelMatrix your object will work on, or it can
+   * be additional transformations if you've already defined a set of transforms to operate
+   * on using `.setLocalTransforms()`.
+   * @param {Matrix4 | null} modelMatrix
+   * @param {{skipUpdate: boolean}} options*/
+  draw(modelMatrix = null, options = {skipUpdate: false}) {
     const gl = this.#gl;
     const shader = this.#shader;
 
@@ -442,15 +472,9 @@ export class Drawable {
 
     shader.useProgram();
 
-    // Setting the translation of the worldPosition of the object into local matrices
-    this.#matrices.modelMatrix.setIdentity();
-    this.#matrices.modelMatrix.translate(
-      this.#worldPosition.x,
-      this.#worldPosition.y,
-      this.#worldPosition.z
-    );
-    this.#matrices.modelMatrix.multiply(matrices.modelMatrix);
-    this.#matrices.modelViewMatrix = matrices.modelViewMatrix;
+    if (!options.skipUpdate) {
+      this.updateMatrices(modelMatrix);
+    };
 
     for (const { name, getBuffer } of this.attributeBindings) {
       const buffer = getBuffer(this);
@@ -461,7 +485,7 @@ export class Drawable {
     }
 
     for (const { name, getValue } of this.uniformBindings) {
-      const value = getValue(this, this.#matrices);
+      const value = getValue(this);
       shader.connectUniform(name, value);
     }
 

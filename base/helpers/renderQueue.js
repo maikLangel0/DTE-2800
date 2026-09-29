@@ -1,3 +1,4 @@
+import { Matrix4 } from "../lib/cuon-matrix.js";
 import { Drawable } from "../shapes/drawable.js";
 import { RenderMatrices } from "./renderMatrices.js";
 
@@ -20,16 +21,16 @@ export class RenderQueue {
    */
   append(obj, label = null) {
     if (obj.getAlpha()) {
-      this.#deferredQueue.push([label, obj.clone()]);
+      this.#deferredQueue.push([label, obj]);
     } else {
-      this.#baseQueue.push([label, obj.clone()]);
+      this.#baseQueue.push([label, obj]);
     }
   }
 
   render() {
     this.#deferredQueue.sort((first, second) => first[1].getDistanceToCamera() - second[1].getDistanceToCamera());
 
-    let tmp = new RenderMatrices();
+    let tmp = new Matrix4();
     
     for (let [_, obj] of this.#baseQueue) {
       obj.draw(tmp);

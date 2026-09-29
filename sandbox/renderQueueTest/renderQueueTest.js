@@ -105,6 +105,7 @@ export const main = () => {
   coords.bindBuffers();
 
   const square = new Square(gl, baseShader, camera, { r: 1.0, g: 0.1, b: 0.1, a: 0.5 });
+  square.setAlpha(true);
   square.bindBuffers();
 
   const renderQueue = new RenderQueue();

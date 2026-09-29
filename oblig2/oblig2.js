@@ -119,11 +119,11 @@ export const main = () => {
       { name: "uColor", getValue: () => g_whiteColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
       {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
+        name: "uModelViewMatrix", getValue: (self) => {
+          const modelViewMatrix = self.modelViewMatrix;
 
           modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
+          modelViewMatrix.multiply(self.modelMatrix);
 
           return modelViewMatrix.elements
         }
@@ -155,11 +155,11 @@ export const main = () => {
       { name: "uColor", getValue: () => g_baseColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
       {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
+        name: "uModelViewMatrix", getValue: (self) => {
+          const modelViewMatrix = self.modelViewMatrix;
 
           modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
+          modelViewMatrix.multiply(self.modelMatrix);
 
           return modelViewMatrix.elements
         }
@@ -181,16 +181,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_baseColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   craneBaseTop.bindTexture(cubeUvCoords, brickTexture, {
@@ -209,11 +200,11 @@ export const main = () => {
       { name: "uColor", getValue: () => g_sheetColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
       {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
+        name: "uModelViewMatrix", getValue: (self) => {
+          const modelViewMatrix = self.modelViewMatrix;
 
           modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
+          modelViewMatrix.multiply(self.modelMatrix);
 
           return modelViewMatrix.elements
         }
@@ -305,6 +296,28 @@ export const main = () => {
     renderInfo.animations.joint3RotationZ -= 40 * dt;
   })
 
+  // GROUND
+  ground.setLocalTransforms((localModelMatrix) => {
+    localModelMatrix.scale(5, 1, 5);
+  })
+
+  // CRANEBASE CYLINDER
+  craneBase.setLocalTransforms((localModelMatrix) => {
+    const baseRotationTotal = renderInfo.animations.baseBaseRotationY + renderInfo.animations.baseRotationY;
+
+    localModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
+    localModelMatrix.scale(BASE.x, BASE.y, BASE.z);
+  })
+
+  // CRANEBASE DISC ONTOP
+  craneBaseTop.setLocalTransforms((localModelMatrix) => {
+    const baseRotationTotal = renderInfo.animations.baseBaseRotationY + renderInfo.animations.baseRotationY;
+
+    localModelMatrix.translate(0, BASE.y, 0);
+    localModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
+    localModelMatrix.scale(BASE.x, BASE.y, BASE.z);
+  })
+
   animate(renderInfo);
 }
 
@@ -333,8 +346,6 @@ export const main = () => {
  * }} renderInfo
 */
 function animate(renderInfo) {
-  const matrices = renderInfo.matrices;
-  const modelMatrix = matrices.modelMatrix;
   const animations = renderInfo.animations;
 
   const fps = renderInfo.fpsInfo;
@@ -351,27 +362,17 @@ function animate(renderInfo) {
   })
 
   animateBase(animations, fps.totalTime);
-  const baseRotationTotal = animations.baseBaseRotationY + animations.baseRotationY;
 
   // DRAWING TIME --------------------
 
   // GROUND
-  modelMatrix.setIdentity();
-  modelMatrix.scale(5, 1, 5);
-  renderInfo.ground.draw(matrices);
+  renderInfo.ground.draw();
 
   // CRANEBASE CYLINDER
-  modelMatrix.setIdentity();
-  modelMatrix.rotate(baseRotationTotal, 0, 1, 0);
-  modelMatrix.scale(BASE.x, BASE.y, BASE.z);
-  renderInfo.craneBase.draw(matrices);
+  renderInfo.craneBase.draw();
 
   // CRANEBASE DISC ONTOP
-  modelMatrix.setIdentity();
-  modelMatrix.translate(0, BASE.y, 0);
-  modelMatrix.rotate(baseRotationTotal, 0, 1, 0);
-  modelMatrix.scale(BASE.x, BASE.y, BASE.z);
-  renderInfo.craneBaseTop.draw(matrices);
+  renderInfo.craneBaseTop.draw();
 
   // REST OF CRANE
   drawCrane(renderInfo);
@@ -514,7 +515,7 @@ function drawCranePart(modelMatrix, matrices, dimentions, drawable) {
   );
 
   matrices.modelMatrix.multiply(modelMatrix);
-  drawable.draw(matrices);
+  drawable.draw(matrices.modelMatrix);
   matrices.modelMatrix.setIdentity();
 }
 

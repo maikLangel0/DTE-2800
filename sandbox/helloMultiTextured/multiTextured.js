@@ -298,6 +298,8 @@ const STEM = { x: 0.2, y: 3, z: 0.2 }
 const BRANCH = { x: 0.1, y: 1, z: 0.1 }
 const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
 
+const scratchModelMatrix = new Matrix4();
+
 export const main = () => {
   const canvas = new WebGLCanvas("canvas", 900, 900);
   const aspectRatio = canvas.aspectRatio;
@@ -342,9 +344,9 @@ export const main = () => {
   xzPlane.bindBuffers();
 
   const cubeBrick = new Cube(gl, texShader, camera);
-  cubeBrick.setWorldPosition({
+  cubeBrick.setPosition({
     x: 0,
-    y: 0.01 + CUBEBRICK_SCALEFACTOR,
+    y: 0.01 + 1,
     z: 0
   });
   cubeBrick.setAlpha(true);
@@ -355,16 +357,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_cubeColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   cubeBrick.bindTexture(brickMetalUvCoords, brickImage, {
@@ -392,16 +385,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_treeColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   treePiece.bindTexture(brickMetalUvCoords, metalImage, {
@@ -419,16 +403,7 @@ export const main = () => {
     uniforms: [
       { name: "uColor", getValue: () => g_treeColor.raw },
       { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      {
-        name: "uModelViewMatrix", getValue: (self, matrices) => {
-          const modelViewMatrix = matrices.modelViewMatrix;
-
-          modelViewMatrix.set(self.camera.viewMatrix);
-          modelViewMatrix.multiply(matrices.modelMatrix);
-
-          return modelViewMatrix.elements
-        }
-      },
+      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
     ]
   });
   stem.bindTexture(brickMetalUvCoords, brickImage, {
@@ -547,15 +522,15 @@ function animate(renderInfo) {
 
   modelMatrix.setIdentity();
 
-  renderInfo.coords.draw(matrices);
-  renderInfo.xzPlane.draw(matrices);
+  renderInfo.coords.draw(matrices.modelMatrix);
+  renderInfo.xzPlane.draw(matrices.modelMatrix);
 
   // TREEDRAW ENTRYPOINT
   animateTree(renderInfo.treeAnimations, fps.totalTime);
   drawTree(renderInfo);
   renderInfo.matrixStack.empty();
 
-  renderInfo.cubeBrick.updateWorldPosition(
+  renderInfo.cubeBrick.updatePosition(
     {
       x: 0,
       y: 0.01,
@@ -572,7 +547,7 @@ function animate(renderInfo) {
     CUBEBRICK_SCALEFACTOR
   );
 
-  renderInfo.cubeBrick.draw(matrices);
+  renderInfo.cubeBrick.draw(matrices.modelMatrix);
 }
 
 /**
@@ -639,7 +614,7 @@ function drawTree(renderInfo) {
     );
 
     const modelMatrixPart = matrixStack.peek();
-    drawTreePart(modelMatrixPart, matrices, BRANCH, renderInfo.treePiece);
+    drawTreePart(modelMatrixPart, BRANCH, renderInfo.treePiece);
 
     g_treeColor.set([0.05, 0.9, 0.05, 0.5]); // Color for the LEAF
     renderInfo.treePiece.setAlpha(true); // Should draw LEAF with alpha
@@ -658,7 +633,7 @@ function drawTree(renderInfo) {
       )
 
       const modelMatrixPart = matrixStack.pop();
-      drawTreePart(modelMatrixPart, matrices, LEAF, renderInfo.treePiece);
+      drawTreePart(modelMatrixPart, LEAF, renderInfo.treePiece);
     }
     renderInfo.treePiece.setAlpha(false); // Turn off alpha when LEAF finished drawing
     matrixStack.pop();
@@ -672,25 +647,19 @@ function drawTree(renderInfo) {
   modelMatrixPart.translate(0, -STEM.y / 2, 0);
   modelMatrixPart.scale(1, 2, 1);
 
-  drawTreePart(modelMatrixPart, matrices, STEM, renderInfo.treeStem);
+  drawTreePart(modelMatrixPart, STEM, renderInfo.treeStem);
 }
 
 /**
  * @param {Matrix4} modelMatrix
- * @param {RenderMatrices} matrices
  * @param {{x: number; y: number; z: number;}} dimentions
  * @param {Drawable} drawable
  */
-function drawTreePart(modelMatrix, matrices, dimentions, drawable) {
-  modelMatrix.scale(
-    dimentions.x / 2,
-    dimentions.y / 2,
-    dimentions.z / 2
-  );
+function drawTreePart(modelMatrix, dimentions, drawable) {
+  scratchModelMatrix.set(modelMatrix);
+  scratchModelMatrix.scale(dimentions.x / 2, dimentions.y / 2, dimentions.z / 2);
 
-  matrices.modelMatrix.multiply(modelMatrix);
-  drawable.draw(matrices);
-  matrices.modelMatrix.setIdentity();
+  drawable.draw(scratchModelMatrix);
 }
 
 /**

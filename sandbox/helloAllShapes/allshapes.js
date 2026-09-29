@@ -287,14 +287,12 @@ function animate(renderInfo) {
  *  keysPressed: Record<string, boolean>;}} renderInfo
  */
 function drawMain(renderInfo) {
-  const gl = renderInfo.gl;
-
   const matrices = renderInfo.matrices;
   const modelMatrix = matrices.modelMatrix;
 
   // COORDS
   modelMatrix.setIdentity();
-  renderInfo.coords.draw(matrices);
+  renderInfo.coords.draw(matrices.modelMatrix);
 
   cubeUColor.set([1.0, 0.0, 1.0]);
 
@@ -303,14 +301,14 @@ function drawMain(renderInfo) {
   modelMatrix.translate(5, 0, 0);
   modelMatrix.scale(4, 2.4, 0.3);
 
-  renderInfo.cube.draw(matrices);
+  renderInfo.cube.draw(matrices.modelMatrix);
 
   // WALL 1 part 2
   modelMatrix.setIdentity();
   modelMatrix.translate(-5, 0, 0);
   modelMatrix.scale(4, 2.4, 0.3);
 
-  renderInfo.cube.draw(matrices);
+  renderInfo.cube.draw(matrices.modelMatrix);
 
   cubeUColor.set([0.0, 1.0, 0.0]);
 
@@ -320,7 +318,7 @@ function drawMain(renderInfo) {
   modelMatrix.rotate(90, 0, 1, 0);
   modelMatrix.scale(4, 2.4, 0.3);
 
-  renderInfo.cube.draw(matrices);
+  renderInfo.cube.draw(matrices.modelMatrix);
 
   // WALL 2 part 2
   modelMatrix.setIdentity();
@@ -328,25 +326,25 @@ function drawMain(renderInfo) {
   modelMatrix.rotate(90, 0, 1, 0);
   modelMatrix.scale(4, 2.4, 0.3);
 
-  renderInfo.cube.draw(matrices);
+  renderInfo.cube.draw(matrices.modelMatrix);
 
   // XZPLANE
   xzPlaneUColor.set([0.0, 0.0, 0.4, 1.0]);
 
   modelMatrix.setIdentity();
-  renderInfo.xzPlane.draw(matrices);
+  renderInfo.xzPlane.draw(matrices.modelMatrix);
 
   // CONE
   modelMatrix.setIdentity();
   modelMatrix.translate(5, 0, 5);
   modelMatrix.scale(2, 2, 2);
-  renderInfo.cone.draw(matrices);
+  renderInfo.cone.draw(matrices.modelMatrix);
 
   // DISC
   modelMatrix.setIdentity();
   modelMatrix.translate(-5, 0, -5);
   modelMatrix.scale(2, 2, 2);
-  renderInfo.disc.draw(matrices);
+  renderInfo.disc.draw(matrices.modelMatrix);
 
   // SPHERE
   xzPlaneUColor.set([0.4, 0.0, 0.4, 1.0]);
@@ -354,22 +352,22 @@ function drawMain(renderInfo) {
   modelMatrix.setIdentity();
   modelMatrix.translate(-5, 0, 5);
   modelMatrix.scale(2, 2, 2);
-  renderInfo.sphere.draw(matrices);
+  renderInfo.sphere.draw(matrices.modelMatrix);
 
   // CYLINDER
   modelMatrix.setIdentity();
   modelMatrix.translate(5, 0, -5);
   modelMatrix.scale(2, 2, 2);
-  renderInfo.cylinder.draw(matrices);
+  renderInfo.cylinder.draw(matrices.modelMatrix);
 
   // TRIANGLE
   modelMatrix.setIdentity();
   modelMatrix.translate(0, 2.4, 0);
-  renderInfo.triangle.draw(matrices);
+  renderInfo.triangle.draw(matrices.modelMatrix);
 
   // CENTRAL SQUARE
   modelMatrix.setIdentity();
   renderInfo.square.setAlpha(true);
-  renderInfo.square.draw(matrices);
+  renderInfo.square.draw(matrices.modelMatrix);
   renderInfo.square.setAlpha(false);
 }

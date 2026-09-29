@@ -11,9 +11,9 @@
  * Matrix4のコンストラクタ。
  * 新しく生成される行列は、opt_srcにMatrix4のインスタンスが渡された場合、その要素がコピーされて初期化される。
  * それ以外の場合、単位行列に初期化される。
- * @param opt_src 要素をコピーしてくる行列（オプション）
+ * @param {Matrix4 | undefined} opt_src 要素をコピーしてくる行列（オプション）
  */
-export var Matrix4 = function(opt_src) {
+export var Matrix4 = function(opt_src = undefined) {
   var i, s, d;
   if (opt_src && typeof opt_src === 'object' && opt_src.hasOwnProperty('elements')) {
     s = opt_src.elements;
