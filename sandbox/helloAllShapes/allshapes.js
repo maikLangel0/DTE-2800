@@ -110,7 +110,7 @@ export const main = () => {
   const cone = new Cone(gl, coordShader, camera, 20);
   cone.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...cone.uniformBindings,
@@ -126,7 +126,7 @@ export const main = () => {
   const disc = new Disc(gl, coordShader, camera, 20);
   disc.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...disc.uniformBindings,
@@ -142,7 +142,7 @@ export const main = () => {
   const sphere = new Sphere(gl, coordShader, camera);
   sphere.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...sphere.uniformBindings,
@@ -158,7 +158,7 @@ export const main = () => {
   const triangle = new Triangle(gl, coordShader, camera);
   triangle.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...triangle.uniformBindings,
@@ -171,7 +171,7 @@ export const main = () => {
   const cylinder = new Cylinder(gl, coordShader, camera, 20);
   cylinder.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...cylinder.uniformBindings,
@@ -187,7 +187,7 @@ export const main = () => {
   const xzPlane = new XZPlane(gl, coordShader, camera, { amount: 100, spacing: 1, length: 50 });
   xzPlane.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
     ],
     uniforms: [
       ...xzPlane.uniformBindings,
@@ -200,7 +200,7 @@ export const main = () => {
   cube.swapShader(coordShader);
   cube.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer }
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer }
     ],
     uniforms: [
       ...cube.uniformBindings,

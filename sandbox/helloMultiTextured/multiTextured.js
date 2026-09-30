@@ -346,7 +346,7 @@ export const main = () => {
   cubeBrick.setAlpha(true);
   cubeBrick.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_cubeColor.raw },
@@ -374,7 +374,7 @@ export const main = () => {
   const treePiece = new Cube(gl, treeShader, camera);
   treePiece.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_treeColor.raw },
@@ -392,7 +392,7 @@ export const main = () => {
   const stem = new Cylinder(gl, treeShader, camera, 12);
   stem.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_treeColor.raw },

@@ -112,7 +112,7 @@ export const main = () => {
   const ground = new Square(gl, craneShader, camera);
   ground.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_whiteColor.raw },
@@ -139,7 +139,7 @@ export const main = () => {
   const craneBase = new Cylinder(gl, craneShader, camera, 6);
   craneBase.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_baseColor.raw },
@@ -157,7 +157,7 @@ export const main = () => {
   const craneBaseTop = new Disc(gl, craneShader, camera, 6);
   craneBaseTop.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_baseColor.raw },
@@ -175,7 +175,7 @@ export const main = () => {
   const joint = new Cube(gl, craneShader, camera);
   joint.setShaderRelationship({
     attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
     ],
     uniforms: [
       { name: "uColor", getValue: () => g_sheetColor.raw },

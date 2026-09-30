@@ -113,7 +113,7 @@ export class Drawable {
     this.modelViewMatrix = new Matrix4();
 
     /**@type {WebGLBuffer | null} */
-    this.positionBuffer = null;
+    this.vertexBuffer = null;
     /**@type {WebGLBuffer | null} */
     this.colorBuffer = null;
     /**@type {WebGLBuffer | null} */
@@ -122,7 +122,7 @@ export class Drawable {
     /** This variable is public so that you can reuse previous attributeBindings when you e.g do .setShaderRelationship()
      * @type { { name: string; getBuffer: (self: Drawable) => WebGLBuffer | null }[] } */
     this.attributeBindings = [
-      { name: "aVertexPosition", getBuffer: (self) => self.positionBuffer },
+      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
       { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
     ];
 
@@ -219,7 +219,7 @@ export class Drawable {
 
   /** Binds the positionbuffer, and indexbuffer + colorbuffer if theyre set previously. */
   bindBuffers() {
-    this.bindPositionBuffer();
+    this.bindVertexBuffer();
 
     if (this.#vertexColors.length !== 0) {
       this.bindColorBuffer();
@@ -229,13 +229,13 @@ export class Drawable {
       this.bindIndexBuffer();
     }
   }
-  bindPositionBuffer() {
-    const positionBuffer = this.#gl.createBuffer();
-     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, positionBuffer);
+  bindVertexBuffer() {
+    const vertexBuffer = this.#gl.createBuffer();
+     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, vertexBuffer);
     this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertices), this.#gl.STATIC_DRAW);
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
-    this.positionBuffer = positionBuffer;
+    this.vertexBuffer = vertexBuffer;
     this.#vertexCount = this.#vertices.length / 3;
   }
   bindColorBuffer() {
@@ -321,7 +321,7 @@ export class Drawable {
    * Shader variables can point to data inside the class, and outside the class:
    *
    * - Example of Data inside this class:
-   *   `'aVertexPosition', getBuffer = (it) => { it.positionBuffer }`
+   *   `'aVertexPosition', getBuffer = (it) => { it.vertexBuffer }`
    *
    * - Example of data outside this class:
    *   `'uColor', getValue = () => { color }`
@@ -349,7 +349,7 @@ export class Drawable {
     if (attributes) { this.attributeBindings = attributes };
     if (uniforms) { this.uniformBindings = uniforms };
   }
-  
+
   /** @param {Shader} shader */
   swapShader(shader) {
     this.#shader = shader;
@@ -358,7 +358,7 @@ export class Drawable {
   // ##############################################################################
   //                       MATRIX CALLBACKS AND UPDATES
   // ##############################################################################
-  
+
   /**Creates a callback that is intended to operate on this.modelMatrix.
    *
    * This callback will be invoked when you call `.draw()` or `updateMatrices()`.
@@ -399,7 +399,7 @@ export class Drawable {
   // ##############################################################################
   //                      DISTANCE AND POSITION FUNCTIONS
   // ##############################################################################
-  
+
   /**@param {{x: number;y: number;z: number;}} pos  */
   setPosition(pos) {
     this.#position = { ...pos };
@@ -412,11 +412,18 @@ export class Drawable {
    * @returns {{x: number; y: number; z: number}} */
   getWorldPosition() {
     if (!this.#matricesUpdated) {
-      throw Error("Cant getWorldPosition before updateMatrices() or draw().");
+      throw Error("Can't getWorldPosition before updateMatrices() or draw().");
     }
 
     const elements = this.modelMatrix.elements;
-    return {x: elements[12], y: elements[13], z: elements[14]};
+    const [x, y, z] = [elements[12], elements[13], elements[14]];
+
+    if (x === undefined || y === undefined || z === undefined) {
+      throw Error("Wat how dis possible.")
+    } else {
+      return {x, y, z}
+    }
+;
   }
   /**
    * Gets the distance from the object center to the cameras world-position.
@@ -443,15 +450,35 @@ export class Drawable {
   // ##############################################################################
   //                                MISC FUNCTIONS
   // ##############################################################################
-  
+
   log() {
-    if (this.indexBuffer) {
-      console.log(`Positions: ${this.#vertices} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
+    if (this.#matricesUpdated) {
+      console.log(`
+Position: ${JSON.stringify(this.#position)}
+Current worldPosition: ${JSON.stringify(this.getWorldPosition())}
+
+Is vertexBuffer set? : ${this.vertexBuffer !== null}
+Is indexBuffer set? : ${this.indexBuffer !== null}
+Is colorBuffer set? : ${this.colorBuffer !== null}
+
+AlphaMode: ${this.#isAlpha}
+GLMode: ${this.#glMode}
+is2D: ${this.#is2D}`)
     } else {
-      console.log(`Positions: ${this.#vertices} | Colors: ${this.#vertexColors}`)
+      console.log(`
+Position: ${JSON.stringify(this.#position)}
+Current worldPosition: undefined (due to .updateMatrices() not being called yet)
+
+Is vertexBuffer set? : ${this.vertexBuffer !== null}
+Is indexBuffer set? : ${this.indexBuffer !== null}
+Is colorBuffer set? : ${this.colorBuffer !== null}
+
+AlphaMode: ${this.#isAlpha}
+GLMode: ${this.#glMode}
+is2D: ${this.#is2D}`)
     }
   }
-  
+
   /**
    * Deepcopy of the class and its' data.
    * @returns {Drawable}
@@ -472,7 +499,7 @@ export class Drawable {
     clone.#indexCount = this.#indexCount;
 
     // TODO: HOW TO DEEPCOPY WATAFAK :(
-    clone.positionBuffer = this.positionBuffer;
+    clone.vertexBuffer = this.vertexBuffer;
     clone.colorBuffer = this.colorBuffer;
     clone.indexBuffer = this.indexBuffer;
     clone.#textureBindings = [...this.#textureBindings];
@@ -483,7 +510,7 @@ export class Drawable {
   // ##############################################################################
   //                                DRAWING WOWIE
   // ##############################################################################
-  
+
   /** Draws the object to the canvas.
    *
    * You can supply `outerModelMatrix` if you construct it in your renderLoop/animationLoop.
@@ -499,7 +526,7 @@ export class Drawable {
     const gl = this.#gl;
     const shader = this.#shader;
 
-    if (!this.positionBuffer)
+    if (!this.vertexBuffer)
       throw Error("Buffer(s) not instantiated; call bindBuffers() first.");
 
     shader.useProgram();
