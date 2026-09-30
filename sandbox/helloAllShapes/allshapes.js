@@ -14,7 +14,6 @@ import { Square } from "../../base/shapes/square.js";
 import { Triangle } from "../../base/shapes/triangle.js";
 import { Matrix4 } from "../../base/lib/cuon-matrix.js";
 import { KeyManager } from "../../base/helpers/keyManager.js";
-import { RotateAround } from "../../base/helpers/matrixStack.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -100,117 +99,74 @@ export const main = () => {
     },
   );
 
-  const coords = new Coords(gl, baseShader, camera, 80);
-  coords.bindBuffers();
+  const coords = new Coords(gl, baseShader, camera, 80)
+    .bindBuffers();
 
-  const square = new Square(gl, baseShader, camera, { r: 1.0, g: 0.1, b: 0.1, a: 0.5 });
-  square.bindBuffers();
-  square.setAlpha(true);
+  const square = new Square(gl, baseShader, camera, { r: 1.0, g: 0.1, b: 0.1, a: 0.5 })
+    .setAttribute("aVertexColor", (self) => self.colorBuffer)
+    .setAlpha(true)
+    .bindBuffers();
 
-  const cone = new Cone(gl, coordShader, camera, 20);
-  cone.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...cone.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  cone.bindBuffers();
-  cone.setPosition({ x: 5, y: 0, z: 5 });
-  cone.setLocalTransforms((localMat) => {
-    localMat.scale(2, 2, 2);
-  })
+  const cone = new Cone(gl, coordShader, camera, 20)
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setPosition({ x: 5, y: 0, z: 5 })
+    .setLocalTransforms((localMat) => {
+      localMat.scale(2, 2, 2);
+    }
+  )
 
-  const disc = new Disc(gl, coordShader, camera, 20);
-  disc.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...disc.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  disc.bindBuffers();
-  disc.setPosition({ x: -5, y: 0, z: -5 });
-  disc.setLocalTransforms((localMat) => {
-    localMat.scale(2, 2, 2);
-  })
+  const disc = new Disc(gl, coordShader, camera, 20)
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setPosition({ x: -5, y: 0, z: -5 })
+    .setLocalTransforms((localMat) => {
+      localMat.scale(2, 2, 2);
+    }
+  )
 
-  const sphere = new Sphere(gl, coordShader, camera);
-  sphere.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...sphere.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  sphere.bindBuffers();
-  sphere.setPosition({ x: -5, y: 0, z: 5 });
-  sphere.setLocalTransforms((localMat) => {
-    localMat.scale(2, 2, 2);
-  })
+  const sphere = new Sphere(gl, coordShader, camera)
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setPosition({ x: -5, y: 0, z: 5 })
+    .setLocalTransforms((localMat) => {
+      localMat.scale(2, 2, 2);
+    }
+  )
 
-  const triangle = new Triangle(gl, coordShader, camera);
-  triangle.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...triangle.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  triangle.bindBuffers();
-  triangle.setPosition({ x: 0, y: 2.4, z: 0 })
+  const triangle = new Triangle(gl, coordShader, camera)
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setPosition({ x: 0, y: 2.4, z: 0 });
 
-  const cylinder = new Cylinder(gl, coordShader, camera, 20);
-  cylinder.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...cylinder.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  cylinder.bindBuffers();
-  cylinder.setPosition({ x: 5, y: 0, z: -5 });
-  cylinder.setLocalTransforms((localMat) => {
-    localMat.scale(2, 2, 2);
-  })
+  const cylinder = new Cylinder(gl, coordShader, camera, 20)
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setPosition({ x: 5, y: 0, z: -5 })
+    .setLocalTransforms((localMat) => {
+      localMat.scale(2, 2, 2);
+    }
+  )
 
-  const xzPlane = new XZPlane(gl, coordShader, camera, { amount: 100, spacing: 1, length: 50 });
-  xzPlane.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) =>  self.vertexBuffer },
-    ],
-    uniforms: [
-      ...xzPlane.uniformBindings,
-      { name: "uColor", getValue: () => xzPlaneUColor.raw },
-    ]
-  });
-  xzPlane.bindBuffers();
+  const xzPlane = new XZPlane(gl, coordShader, camera, { amount: 100, spacing: 1, length: 50 })
+    .setUniform("uColor", () => xzPlaneUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers();
 
-  const cube = new Cube(gl, baseShader, camera);
-  cube.swapShader(coordShader);
-  cube.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer }
-    ],
-    uniforms: [
-      ...cube.uniformBindings,
-      { name: "uColor", getValue: () => cubeUColor.raw },
-    ]
-  });
-  cube.bindBuffers();
-  cube.setLocalTransforms((localModelMatrix) => {
-    localModelMatrix.scale(4, 2.4, 0.3);
-  })
+  const cube = new Cube(gl, baseShader, camera)
+    .swapShader(coordShader)
+    .setUniform("uColor", () => cubeUColor.raw)
+    .removeAttribute("aVertexColor")
+    .bindBuffers()
+    .setLocalTransforms((localModelMatrix) => {
+      localModelMatrix.scale(4, 2.4, 0.3);
+    }
+  )
 
   // RENDERINFO -----------------------
 
@@ -236,7 +192,7 @@ export const main = () => {
     gl: gl,
     canvas: canvas,
     camera: camera,
-    
+
     coords: coords,
     xzPlane: xzPlane,
     square: square,
@@ -246,7 +202,7 @@ export const main = () => {
     sphere: sphere,
     cylinder: cylinder,
     cube: cube,
-    
+
     modelMatrix: new Matrix4(),
     fpsInfo: new FpsInfo("fps"),
     keyManager: new KeyManager(),
@@ -282,7 +238,7 @@ function animate(renderInfo) {
   })
 
   fps.showFps();
-  
+
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
   renderInfo.keyManager.handleEvents();
   renderInfo.canvas.clear({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });

@@ -326,86 +326,58 @@ export const main = () => {
   );
 
   // OBJECTS TO DRAW
-  const coords = new Coords(gl, baseShader, camera, 80);
-  coords.bindBuffers();
+  const coords = new Coords(gl, baseShader, camera, 80)
+    .bindBuffers();
 
   const xzPlane = new XZPlane(gl, baseShader, camera, {
     amount: 100,
     spacing: 0.5,
     length: 50
     }, g_xzPlaneColor.rgba
-  );
-  xzPlane.bindBuffers();
+  )
+    .bindBuffers();
 
-  const cubeBrick = new Cube(gl, texShader, camera);
-  cubeBrick.setPosition({
-    x: 1,
-    y: 0.01,
-    z: 1
-  });
-  cubeBrick.setAlpha(true);
-  cubeBrick.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_cubeColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  cubeBrick.bindTexture(brickMetalUvCoords, brickImage, {
+  const cubeBrick = new Cube(gl, texShader, camera)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_cubeColor.raw)
+    .setPosition({ x: 1, y: 0.01, z: 1 })
+    .setAlpha(true)
+    .bindTexture(brickMetalUvCoords, brickImage, {
     uvAttributeName: "aVertexTextureCoord",
     samplerName: "uSampler0",
     target: gl.TEXTURE_2D,
-  });
-  cubeBrick.bindTexture(brickMetalUvCoords, metalImage, {
+  })
+    .bindTexture(brickMetalUvCoords, metalImage, {
     uvAttributeName: "aVertexTextureCoord",
     samplerName: "uSampler1",
     target: gl.TEXTURE_2D,
-  });
-  cubeBrick.bindTexture(diceUvCoords, diceImage, {
+  })
+    .bindTexture(diceUvCoords, diceImage, {
     uvAttributeName: "aDiceTextureCoord",
     samplerName: "uSampler2",
     target: gl.TEXTURE_2D
   })
-  cubeBrick.bindBuffers();
+    .bindBuffers();
 
-  const treePiece = new Cube(gl, treeShader, camera);
-  treePiece.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_treeColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  treePiece.bindTexture(brickMetalUvCoords, metalImage, {
+  const treePiece = new Cube(gl, treeShader, camera)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_treeColor.raw)
+    .bindTexture(brickMetalUvCoords, metalImage, {
     uvAttributeName: "aVertexTextureCoord",
     samplerName: "uSampler0",
     target: gl.TEXTURE_2D,
-  });
-  treePiece.bindBuffers();
+  })
+    .bindBuffers();
 
-  const stem = new Cylinder(gl, treeShader, camera, 12);
-  stem.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_treeColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  stem.bindTexture(brickMetalUvCoords, brickImage, {
+  const stem = new Cylinder(gl, treeShader, camera, 12)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_treeColor.raw)
+    .bindTexture(brickMetalUvCoords, brickImage, {
     uvAttributeName: "aVertexTextureCoord",
     samplerName: "uSampler0",
     target: gl.TEXTURE_2D,
-  });
-  stem.bindBuffers();
+  })
+    .bindBuffers();
 
   const keyManager = new KeyManager();
   const matrixStack = new MatrixStack();

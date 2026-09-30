@@ -8,6 +8,11 @@ export class Drawable {
   /** @type {Shader} */
   #shader;
 
+  /**@type {Map<string, (self: Drawable) => Float32Array | number[] | number >} */
+  #uniforms = new Map();
+  /**@type {Map<string, (self: Drawable) => WebGLBuffer | null >} */
+  #attributes = new Map();
+
   /**Storing the position so you can possibly calc the dist to camera.
   * @type {{x: number; y: number; z: number;}} */
   #position;
@@ -28,11 +33,7 @@ export class Drawable {
   #vertexColors;
   /**@type {number[]} */
   #indeces;
-
-  /** Name is a tad misleading, as when drawing with e.g gl.LINES, it gets set to
-   *
-   * *this.#vertices.length*, not *this.#vertices.length / 3*.
-   * @type {number} */
+  /**@type {number} */
   #vertexCount;
   /**@type {number} */
   #indexCount;
@@ -57,15 +58,27 @@ export class Drawable {
   }[]} */
   #textureBindings;
 
-  /** Fully local modelMatrix, used so that TORS gets applied in the intended order given the object's `#localTransforms` and `#position`
+  // ---- MATRIX STUFF ON THE PRIVATE localModelMatrix -----
+
+  /**
+   * Fully local modelMatrix, used so that TORS gets applied in the intended order given the object's `#localTransforms` and `#position`
    * @type {Matrix4} */
   #localModelMatrix;
-  /** Contains a lambda that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
+  /**
+   * Contains a lambda that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
    * transforms that the user want to do on the object.
    * @type {((internal: Matrix4, self: Drawable) => void)} */
   #localTransforms;
   /**@type {boolean} */
   #matricesUpdated;
+
+  // ---- HOLDING STATE OF WHICH BUFFERS ARE INITIALIZED AND WHICH COPY OF Drawable OWNS THE WebGLBuffer's -----
+
+  /**@type {boolean} */
+  #isOwner; // Flag for if this instance of Drawable owns the WebGLBuffers
+
+  /**@type {Set<WebGLBuffer>} */
+  #ownedWebGLBuffers; // Keeps track of all the buffers that are owned by this instance of Drawable
 
   /**
    * @param {WebGL2RenderingContext} gl
@@ -95,18 +108,32 @@ export class Drawable {
     this.#localTransforms = () => { };
     this.#matricesUpdated = false;
 
+    this.#isOwner = true;
+    this.#ownedWebGLBuffers = new Set();
+
+    this.#attributes.set("aVertexColor", (self) => self.colorBuffer);
+    this.#attributes.set("aVertexPosition", (self) => self.vertexBuffer);
+
+    this.#uniforms.set("uModelViewMatrix",  (self) => self.modelViewMatrix.elements);
+    this.#uniforms.set("uProjectionMatrix", (self) => self.camera.projectionMatrix.elements);
+
     // PUBLIC VARIABLES --------------------
 
     /** This variable is public so that you can access the camera when you e.g do `.setShaderRelationship()`
      * @type {Camera} */
     this.camera = camera;
 
-    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`
+    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`.
+     *
+     * It gets mutated by `.updateMatrices()` and exists so that transformations can happen in
+     * two steps:
+     * - Transform with itself as origin ( `.setLocalTransforms()` ),
+     * - Transform in worldspace with center at origin ( `.draw(outerModelMatrix)` ).
      *
      * This class' owned modelMatrix.
      * @type {Matrix4} */
     this.modelMatrix = new Matrix4();
-    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`
+    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`.
      *
      * This class' owned modelViewMatrix.
      * @type {Matrix4} */
@@ -118,20 +145,6 @@ export class Drawable {
     this.colorBuffer = null;
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
-
-    /** This variable is public so that you can reuse previous attributeBindings when you e.g do .setShaderRelationship()
-     * @type { { name: string; getBuffer: (self: Drawable) => WebGLBuffer | null }[] } */
-    this.attributeBindings = [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-      { name: "aVertexColor", getBuffer: (self) => self.colorBuffer },
-    ];
-
-    /** This variable is public so that you can reuse previous uniformBindings when you e.g do .setShaderRelationship()
-     * @type { { name: string; getValue: (self: Drawable) => Float32Array | number[] | number}[] } */
-    this.uniformBindings = [
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-    ];
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
 
@@ -147,6 +160,8 @@ export class Drawable {
   setVertices(vertices) {
     this.#vertices = vertices;
     this.#vertexCount = vertices.length / 3;
+
+    return this;
   }
 
   /**
@@ -165,18 +180,24 @@ export class Drawable {
     for (let i = 0; i < this.#vertexCount; i++) {
       this.#vertexColors.push(color.r, color.g, color.b, color.a);
     }
+
+    return this;
   }
 
   /**@param {number[]} colors  */
   setVertexColors(colors) {
     if (colors.length % 4 !== 0) console.warn("SetVertexColors recieved a list not divisible by 4 (rbga).");
     this.#vertexColors = colors;
+
+    return this;
   }
 
   /**@param {number[]} indeces */
   setIndeces(indeces) {
     this.#indeces = indeces;
     this.#indexCount = indeces.length;
+
+    return this;
   }
 
   /**@param {boolean} bool
@@ -184,6 +205,7 @@ export class Drawable {
    */
   setAlpha(bool) {
     this.#isAlpha = bool;
+    return this
   }
 
   /**@returns {boolean}
@@ -196,6 +218,7 @@ export class Drawable {
   /**@param {number} glMode */
   setGLMode(glMode) {
     this.#glMode = glMode;
+    return this;
   }
 
   /**@param {boolean} bool
@@ -203,6 +226,7 @@ export class Drawable {
    */
   set2D(bool) {
     this.#is2D = bool;
+    return this
   }
 
   /**@returns {boolean}
@@ -214,7 +238,7 @@ export class Drawable {
 
 
   // ##############################################################################
-  //                                BINDING STUFF
+  //                               BINDING STUFF
   // ##############################################################################
 
   /** Binds the positionbuffer, and indexbuffer + colorbuffer if theyre set previously. */
@@ -228,32 +252,20 @@ export class Drawable {
     if (this.#indeces.length !== 0) {
       this.bindIndexBuffer();
     }
+    return this
   }
   bindVertexBuffer() {
-    const vertexBuffer = this.#gl.createBuffer();
-     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, vertexBuffer);
-    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertices), this.#gl.STATIC_DRAW);
-    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
-
-    this.vertexBuffer = vertexBuffer;
+    this.vertexBuffer = this.#bindBuffer(this.vertexBuffer, this.#vertices, this.#gl.ARRAY_BUFFER, Float32Array);
     this.#vertexCount = this.#vertices.length / 3;
   }
   bindColorBuffer() {
-    const colorBuffer = this.#gl.createBuffer();
-    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, colorBuffer);
-    this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertexColors), this.#gl.STATIC_DRAW);
-    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
-
-    this.colorBuffer = colorBuffer;
+    this.colorBuffer = this.#bindBuffer(this.colorBuffer, this.#vertexColors, this.#gl.ARRAY_BUFFER, Float32Array);
   }
   bindIndexBuffer() {
-    const indexBuffer = this.#gl.createBuffer();
-    this.#gl.bindBuffer(this.#gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    this.#gl.bufferData(this.#gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.#indeces), this.#gl.STATIC_DRAW);
-
-    this.indexBuffer = indexBuffer;
+    this.indexBuffer = this.#bindBuffer(this.indexBuffer, this.#indeces, this.#gl.ELEMENT_ARRAY_BUFFER, Uint16Array);
     this.#indexCount = this.#indeces.length;
   }
+
   /**
    * @param {number[]} uvCoordinates
    * @param {HTMLImageElement} image
@@ -306,53 +318,97 @@ export class Drawable {
       target,
       activeTexture,
     });
+
+    return this;
   }
-  unbindTextures() {
+
+  freeTextures() {
+    if (!this.#isOwner) return;
+
+    for (const tb of this.#textureBindings) {
+      this.#gl.deleteBuffer(tb.uvBuffer);
+      this.#gl.deleteTexture(tb.texture);
+    }
     this.#textureBindings = [];
   }
+  freeBuffers() {
+    if (!this.#isOwner) return;
+
+    for (const buf of this.#ownedWebGLBuffers) {
+      this.#gl.deleteBuffer(buf);
+    }
+    this.#ownedWebGLBuffers.clear();
+
+    this.freeTextures();
+  }
 
   // ##############################################################################
-  //                                SHADER SPESIFIC
+  //                              SHADER SPESIFIC
   // ##############################################################################
+
+
+  // Defines what data each shader variable should use.
+
+  // Shader variables can point to data inside the class, and outside the class:
+
+  // - Example of Data inside this class:
+  //   `'aVertexPosition', getBuffer = (it) => { it.vertexBuffer }`
+
+  // - Example of data outside this class:
+  //   `'uColor', getValue = () => { color }`
+
+  // **Important**
+
+  // Do not set uniforms or attributes that are needed when calling
+  // `bindTexture()`.
+
+  // Call this after `swapShader()` if the new shader uses different variable
+  // names or data.
 
   /**
-   * Defines what data each shader variable should use.
-   *
-   * Shader variables can point to data inside the class, and outside the class:
-   *
-   * - Example of Data inside this class:
-   *   `'aVertexPosition', getBuffer = (it) => { it.vertexBuffer }`
-   *
-   * - Example of data outside this class:
-   *   `'uColor', getValue = () => { color }`
-   *
-   * **Important**
-   *
-   * Do not set uniforms or attributes that are needed when calling
-   * `bindTexture()`.
-   *
-   * Call this after `swapShader()` if the new shader uses different variable
-   * names or data.
-   *
-   * @param {{
-   *   attributes?: {
-   *     name: string;
-   *     getBuffer: (self: Drawable) => WebGLBuffer | null;
-   *   }[];
-   *   uniforms?: {
-   *     name: string;
-   *     getValue: (self: Drawable) => Float32Array | number[] |number;
-   *   }[];
-   * }} relationship
+   * @param {string} name
+   * @param {((self: Drawable) => number | number[] | Float32Array)} callback
    */
-  setShaderRelationship({ attributes, uniforms } = {}) {
-    if (attributes) { this.attributeBindings = attributes };
-    if (uniforms) { this.uniformBindings = uniforms };
+  setUniform(name, callback) {
+    this.#uniforms.set(name, callback);
+    return this
+  }
+
+  /** @param {string} name */
+  removeUniform(name) {
+    this.#uniforms.delete(name);
+    return this;
+  }
+
+  deleteUniforms() {
+    this.#uniforms = new Map();
+    return this;
+  }
+
+  /**
+   * @param {string} name
+   * @param {((self: Drawable) => WebGLBuffer | null)} callback
+   */
+  setAttribute(name, callback) {
+    this.#attributes.set(name, callback);
+    return this
+  }
+
+  /**@param {string} name */
+  removeAttribute(name) {
+    this.#attributes.delete(name);
+    return this;
+  }
+
+  deleteAttributes() {
+    this.#attributes = new Map();
+    return this;
   }
 
   /** @param {Shader} shader */
   swapShader(shader) {
     this.#shader = shader;
+    return this;
   }
 
   // ##############################################################################
@@ -365,6 +421,7 @@ export class Drawable {
    * @param {((local: Matrix4, self: Drawable) => void)} callback */
   setLocalTransforms(callback) {
     this.#localTransforms = callback;
+    return this;
   }
 
   /** Update the ModelMatrix and ModelViewMatrix of the object, so that it is ready for `.draw()`.
@@ -394,6 +451,8 @@ export class Drawable {
 
     this.modelViewMatrix.set(this.camera.viewMatrix);
     this.modelViewMatrix.multiply(modelMatrix);
+
+    return this;
   }
 
   // ##############################################################################
@@ -403,6 +462,7 @@ export class Drawable {
   /**@param {{x: number;y: number;z: number;}} pos  */
   setPosition(pos) {
     this.#position = { ...pos };
+    return this;
   }
   /**@returns {{x: number;y: number;z: number;}} */
   getPosition() {
@@ -448,7 +508,7 @@ export class Drawable {
   }
 
   // ##############################################################################
-  //                                MISC FUNCTIONS
+  //                              MISC FUNCTIONS
   // ##############################################################################
 
   log() {
@@ -535,18 +595,18 @@ is2D: ${this.#is2D}`)
       this.updateMatrices(outerModelMatrix, skipLocalTransforms);
     };
 
-    for (const { name, getBuffer } of this.attributeBindings) {
-      const buffer = getBuffer(this);
+    this.#attributes.forEach((callBack, name) => {
+      const buffer = callBack(this);
       if (!buffer) {
         throw Error("Attribute-buffer defined with name " + name + " is not instanciated.");
       }
       shader.connectAttribute(name, buffer);
-    }
+    })
 
-    for (const { name, getValue } of this.uniformBindings) {
-      const value = getValue(this);
-      shader.connectUniform(name, value);
-    }
+    this.#uniforms.forEach((callBack, name) => {
+      const buffer = callBack(this);
+      shader.connectUniform(name, buffer);
+    })
 
     for (const tb of this.#textureBindings) {
       shader.connectTexture(
@@ -605,5 +665,32 @@ is2D: ${this.#is2D}`)
         gl.drawArrays(glMode, 0, vertexCount);
       }
     }
+  }
+
+  /**
+   *
+   * @param {WebGLBuffer | null} buffer
+   * @param {number[]} data
+   * @param {number} target
+   * @param {Float32ArrayConstructor | Float16ArrayConstructor | Float64ArrayConstructor | Uint32ArrayConstructor | Uint16ArrayConstructor} ArrayType
+   * @returns {WebGLBuffer}
+   */
+  #bindBuffer(buffer, data, target, ArrayType) {
+    const gl = this.#gl;
+
+    if (buffer) { // Cleanup if dupe initialization
+      gl.deleteBuffer(buffer);
+      this.#ownedWebGLBuffers.delete(buffer);
+    }
+
+    const newBuffer = gl.createBuffer();
+
+    gl.bindBuffer(target, newBuffer);
+    gl.bufferData(target, new ArrayType(data), gl.STATIC_DRAW);
+    gl.bindBuffer(target, null);
+
+    this.#ownedWebGLBuffers.add(newBuffer);
+
+    return newBuffer;
   }
 }

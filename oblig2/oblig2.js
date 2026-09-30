@@ -109,86 +109,52 @@ export const main = () => {
   );
 
   // DRAWABLE OBJECTS
-  const ground = new Square(gl, craneShader, camera);
-  ground.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_whiteColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  ground.bindTexture(
-    [
-      0, 1, // TL
-      0, 0, // BL
-      1, 0, // BR
-      0, 1, // TL
-      1, 0, // BR
-      1, 1  // TR
-    ], grassTexture, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D
-  }
-  );
-  ground.bindBuffers();
+  const ground = new Square(gl, craneShader, camera)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_whiteColor.raw)
+    .bindTexture( [
+        0, 1, // TL
+        0, 0, // BL
+        1, 0, // BR
+        0, 1, // TL
+        1, 0, // BR
+        1, 1  // TR
+      ], grassTexture, {
+      uvAttributeName: "aVertexTextureCoord",
+      samplerName: "uSampler0",
+      target: gl.TEXTURE_2D
+    })
+    .bindBuffers()
 
-  const craneBase = new Cylinder(gl, craneShader, camera, 6);
-  craneBase.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_baseColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  craneBase.bindTexture(cubeUvCoords, brickTexture, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
-  craneBase.bindBuffers();
+  const craneBase = new Cylinder(gl, craneShader, camera, 6)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_baseColor.raw)
+    .bindTexture(cubeUvCoords, brickTexture, {
+      uvAttributeName: "aVertexTextureCoord",
+      samplerName: "uSampler0",
+      target: gl.TEXTURE_2D,
+    })
+    .bindBuffers()
 
-  const craneBaseTop = new Disc(gl, craneShader, camera, 6);
-  craneBaseTop.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_baseColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  craneBaseTop.bindTexture(cubeUvCoords, brickTexture, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
-  craneBaseTop.bindBuffers();
+  const craneBaseTop = new Disc(gl, craneShader, camera, 6)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_baseColor.raw)
+    .bindTexture(cubeUvCoords, brickTexture, {
+      uvAttributeName: "aVertexTextureCoord",
+      samplerName: "uSampler0",
+      target: gl.TEXTURE_2D,
+    })
+    .bindBuffers()
 
-  const joint = new Cube(gl, craneShader, camera);
-  joint.setShaderRelationship({
-    attributes: [
-      { name: "aVertexPosition", getBuffer: (self) => self.vertexBuffer },
-    ],
-    uniforms: [
-      { name: "uColor", getValue: () => g_sheetColor.raw },
-      { name: "uProjectionMatrix", getValue: (self) => self.camera.projectionMatrix.elements },
-      { name: "uModelViewMatrix", getValue: (self) => self.modelViewMatrix.elements },
-    ]
-  });
-  joint.bindTexture(cubeUvCoords, sheetMetalTexture, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
-  joint.bindBuffers();
+  const joint = new Cube(gl, craneShader, camera)
+    .removeAttribute("aVertexColor")
+    .setUniform("uColor", () => g_sheetColor.raw)
+    .bindTexture(cubeUvCoords, sheetMetalTexture, {
+      uvAttributeName: "aVertexTextureCoord",
+      samplerName: "uSampler0",
+      target: gl.TEXTURE_2D,
+    })
+    .bindBuffers();
 
 
   // INIT FOR RENDERINFO
