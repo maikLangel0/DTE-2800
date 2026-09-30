@@ -4,7 +4,6 @@ import { FpsInfo } from "../../base/helpers/fpsInfo.js";
 import { ImageLoader } from "../../base/helpers/ImageLoader.js";
 import { KeyManager } from "../../base/helpers/keyManager.js";
 import { MatrixStack, RotateAround, TranslateDirection } from "../../base/helpers/matrixStack.js";
-import { RenderMatrices } from "../../base/helpers/renderMatrices.js";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
 import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader.js";
 import { Matrix4 } from "../../base/lib/cuon-matrix.js";
@@ -12,7 +11,6 @@ import { Coords } from "../../base/shapes/coord.js";
 import { Cube } from "../../base/shapes/cube.js";
 import { Cylinder } from "../../base/shapes/cylinder.js";
 import { Drawable } from "../../base/shapes/drawable.js";
-import { Square } from "../../base/shapes/square.js";
 import { XZPlane } from "../../base/shapes/xzPlane.js";
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
@@ -292,13 +290,9 @@ let g_cubeColor = new Color([1.0, 0.45, 0.9, 1.0]);
 
 let g_treeColor = new Color([0.59, 0.29, 0.0, 1.0]);
 
-const CUBEBRICK_SCALEFACTOR = 0.33;
-
 const STEM = { x: 0.2, y: 3, z: 0.2 }
 const BRANCH = { x: 0.1, y: 1, z: 0.1 }
 const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
-
-const scratchModelMatrix = new Matrix4();
 
 export const main = () => {
   const canvas = new WebGLCanvas("canvas", 900, 900);
@@ -345,9 +339,9 @@ export const main = () => {
 
   const cubeBrick = new Cube(gl, texShader, camera);
   cubeBrick.setPosition({
-    x: 0,
-    y: 0.01 + 1,
-    z: 0
+    x: 1,
+    y: 0.01,
+    z: 1
   });
   cubeBrick.setAlpha(true);
   cubeBrick.setShaderRelationship({
@@ -413,9 +407,6 @@ export const main = () => {
   });
   stem.bindBuffers();
 
-  // MODELMATRIX AND MODELVIEWMATRIX INSTANCIATION
-  const matrices = new RenderMatrices();
-
   const keyManager = new KeyManager();
   const matrixStack = new MatrixStack();
 
@@ -423,7 +414,7 @@ export const main = () => {
     gl: gl,
     canvas: canvas,
     camera: camera,
-    matrices: matrices,
+    modelMatrix: new Matrix4(),
 
     fpsInfo: new FpsInfo("fps"),
     keyManager: keyManager,
@@ -471,6 +462,12 @@ export const main = () => {
     renderInfo.treeAnimations.leafRotationZ -= 25 * dt % 360;
   })
 
+  cubeBrick.setLocalTransforms((localMat) => {
+    localMat.translate(0, 0.33, 0);
+    localMat.scale(0.33, 0.33, 0.33);
+    localMat.rotate(renderInfo.animations.cubeBrickRotationY, 0, 1, 0);
+  })
+
   animate(renderInfo);
 }
 
@@ -479,7 +476,7 @@ export const main = () => {
  *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
- *  matrices: RenderMatrices;
+ *  modelMatrix: Matrix4;
  *  fpsInfo: FpsInfo;
  *  keyManager: KeyManager;
  *  matrixStack: MatrixStack;
@@ -500,8 +497,7 @@ export const main = () => {
  * }} renderInfo
  */
 function animate(renderInfo) {
-  const matrices = renderInfo.matrices;
-  const modelMatrix = matrices.modelMatrix;
+  const modelMatrix = renderInfo.modelMatrix;
 
   const fps = renderInfo.fpsInfo;
   fps.showFps();
@@ -522,12 +518,13 @@ function animate(renderInfo) {
 
   modelMatrix.setIdentity();
 
-  renderInfo.coords.draw(matrices.modelMatrix);
-  renderInfo.xzPlane.draw(matrices.modelMatrix);
+  renderInfo.coords.draw();
+  renderInfo.xzPlane.draw();
 
   // TREEDRAW ENTRYPOINT
   animateTree(renderInfo.treeAnimations, fps.totalTime);
   drawTree(renderInfo);
+  
   renderInfo.matrixStack.empty();
 
   renderInfo.cubeBrick.updatePosition(
@@ -537,17 +534,7 @@ function animate(renderInfo) {
       z: 0
     }, fps.dt
   );
-
-  modelMatrix.setIdentity();
-  modelMatrix.translate(2, 0, 2);
-  modelMatrix.rotate(renderInfo.animations.cubeBrickRotationY, 0, 1, 0);
-  modelMatrix.scale(
-    CUBEBRICK_SCALEFACTOR,
-    CUBEBRICK_SCALEFACTOR,
-    CUBEBRICK_SCALEFACTOR
-  );
-
-  renderInfo.cubeBrick.draw(matrices.modelMatrix);
+  renderInfo.cubeBrick.draw();
 }
 
 /**
@@ -555,7 +542,7 @@ function animate(renderInfo) {
  *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
- *  matrices: RenderMatrices;
+ *  modelMatrix: Matrix4;
  *  fpsInfo: FpsInfo;
  *  keyManager: KeyManager;
  *  matrixStack: MatrixStack;
@@ -576,8 +563,7 @@ function animate(renderInfo) {
  * }} renderInfo
  */
 function drawTree(renderInfo) {
-  const matrices = renderInfo.matrices;
-  const modelMatrix = matrices.modelMatrix;
+  const modelMatrix = renderInfo.modelMatrix;
   const matrixStack = renderInfo.matrixStack;
 
   const treeAnimations = renderInfo.treeAnimations;
@@ -614,7 +600,7 @@ function drawTree(renderInfo) {
     );
 
     const modelMatrixPart = matrixStack.peek();
-    drawTreePart(modelMatrixPart, BRANCH, renderInfo.treePiece);
+    drawTreePart(modelMatrixPart, modelMatrix, BRANCH, renderInfo.treePiece);
 
     g_treeColor.set([0.05, 0.9, 0.05, 0.5]); // Color for the LEAF
     renderInfo.treePiece.setAlpha(true); // Should draw LEAF with alpha
@@ -633,7 +619,7 @@ function drawTree(renderInfo) {
       )
 
       const modelMatrixPart = matrixStack.pop();
-      drawTreePart(modelMatrixPart, LEAF, renderInfo.treePiece);
+      drawTreePart(modelMatrixPart, modelMatrix, LEAF, renderInfo.treePiece);
     }
     renderInfo.treePiece.setAlpha(false); // Turn off alpha when LEAF finished drawing
     matrixStack.pop();
@@ -647,19 +633,20 @@ function drawTree(renderInfo) {
   modelMatrixPart.translate(0, -STEM.y / 2, 0);
   modelMatrixPart.scale(1, 2, 1);
 
-  drawTreePart(modelMatrixPart, STEM, renderInfo.treeStem);
+  drawTreePart(modelMatrixPart, modelMatrix, STEM, renderInfo.treeStem);
 }
 
 /**
+ * @param {Matrix4} stackModelMatrix
  * @param {Matrix4} modelMatrix
  * @param {{x: number; y: number; z: number;}} dimentions
  * @param {Drawable} drawable
  */
-function drawTreePart(modelMatrix, dimentions, drawable) {
-  scratchModelMatrix.set(modelMatrix);
-  scratchModelMatrix.scale(dimentions.x / 2, dimentions.y / 2, dimentions.z / 2);
+function drawTreePart(stackModelMatrix, modelMatrix, dimentions, drawable) {
+  modelMatrix.set(stackModelMatrix);
+  modelMatrix.scale(dimentions.x / 2, dimentions.y / 2, dimentions.z / 2);
 
-  drawable.draw(scratchModelMatrix);
+  drawable.draw({outerModelMatrix: modelMatrix});
 }
 
 /**

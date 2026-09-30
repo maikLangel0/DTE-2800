@@ -4,7 +4,6 @@ import { FpsInfo } from "../base/helpers/fpsInfo.js";
 import { ImageLoader } from "../base/helpers/ImageLoader.js";
 import { KeyManager } from "../base/helpers/keyManager.js";
 import { MatrixStack, RotateAround, TranslateDirection } from "../base/helpers/matrixStack.js";
-import { RenderMatrices } from "../base/helpers/renderMatrices.js";
 import { WebGLCanvas } from "../base/helpers/WebGLCanvas.js";
 import { DataType, LocationType, Shader } from "../base/helpers/WebGLShader.js";
 import { Matrix4 } from "../base/lib/cuon-matrix.js";
@@ -193,7 +192,6 @@ export const main = () => {
 
 
   // INIT FOR RENDERINFO
-  const matrices = new RenderMatrices();
   const keyManager = new KeyManager();
   const matrixStack = new MatrixStack();
   const fpsInfo = new FpsInfo("fps");
@@ -202,10 +200,11 @@ export const main = () => {
     gl: gl,
     canvas: canvas,
     camera: camera,
-    matrices: matrices,
 
     fpsInfo: fpsInfo,
     keyManager: keyManager,
+
+    modelMatrix: new Matrix4(),
     matrixStack: matrixStack,
 
     ground: ground,
@@ -275,20 +274,20 @@ export const main = () => {
   })
 
   // CRANEBASE CYLINDER
-  craneBase.setLocalTransforms((localModelMatrix) => {
+  craneBase.setLocalTransforms((innerModelMatrix) => {
     const baseRotationTotal = renderInfo.animations.baseBaseRotationY + renderInfo.animations.baseRotationY;
 
-    localModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
-    localModelMatrix.scale(BASE.x, BASE.y, BASE.z);
+    innerModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
+    innerModelMatrix.scale(BASE.x, BASE.y, BASE.z);
   })
 
   // CRANEBASE DISC ONTOP
-  craneBaseTop.setLocalTransforms((localModelMatrix) => {
+  craneBaseTop.setLocalTransforms((innerModelMatrix) => {
     const baseRotationTotal = renderInfo.animations.baseBaseRotationY + renderInfo.animations.baseRotationY;
 
-    localModelMatrix.translate(0, BASE.y, 0);
-    localModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
-    localModelMatrix.scale(BASE.x, BASE.y, BASE.z);
+    innerModelMatrix.translate(0, BASE.y, 0);
+    innerModelMatrix.rotate(baseRotationTotal, 0, 1, 0);
+    innerModelMatrix.scale(BASE.x, BASE.y, BASE.z);
   })
 
   animate(renderInfo);
@@ -299,7 +298,7 @@ export const main = () => {
  *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
- *  matrices: RenderMatrices;
+ *  modelMatrix: Matrix4;
  *  fpsInfo: FpsInfo;
  *  keyManager: KeyManager;
  *  matrixStack: MatrixStack;
@@ -356,9 +355,9 @@ function animate(renderInfo) {
  *  gl: WebGL2RenderingContext;
  *  canvas: WebGLCanvas;
  *  camera: Camera;
- *  matrices: RenderMatrices;
  *  fpsInfo: FpsInfo;
  *  keyManager: KeyManager;
+ *  modelMatrix: Matrix4;
  *  matrixStack: MatrixStack;
  *  ground: Square;
  *  craneBase: Cylinder;
@@ -376,9 +375,7 @@ function animate(renderInfo) {
  * }} renderInfo
  */
 function drawCrane(renderInfo) {
-  const matrices = renderInfo.matrices;
-  const modelMatrix = matrices.modelMatrix;
-
+  const modelMatrix = renderInfo.modelMatrix;
   const matrixStack = renderInfo.matrixStack;
 
   const animations = renderInfo.animations;
@@ -406,7 +403,7 @@ function drawCrane(renderInfo) {
   )
 
   let modelMatrixPart = matrixStack.peek();
-  drawCranePart(modelMatrixPart, matrices, JOINTS, renderInfo.joint);
+  drawCranePart(modelMatrixPart, modelMatrix, JOINTS, renderInfo.joint);
 
   // CREATE JOINT2 ON STACK
   matrixStack.createChildAndPush(
@@ -420,7 +417,7 @@ function drawCrane(renderInfo) {
   )
 
   modelMatrixPart = matrixStack.peek();
-  drawCranePart(modelMatrixPart, matrices, JOINTS, renderInfo.joint);
+  drawCranePart(modelMatrixPart, modelMatrix, JOINTS, renderInfo.joint);
 
   // CREATE JOINT3 ON STACK
   matrixStack.createChildAndPush(
@@ -434,7 +431,7 @@ function drawCrane(renderInfo) {
   )
 
   modelMatrixPart = matrixStack.peek();
-  drawCranePart(modelMatrixPart, matrices, JOINTS, renderInfo.joint);
+  drawCranePart(modelMatrixPart, modelMatrix, JOINTS, renderInfo.joint);
 
   renderInfo.joint.setAlpha(true);
   g_sheetColor.set([0.4, 0.4, 0.8, 0.5]);
@@ -452,7 +449,7 @@ function drawCrane(renderInfo) {
     )
 
     modelMatrixPart = matrixStack.peek();
-    drawCranePart(modelMatrixPart, matrices, FINGERS, renderInfo.joint);
+    drawCranePart(modelMatrixPart, modelMatrix, FINGERS, renderInfo.joint);
 
     matrixStack.createChildAndPush(
       FINGERS,
@@ -465,7 +462,7 @@ function drawCrane(renderInfo) {
     )
 
     modelMatrixPart = matrixStack.pop();
-    drawCranePart(modelMatrixPart, matrices, FINGERS, renderInfo.joint);
+    drawCranePart(modelMatrixPart, modelMatrix, FINGERS, renderInfo.joint);
 
     matrixStack.pop();
   }
@@ -475,21 +472,21 @@ function drawCrane(renderInfo) {
 }
 
 /**
- * @param {Matrix4} modelMatrix
- * @param {RenderMatrices} matrices
+ * @param {Matrix4} stackModelMatrix
+ * @param {Matrix4} scratchModelMatrix
  * @param {{x: number; y: number; z: number;}} dimentions
  * @param {Drawable} drawable
  */
-function drawCranePart(modelMatrix, matrices, dimentions, drawable) {
-  modelMatrix.scale(
+function drawCranePart(stackModelMatrix, scratchModelMatrix, dimentions, drawable) {
+  stackModelMatrix.scale(
     dimentions.x / 2,
     dimentions.y / 2,
     dimentions.z / 2
   );
 
-  matrices.modelMatrix.multiply(modelMatrix);
-  drawable.draw(matrices.modelMatrix);
-  matrices.modelMatrix.setIdentity();
+  scratchModelMatrix.multiply(stackModelMatrix);
+  drawable.draw({outerModelMatrix: scratchModelMatrix});
+  scratchModelMatrix.setIdentity();
 }
 
 /**

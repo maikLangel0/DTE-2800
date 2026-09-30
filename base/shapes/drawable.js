@@ -60,11 +60,12 @@ export class Drawable {
   /** Fully local modelMatrix, used so that TORS gets applied in the intended order given the object's `#localTransforms` and `#position`
    * @type {Matrix4} */
   #localModelMatrix;
-
   /** Contains a lambda that gets defined by the user. They work on the `#localModelMatrix` (and `this` if defined), and define the
    * transforms that the user want to do on the object.
    * @type {((internal: Matrix4, self: Drawable) => void)} */
   #localTransforms;
+  /**@type {boolean} */
+  #matricesUpdated;
 
   /**
    * @param {WebGL2RenderingContext} gl
@@ -91,7 +92,8 @@ export class Drawable {
     this.#textureBindings = [];
 
     this.#localModelMatrix = new Matrix4();
-    this.#localTransforms = () => {};
+    this.#localTransforms = () => { };
+    this.#matricesUpdated = false;
 
     // PUBLIC VARIABLES --------------------
 
@@ -133,59 +135,9 @@ export class Drawable {
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
 
-  /**Creates a callback that is intended to operate on self.modelMatrix.
-   *
-   * This callback will be invoked when you call `.draw()`.
-   * @param {((local: Matrix4, self: Drawable) => void)} callback */
-  setLocalTransforms(callback) {
-    this.#localTransforms = callback;
-  }
-
-  /** Handles all of the updates to the ModelMatrix and ModelViewMatrix.
-   *
-   * Follows the TORS order, and executes the `#localTransforms` if the user provided them.
-   * @param {Matrix4 | null} parent */
-  updateMatrices(parent = null) {
-    const modelMatrix = this.modelMatrix;
-    const local = this.#localModelMatrix.setIdentity();
-
-    this.#localTransforms(local, this);
-
-    if (parent) { modelMatrix.set(parent) }
-    else { modelMatrix.setIdentity() };
-
-    modelMatrix.translate(
-      this.#position.x,
-      this.#position.y,
-      this.#position.z
-    );
-    modelMatrix.multiply(local);
-
-    this.modelViewMatrix.set(this.camera.viewMatrix);
-    this.modelViewMatrix.multiply(modelMatrix);
-  }
-
-  /**@param {{x: number;y: number;z: number;}} pos  */
-  setPosition(pos) {
-    this.#position = { ...pos };
-  }
-  /**@returns {{x: number;y: number;z: number;}} */
-  getPosition() {
-    return { ...this.#position };
-  }
-
-  /** Actual world-space origin of the mesh (includes parent and local transforms). */
-  /**@returns {{x: number; y: number; z: number}} */
-  getWorldPosition() {
-    const elements = this.modelMatrix.elements;
-    const [x, y, z] = [elements[12], elements[13], elements[14]];
-
-    if (x !== undefined && y !== undefined && z !== undefined) {
-      return { x, y, z };
-    } else {
-      throw Error("What getWorldPosition failed.");
-    }
-  }
+  // ##############################################################################
+  //                 SETTERS AND GETTERS FOR PRIMITIVES IN CLASS
+  // ##############################################################################
 
   /**
    * If you want to alter the vertexPositions of the object.
@@ -260,16 +212,11 @@ export class Drawable {
     return this.#is2D;
   }
 
-  /**
-   * @param {{x: number; y: number; z: number}} pos
-   * @param {number} dt defaults for 60fps*/
-  updatePosition(pos, dt = 0.016) {
-    this.#position.x += pos.x * dt;
-    this.#position.y += pos.y * dt;
-    this.#position.z += pos.z * dt;
-  }
 
-  // BINDING FUNCTIONS --------------------
+  // ##############################################################################
+  //                                BINDING STUFF
+  // ##############################################################################
+
   /** Binds the positionbuffer, and indexbuffer + colorbuffer if theyre set previously. */
   bindBuffers() {
     this.bindPositionBuffer();
@@ -284,7 +231,7 @@ export class Drawable {
   }
   bindPositionBuffer() {
     const positionBuffer = this.#gl.createBuffer();
-    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, positionBuffer);
+     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, positionBuffer);
     this.#gl.bufferData(this.#gl.ARRAY_BUFFER, new Float32Array(this.#vertices), this.#gl.STATIC_DRAW);
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
@@ -311,7 +258,7 @@ export class Drawable {
    * @param {number[]} uvCoordinates
    * @param {HTMLImageElement} image
    * @param {{uvAttributeName: string; samplerName: string; target?: number}} settings
-   */
+  */
   bindTexture(uvCoordinates, image, settings) {
     const gl = this.#gl;
     const target = settings.target ?? gl.TEXTURE_2D;
@@ -364,7 +311,10 @@ export class Drawable {
     this.#textureBindings = [];
   }
 
-  // SHADER SPESIFIC --------------------
+  // ##############################################################################
+  //                                SHADER SPESIFIC
+  // ##############################################################################
+
   /**
    * Defines what data each shader variable should use.
    *
@@ -399,19 +349,75 @@ export class Drawable {
     if (attributes) { this.attributeBindings = attributes };
     if (uniforms) { this.uniformBindings = uniforms };
   }
+  
   /** @param {Shader} shader */
   swapShader(shader) {
     this.#shader = shader;
   }
 
-  log() {
-    if (this.indexBuffer) {
-      console.log(`Positions: ${this.#vertices} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
-    } else {
-      console.log(`Positions: ${this.#vertices} | Colors: ${this.#vertexColors}`)
-    }
+  // ##############################################################################
+  //                       MATRIX CALLBACKS AND UPDATES
+  // ##############################################################################
+  
+  /**Creates a callback that is intended to operate on this.modelMatrix.
+   *
+   * This callback will be invoked when you call `.draw()` or `updateMatrices()`.
+   * @param {((local: Matrix4, self: Drawable) => void)} callback */
+  setLocalTransforms(callback) {
+    this.#localTransforms = callback;
   }
 
+  /** Update the ModelMatrix and ModelViewMatrix of the object, so that it is ready for `.draw()`.
+   *
+   * Follows the TORS order, and executes the `#localTransforms` if the user provided them.
+   * @param {Matrix4 | null} outerModelMatrix
+   * @param {boolean} skipLocalTransforms*/
+  updateMatrices(outerModelMatrix, skipLocalTransforms = false) {
+    this.#matricesUpdated = true;
+
+    const modelMatrix = this.modelMatrix;
+    const local = this.#localModelMatrix.setIdentity();
+
+    if (!skipLocalTransforms) {
+      this.#localTransforms(local, this);
+    }
+
+    if (outerModelMatrix) { modelMatrix.set(outerModelMatrix) }
+    else { modelMatrix.setIdentity() };
+
+    modelMatrix.translate(
+      this.#position.x,
+      this.#position.y,
+      this.#position.z
+    );
+    modelMatrix.multiply(local);
+
+    this.modelViewMatrix.set(this.camera.viewMatrix);
+    this.modelViewMatrix.multiply(modelMatrix);
+  }
+
+  // ##############################################################################
+  //                      DISTANCE AND POSITION FUNCTIONS
+  // ##############################################################################
+  
+  /**@param {{x: number;y: number;z: number;}} pos  */
+  setPosition(pos) {
+    this.#position = { ...pos };
+  }
+  /**@returns {{x: number;y: number;z: number;}} */
+  getPosition() {
+    return { ...this.#position };
+  }
+  /** Actual world-space origin of the mesh (includes parent and local transforms).
+   * @returns {{x: number; y: number; z: number}} */
+  getWorldPosition() {
+    if (!this.#matricesUpdated) {
+      throw Error("Cant getWorldPosition before updateMatrices() or draw().");
+    }
+
+    const elements = this.modelMatrix.elements;
+    return {x: elements[12], y: elements[13], z: elements[14]};
+  }
   /**
    * Gets the distance from the object center to the cameras world-position.
    @returns {number} */
@@ -425,7 +431,27 @@ export class Drawable {
       (worldPos.z - camPos.z) ** 2
     )
   }
+  /**
+   * @param {{x: number; y: number; z: number}} pos
+  * @param {number} dt defaults for 60fps*/
+  updatePosition(pos, dt = 0.016) {
+    this.#position.x += pos.x * dt;
+    this.#position.y += pos.y * dt;
+    this.#position.z += pos.z * dt;
+  }
 
+  // ##############################################################################
+  //                                MISC FUNCTIONS
+  // ##############################################################################
+  
+  log() {
+    if (this.indexBuffer) {
+      console.log(`Positions: ${this.#vertices} | Indeces: ${this.#indeces} | Colors: ${this.#vertexColors}`)
+    } else {
+      console.log(`Positions: ${this.#vertices} | Colors: ${this.#vertexColors}`)
+    }
+  }
+  
   /**
    * Deepcopy of the class and its' data.
    * @returns {Drawable}
@@ -454,16 +480,22 @@ export class Drawable {
     return clone;
   }
 
+  // ##############################################################################
+  //                                DRAWING WOWIE
+  // ##############################################################################
+  
   /** Draws the object to the canvas.
    *
-   * You can supply `modelMatrix` if you construct it in your renderLoop/animationLoop.
+   * You can supply `outerModelMatrix` if you construct it in your renderLoop/animationLoop.
    *
    * modelMatrix can either be **the** modelMatrix your object will work on, or it can
    * be additional transformations if you've already defined a set of transforms to operate
    * on using `.setLocalTransforms()`.
-   * @param {Matrix4 | null} modelMatrix
-   * @param {{skipUpdate: boolean}} options*/
-  draw(modelMatrix = null, options = {skipUpdate: false}) {
+   * @param {Object} [options]
+   * @param {Matrix4 | null} [options.outerModelMatrix]
+   * @param {boolean} [options.skipUpdateMatrices]
+   * @param {boolean} [options.skipLocalTransforms] */
+  draw({ outerModelMatrix = null, skipUpdateMatrices = false, skipLocalTransforms = false } = {}) {
     const gl = this.#gl;
     const shader = this.#shader;
 
@@ -472,8 +504,8 @@ export class Drawable {
 
     shader.useProgram();
 
-    if (!options.skipUpdate) {
-      this.updateMatrices(modelMatrix);
+    if (!skipUpdateMatrices) {
+      this.updateMatrices(outerModelMatrix, skipLocalTransforms);
     };
 
     for (const { name, getBuffer } of this.attributeBindings) {

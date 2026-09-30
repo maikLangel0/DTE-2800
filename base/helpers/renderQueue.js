@@ -1,6 +1,5 @@
 import { Matrix4 } from "../lib/cuon-matrix.js";
 import { Drawable } from "../shapes/drawable.js";
-import { RenderMatrices } from "./renderMatrices.js";
 
 export class RenderQueue {
   /**label, Drawable */
