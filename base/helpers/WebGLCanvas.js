@@ -37,27 +37,26 @@ export class WebGLCanvas {
     this.aspectRatio = this.#canvas.width / this.#canvas.height;
   }
 
-  /**@param {{r: number, g: number, b: number, a: number}} bgColor  */
-  clear(bgColor) {
-    this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-    this.gl.clearDepth(1.0);
-    this.gl.enable(this.gl.DEPTH_TEST);
-    this.gl.depthFunc(this.gl.LEQUAL);
-    this.gl.clear(this.gl.DEPTH_BUFFER_BIT | this.gl.COLOR_BUFFER_BIT)
-  }
+  /**
+   * @param {Camera} camera
+   * @param {{r: number, g: number, b: number, a: number}} bgColor
+  */
+  update(camera, bgColor) {
+    this.#clear(bgColor);
 
-  /**@param {Camera} camera  */
-  updateCanvasDimensions(camera) {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
     const prev = this.#previousWindowDimensions;
+
     if (prev.width === windowWidth && prev.height === windowHeight) {
       return;
     }
     this.#previousWindowDimensions = { width: windowWidth, height: windowHeight };
 
-    this.#resize();
+    if (!this.#resize(windowWidth, windowHeight, bgColor)) {
+      return;
+    }
 
     this.gl.viewport(0, 0, this.#canvas.width, this.#canvas.height);
 
@@ -65,17 +64,40 @@ export class WebGLCanvas {
     camera.setprojectionOptions({aspectRatio: this.aspectRatio});
   }
 
-  #resize() {
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
+  /**
+   * @param {number} wWidth
+   * @param {number} wHeight
+   * @param {{r: number, g: number, b: number, a: number}} bgColor
+   * @returns {boolean}
+   */
+  #resize(wWidth, wHeight, bgColor) {
     const scale = Math.min(
-      windowWidth / this.#dimensions.width,
-      windowHeight / this.#dimensions.height,
+      wWidth / this.#dimensions.width,
+      wHeight / this.#dimensions.height,
       1
     );
 
-    this.#canvas.width = Math.round(this.#dimensions.width * scale);
-    this.#canvas.height = Math.round(this.#dimensions.height * scale);
+    const width = Math.round(this.#dimensions.width * scale);
+    const height = Math.round(this.#dimensions.height * scale);
+
+    if (width === this.#canvas.width && height === this.#canvas.height) {
+      return false;
+    }
+
+    this.#canvas.width = width;
+    this.#canvas.height = height;
+
+    this.#clear(bgColor);
+
+    return true;
+  }
+
+  /**@param {{r: number, g: number, b: number, a: number}} bgColor */
+  #clear(bgColor) {
+    this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+    this.gl.clearDepth(1.0);
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.depthFunc(this.gl.LEQUAL);
+    this.gl.clear(this.gl.DEPTH_BUFFER_BIT | this.gl.COLOR_BUFFER_BIT)
   }
 }

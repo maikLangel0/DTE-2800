@@ -140,14 +140,12 @@ function animate(renderInfo) {
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
-    renderInfo.canvas.updateCanvasDimensions(renderInfo.camera);
+    renderInfo.canvas.update(renderInfo.camera, { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
     animate(renderInfo);
   })
 
   fps.showFps();
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
-
-  renderInfo.canvas.clear({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
 
   renderInfo.renderQueue.render();
 }

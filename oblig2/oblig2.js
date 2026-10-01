@@ -289,13 +289,12 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
-  renderInfo.canvas.clear(g_canvasColor.rgba);
-
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
+    renderInfo.canvas.update(renderInfo.camera, g_canvasColor.rgba)
     animate(renderInfo);
   })
 

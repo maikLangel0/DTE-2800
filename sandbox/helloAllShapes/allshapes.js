@@ -88,6 +88,7 @@ const coordShaderVariables = [
   },
 ]
 
+let g_bgColor = new Color([0.8, 0.8, 0.8, 1.0]);
 let cubeUColor = new Color([1.0, 0.3, 1.0, 1.0]);
 let xzPlaneUColor = new Color([0.0, 0.0, 0.4, 1.0]);
 let g_triangleColor = new Color([0.5, 0.5, 0.5, 1.0]);
@@ -221,18 +222,21 @@ export const main = () => {
 
 /**@param {renderInfo} renderInfo */
 function animate(renderInfo) {
+  const keyManager = renderInfo.keyManager;
+  const canvas = renderInfo.canvas;
+  const camera = renderInfo.camera;
   const fps = renderInfo.fpsInfo;
 
   window.requestAnimationFrame((currentTime) => {
+    canvas.update(camera, g_bgColor.rgba)
     fps.updateFps(currentTime);
+
     animate(renderInfo);
   })
-
   fps.showFps();
 
-  renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
-  renderInfo.keyManager.handleEvents();
-  renderInfo.canvas.clear({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
+  camera.handleKeys(keyManager.keysPressed, fps.dt);
+  keyManager.handleEvents();
 
   drawMain(renderInfo);
 }

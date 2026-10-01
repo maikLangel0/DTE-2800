@@ -295,7 +295,7 @@ const BRANCH = { x: 0.1, y: 1, z: 0.1 }
 const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas");
+  const canvas = new WebGLCanvas("canvas", 1000, 1000);
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
@@ -474,8 +474,7 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
-  renderInfo.canvas.clear(g_canvasColor.rgba);
-  renderInfo.canvas.updateCanvasDimensions(renderInfo.camera);
+  renderInfo.canvas.update(renderInfo.camera, g_canvasColor.rgba);
 
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);
