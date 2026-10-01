@@ -1,5 +1,4 @@
 export class FpsInfo {
-  #previousTime;
   #frameCount;
   #dtInterval;
   #fpsInDoc;
@@ -12,7 +11,6 @@ export class FpsInfo {
     this.totalTime = 0;
 
     this.#dtInterval = 0;
-    this.#previousTime = 0;
     this.#frameCount = 0;
 
     const fpsInDoc = document.getElementById(idInHtml);
@@ -40,10 +38,9 @@ export class FpsInfo {
    * @param {number} currentTime
    */
   updateFps(currentTime) {
-    this.dt = (currentTime - this.#previousTime) / 1000;
+    this.dt = currentTime / 1000 - this.totalTime;
     this.totalTime = currentTime / 1000;
 
-    this.#previousTime = currentTime;
     this.#dtInterval += this.dt;
     this.#frameCount++;
   }
