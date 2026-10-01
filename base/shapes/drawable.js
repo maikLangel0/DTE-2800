@@ -376,7 +376,10 @@ export class Drawable {
 
   /** @param {string} name */
   removeUniform(name) {
-    this.#uniforms.delete(name);
+    const didRemove = this.#uniforms.delete(name);
+    if (!didRemove) {
+      console.warn("No uniform to remove with name " + name + ".");
+    }
     return this;
   }
 
@@ -396,7 +399,10 @@ export class Drawable {
 
   /**@param {string} name */
   removeAttribute(name) {
-    this.#attributes.delete(name);
+    const didRemove = this.#attributes.delete(name);
+    if (!didRemove) {
+      console.warn("No attribute to remove with name " + name + ".");
+    }
     return this;
   }
 
@@ -418,7 +424,7 @@ export class Drawable {
   /**Creates a callback that is intended to operate on this.modelMatrix.
    *
    * This callback will be invoked when you call `.draw()` or `updateMatrices()`.
-   * @param {((local: Matrix4, self: Drawable) => void)} callback */
+  * @param {((local: Matrix4, self: Drawable) => void)} callback */
   setLocalTransforms(callback) {
     this.#localTransforms = callback;
     return this;
@@ -428,7 +434,7 @@ export class Drawable {
    *
    * Follows the TORS order, and executes the `#localTransforms` if the user provided them.
    * @param {Matrix4 | null} outerModelMatrix
-   * @param {boolean} skipLocalTransforms*/
+  * @param {boolean} skipLocalTransforms*/
   updateMatrices(outerModelMatrix, skipLocalTransforms = false) {
     this.#matricesUpdated = true;
 
@@ -440,7 +446,7 @@ export class Drawable {
     }
 
     if (outerModelMatrix) { modelMatrix.set(outerModelMatrix) }
-    else { modelMatrix.setIdentity() };
+    else { modelMatrix.setIdentity() }
 
     modelMatrix.translate(
       this.#position.x,
@@ -459,16 +465,20 @@ export class Drawable {
   //                      DISTANCE AND POSITION FUNCTIONS
   // ##############################################################################
 
-  /**@param {{x: number;y: number;z: number;}} pos  */
-  setPosition(pos) {
+  /**Sets the position before transformations are applied, which might alter
+   * the actual worldPosition.
+   * 
+   * use `.updateMatrices()` then `.getWorldPosition()` to get the actual worldPosition.
+   * @param {{x: number;y: number;z: number;}} pos  */
+  setLocalPosition(pos) {
     this.#position = { ...pos };
     return this;
   }
   /**@returns {{x: number;y: number;z: number;}} */
-  getPosition() {
+  getLocalPosition() {
     return { ...this.#position };
   }
-  /** Actual world-space origin of the mesh (includes parent and local transforms).
+  /** Actual world-space origin of the mesh (includes outer and local transforms).
    * @returns {{x: number; y: number; z: number}} */
   getWorldPosition() {
     if (!this.#matricesUpdated) {
@@ -548,8 +558,8 @@ is2D: ${this.#is2D}`)
 
     clone.#position = { ...this.#position };
 
-    clone.modelMatrix = new Matrix4(this.modelMatrix);
-    clone.modelViewMatrix = new Matrix4(this.modelViewMatrix);
+    clone.modelMatrix.set(this.modelMatrix);
+    clone.modelViewMatrix.set(this.modelViewMatrix);
 
     clone.#glMode = this.#glMode;
     clone.#isAlpha = this.#isAlpha;
@@ -581,7 +591,7 @@ is2D: ${this.#is2D}`)
    * @param {Object} [options]
    * @param {Matrix4 | null} [options.outerModelMatrix]
    * @param {boolean} [options.skipUpdateMatrices]
-   * @param {boolean} [options.skipLocalTransforms] */
+  * @param {boolean} [options.skipLocalTransforms] */
   draw({ outerModelMatrix = null, skipUpdateMatrices = false, skipLocalTransforms = false } = {}) {
     const gl = this.#gl;
     const shader = this.#shader;

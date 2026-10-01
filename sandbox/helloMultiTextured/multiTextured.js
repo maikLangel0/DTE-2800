@@ -295,7 +295,7 @@ const BRANCH = { x: 0.1, y: 1, z: 0.1 }
 const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 900, 900);
+  const canvas = new WebGLCanvas("canvas");
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
@@ -340,7 +340,7 @@ export const main = () => {
   const cubeBrick = new Cube(gl, texShader, camera)
     .removeAttribute("aVertexColor")
     .setUniform("uColor", () => g_cubeColor.raw)
-    .setPosition({ x: 1, y: 0.01, z: 1 })
+    .setLocalPosition({ x: 1, y: 0.01, z: 1 })
     .setAlpha(true)
     .bindTexture(brickMetalUvCoords, brickImage, {
     uvAttributeName: "aVertexTextureCoord",
@@ -475,6 +475,7 @@ function animate(renderInfo) {
   fps.showFps();
 
   renderInfo.canvas.clear(g_canvasColor.rgba);
+  renderInfo.canvas.updateCanvasDimensions(renderInfo.camera);
 
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);
@@ -496,7 +497,7 @@ function animate(renderInfo) {
   // TREEDRAW ENTRYPOINT
   animateTree(renderInfo.treeAnimations, fps.totalTime);
   drawTree(renderInfo);
-  
+
   renderInfo.matrixStack.empty();
 
   renderInfo.cubeBrick.updatePosition(

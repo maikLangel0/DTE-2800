@@ -96,13 +96,14 @@ export class Camera {
     this.#setViewMatrix();
   }
 
-  setprojectionOptions(options = {
-    fov: 45,
-    aspectRatio: 16.0/9.0,
-    near: 0.1,
-    far: 10000,
+  /** @param {{ fov?: number, aspectRatio?: number, near?: number, far?: number }} projectionOptions */
+  setprojectionOptions({
+    fov = 45,
+    aspectRatio = 16.0/9.0,
+    near = 0.1,
+    far = 10000
   }) {
-    this.#projectionOptions = options;
+    this.#projectionOptions = {fov, aspectRatio, near, far};
     this.#setProjectionMatrix();
   }
 

@@ -77,7 +77,7 @@ let xzPlaneUColor = new Color([0.0, 0.0, 0.4, 1.0]);
 // ------------------------
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 720, 720);
+  const canvas = new WebGLCanvas("canvas", 700, 700);
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
 
@@ -140,6 +140,7 @@ function animate(renderInfo) {
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
+    renderInfo.canvas.updateCanvasDimensions(renderInfo.camera);
     animate(renderInfo);
   })
 
