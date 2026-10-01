@@ -22,6 +22,7 @@ export class KeyManager {
    */
   setEventOn(eventCode, callback) {
     this.#events.set(eventCode, callback);
+    return this;
   }
 
   /**@param {number} dt */

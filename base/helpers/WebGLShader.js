@@ -75,7 +75,9 @@ export class Shader {
 
 		if (!gl.getProgramParameter(this.#shaderProgram, gl.LINK_STATUS)) {
       throw Error('Error when compiling/linking the shader programs: ' + gl.getProgramInfoLog(this.#shaderProgram));
-	  }
+    }
+
+    return this;
   }
 
   /**
@@ -85,6 +87,7 @@ export class Shader {
     for (let info of locationInfo) {
       this.#findLocation(info);
     }
+    return this;
   }
 
   /**
@@ -245,7 +248,7 @@ export class Shader {
   connectUniform(name, data) {
     const locationInfo = this.#locations.get(name);
     if (!locationInfo) return; // #getUniformLocationChecked() warns already if the uniform is not found, so I'll just return nothing here
-    
+
     this.#connectUniform(locationInfo, data);
   }
 

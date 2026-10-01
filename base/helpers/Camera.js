@@ -105,6 +105,8 @@ export class Camera {
   }) {
     this.#projectionOptions = {fov, aspectRatio, near, far};
     this.#setProjectionMatrix();
+
+    return this;
   }
 
   /**@param {number} fov  */
@@ -125,8 +127,13 @@ export class Camera {
     this.#setProjectionMatrix();
   }
 
+  /**@param {number} ratio */
+  setAspectRatio(ratio) {
+    this.#projectionOptions.aspectRatio = ratio;
+    this.#setProjectionMatrix();
+  }
+
   /**
-   *
    * @param {Record<string, boolean>} currentlyPressedKeys
    * @param {number} dt
    * @param {number} degrees

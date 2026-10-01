@@ -96,8 +96,12 @@ let g_triangleColor = new Color([0.5, 0.5, 0.5, 1.0]);
 // -----------MAIN-------------
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 720, 720);
-  const aspectRatio = canvas.aspectRatio;
+  const camera = new Camera();
+  
+  const canvas = new WebGLCanvas("canvas", 720, 720)
+    .setCamera(camera)
+    .setBgColor(g_bgColor.rgba);
+  
   const gl = canvas.gl;
 
   // SHADERS --------------------------
@@ -109,17 +113,6 @@ export const main = () => {
   coordShader.findLocations(coordShaderVariables);
 
   // OBJECTS AND CAMERA ---------------
-
-  const camera = new Camera(
-    {
-      // projectionOptions
-      fov: 30,
-      aspectRatio: aspectRatio,
-      near: 0.1,
-      far: 10000,
-    },
-  );
-
   const coords = new Coords(gl, baseShader, camera, 80)
     .bindBuffers();
 
@@ -228,8 +221,8 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
 
   window.requestAnimationFrame((currentTime) => {
-    canvas.update(camera, g_bgColor.rgba)
     fps.updateFps(currentTime);
+    canvas.update();
 
     animate(renderInfo);
   })

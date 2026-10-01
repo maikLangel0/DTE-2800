@@ -295,8 +295,26 @@ const BRANCH = { x: 0.1, y: 1, z: 0.1 }
 const LEAF = { x: 0.12, y: 0.5, z: 0.12 };
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 1000, 1000);
-  const aspectRatio = canvas.aspectRatio;
+  // CAMERA
+  const camera = new Camera(
+    {
+      // projectionOptions
+      fov: 30,
+      aspectRatio: 16/9,
+      near: 0.1,
+      far: 10000,
+    }, {
+      // camPos
+      x: 10,
+      y: 5,
+      z: 5,
+    }
+  );
+  
+  const canvas = new WebGLCanvas("canvas", 1000, 1000)
+    .setCamera(camera)
+    .setBgColor(g_canvasColor.rgba);
+  
   const gl = canvas.gl;
 
   // SHADERS
@@ -309,21 +327,6 @@ export const main = () => {
   const treeShader = new Shader(gl, treeVertShader, treeFragShader);
   treeShader.findLocations(treeShaderVariables);
 
-  // CAMERA
-  const camera = new Camera(
-    {
-      // projectionOptions
-      fov: 30,
-      aspectRatio: aspectRatio,
-      near: 0.1,
-      far: 10000,
-    }, {
-      // camPos
-      x: 10,
-      y: 5,
-      z: 5,
-    }
-  );
 
   // OBJECTS TO DRAW
   const coords = new Coords(gl, baseShader, camera, 80)
@@ -474,7 +477,7 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
-  renderInfo.canvas.update(renderInfo.camera, g_canvasColor.rgba);
+  renderInfo.canvas.update();
 
   renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);

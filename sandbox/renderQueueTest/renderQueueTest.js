@@ -77,9 +77,23 @@ let xzPlaneUColor = new Color([0.0, 0.0, 0.4, 1.0]);
 // ------------------------
 
 export const main = () => {
+  
   const canvas = new WebGLCanvas("canvas", 700, 700);
   const aspectRatio = canvas.aspectRatio;
   const gl = canvas.gl;
+
+  const camera = new Camera(
+    {
+      // projectionOptions
+      fov: 30,
+      aspectRatio: aspectRatio,
+      near: 0.1,
+      far: 10000,
+    },
+  );
+
+  canvas.setCamera(camera)
+    .setBgColor({ r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
 
   // SHADERS --------------------------
 
@@ -91,15 +105,6 @@ export const main = () => {
 
   // OBJECTS AND CAMERA ---------------
 
-  const camera = new Camera(
-    {
-      // projectionOptions
-      fov: 30,
-      aspectRatio: aspectRatio,
-      near: 0.1,
-      far: 10000,
-    },
-  );
 
   const coords = new Coords(gl, baseShader, camera, 80);
   coords.bindBuffers();

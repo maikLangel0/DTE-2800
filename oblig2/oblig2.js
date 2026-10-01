@@ -13,6 +13,30 @@ import { Disc } from "../base/shapes/disc.js";
 import { Drawable } from "../base/shapes/drawable.js";
 import { Square } from "../base/shapes/square.js";
 
+/**@typedef {{
+*  gl: WebGL2RenderingContext;
+*  canvas: WebGLCanvas;
+*  camera: Camera;
+*  modelMatrix: Matrix4;
+*  fpsInfo: FpsInfo;
+*  keyManager: KeyManager;
+*  matrixStack: MatrixStack;
+*  ground: Square;
+*  craneBase: Cylinder;
+*  craneBaseTop: Disc;
+*  joint: Cube;
+*  animations: {
+*    baseRotationY: number;
+*    baseBaseRotationY: number;
+*    jointsRotationZ: number;
+*    joint1RotationZ: number;
+*    joint2RotationZ: number;
+*    joint3RotationZ: number;
+*    fingerPinchZ: number;
+*  }
+* }} renderInfo 
+*/
+
 const craneFragShader = document.getElementById("crane-frag-shader").innerHTML;
 const craneVertShader = document.getElementById("crane-vert-shader").innerHTML;
 
@@ -85,28 +109,17 @@ const g_canvasColor = new Color([0.8, 0.8, 0.8, 1.0]);
 const g_whiteColor = new Color([1.0, 1.0, 1.0, 1.0]);
 
 export const main = () => {
-  const canvas = new WebGLCanvas("canvas", 700, 700);
-  const aspectRatio = canvas.aspectRatio;
+  // CAMERA
+  const camera = new Camera();
+  
+  const canvas = new WebGLCanvas("canvas", 700, 700)
+    .setCamera(camera)
+    .setBgColor(g_canvasColor.rgba);
+  
   const gl = canvas.gl;
 
-  const craneShader = new Shader(gl, craneVertShader, craneFragShader);
-  craneShader.findLocations(craneShaderVariables);
-
-  // CAMERA
-  const camera = new Camera(
-    {
-      // projectionOptions
-      fov: 30,
-      aspectRatio: aspectRatio,
-      near: 0.1,
-      far: 10000,
-    }, {
-      // camPos
-      x: 10,
-      y: 5,
-      z: 5,
-    }
-  );
+  const craneShader = new Shader(gl, craneVertShader, craneFragShader)
+    .findLocations(craneShaderVariables);
 
   // DRAWABLE OBJECTS
   const ground = new Square(gl, craneShader, camera)
@@ -191,46 +204,31 @@ export const main = () => {
 
   keyManager.setEventOn("KeyE", (dt) => {
     renderInfo.animations.baseRotationY += 100 * dt;
-  });
-  keyManager.setEventOn("KeyR", (dt) => {
+  }).setEventOn("KeyR", (dt) => {
     renderInfo.animations.baseRotationY -= 100 * dt;
-  });
-
-  keyManager.setEventOn("KeyO", (dt) => {
+  }).setEventOn("KeyO", (dt) => {
     renderInfo.animations.jointsRotationZ += 50 * dt;
-
-  });
-  keyManager.setEventOn("KeyP", (dt) => {
+  }).setEventOn("KeyP", (dt) => {
     renderInfo.animations.jointsRotationZ -= 50 * dt;
-  });
-
-  keyManager.setEventOn("KeyZ", (dt) => {
+  }).setEventOn("KeyZ", (dt) => {
     if (renderInfo.animations.fingerPinchZ < FINGERS_ROTATIONPARAMS.max) {
       renderInfo.animations.fingerPinchZ += 50 * dt;
     }
-  })
-  keyManager.setEventOn("KeyX", (dt) => {
+  }).setEventOn("KeyX", (dt) => {
     if (renderInfo.animations.fingerPinchZ > FINGERS_ROTATIONPARAMS.min - FINGERS_ROTATIONPARAMS.min / 2) {
       renderInfo.animations.fingerPinchZ -= 50 * dt;
     }
-  })
-
-  keyManager.setEventOn("KeyN", (dt) => {
+  }).setEventOn("KeyN", (dt) => {
     renderInfo.animations.joint1RotationZ += 40 * dt;
-  })
-  keyManager.setEventOn("KeyM", (dt) => {
+  }).setEventOn("KeyM", (dt) => {
     renderInfo.animations.joint1RotationZ -= 40 * dt;
-  })
-  keyManager.setEventOn("KeyJ", (dt) => {
+  }).setEventOn("KeyJ", (dt) => {
     renderInfo.animations.joint2RotationZ += 40 * dt;
-  })
-  keyManager.setEventOn("KeyK", (dt) => {
+  }).setEventOn("KeyK", (dt) => {
     renderInfo.animations.joint2RotationZ -= 40 * dt;
-  })
-  keyManager.setEventOn("KeyU", (dt) => {
+  }).setEventOn("KeyU", (dt) => {
     renderInfo.animations.joint3RotationZ += 40 * dt;
-  })
-  keyManager.setEventOn("KeyI", (dt) => {
+  }).setEventOn("KeyI", (dt) => {
     renderInfo.animations.joint3RotationZ -= 40 * dt;
   })
 
@@ -259,30 +257,7 @@ export const main = () => {
   animate(renderInfo);
 }
 
-/**
- * @param {{
- *  gl: WebGL2RenderingContext;
- *  canvas: WebGLCanvas;
- *  camera: Camera;
- *  modelMatrix: Matrix4;
- *  fpsInfo: FpsInfo;
- *  keyManager: KeyManager;
- *  matrixStack: MatrixStack;
- *  ground: Square;
- *  craneBase: Cylinder;
- *  craneBaseTop: Disc;
- *  joint: Cube;
- *  animations: {
- *    baseRotationY: number;
- *    baseBaseRotationY: number;
- *    jointsRotationZ: number;
- *    joint1RotationZ: number;
- *    joint2RotationZ: number;
- *    joint3RotationZ: number;
- *    fingerPinchZ: number;
- *  }
- * }} renderInfo
-*/
+/**@param {renderInfo} renderInfo */
 function animate(renderInfo) {
   const animations = renderInfo.animations;
 
@@ -294,7 +269,8 @@ function animate(renderInfo) {
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
-    renderInfo.canvas.update(renderInfo.camera, g_canvasColor.rgba)
+    renderInfo.canvas.update()
+    
     animate(renderInfo);
   })
 
@@ -315,30 +291,7 @@ function animate(renderInfo) {
   drawCrane(renderInfo);
 }
 
-/**
- * @param {{
- *  gl: WebGL2RenderingContext;
- *  canvas: WebGLCanvas;
- *  camera: Camera;
- *  fpsInfo: FpsInfo;
- *  keyManager: KeyManager;
- *  modelMatrix: Matrix4;
- *  matrixStack: MatrixStack;
- *  ground: Square;
- *  craneBase: Cylinder;
- *  craneBaseTop: Disc;
- *  joint: Cube;
- *  animations: {
- *    baseRotationY: number;
- *    baseBaseRotationY: number;
- *    jointsRotationZ: number;
- *    joint1RotationZ: number;
- *    joint2RotationZ: number;
- *    joint3RotationZ: number;
- *    fingerPinchZ: number;
- *  }
- * }} renderInfo
- */
+/** @param {renderInfo} renderInfo*/
 function drawCrane(renderInfo) {
   const modelMatrix = renderInfo.modelMatrix;
   const matrixStack = renderInfo.matrixStack;

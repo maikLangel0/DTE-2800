@@ -1,5 +1,7 @@
 import { Camera } from "./Camera.js";
 
+/**@typedef {{r: number, g: number, b: number, a: number}} Color */
+
 export class WebGLCanvas {
   /**@type {HTMLCanvasElement} */
   #canvas;
@@ -7,6 +9,12 @@ export class WebGLCanvas {
   #dimensions;
   /**@type {{width: number; height: number}} */
   #previousWindowDimensions;
+
+  /**@type {Color} */
+  #bgColor;
+
+  /**@type {Camera | null} */
+  #camera;
 
    /**
     * @param {string} id
@@ -19,6 +27,10 @@ export class WebGLCanvas {
     if (!canvas) {
       throw Error("Canvas not found");
     }
+
+    this.#camera = null;
+    this.#bgColor = { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
+
     this.#canvas = canvas;
     this.#canvas.height = height;
     this.#canvas.width = width;
@@ -35,14 +47,27 @@ export class WebGLCanvas {
     this.gl = ctx;
     /**@type number */
     this.aspectRatio = this.#canvas.width / this.#canvas.height;
+
+
+    return this;
   }
 
-  /**
-   * @param {Camera} camera
-   * @param {{r: number, g: number, b: number, a: number}} bgColor
-  */
-  update(camera, bgColor) {
-    this.#clear(bgColor);
+  /**@param {Camera} camera  */
+  setCamera(camera) {
+    this.#camera = camera;
+    this.#camera.setAspectRatio(this.aspectRatio);
+
+    return this;
+  }
+
+  /**@param {Color} bgColor */
+  setBgColor(bgColor) {
+    this.#bgColor = bgColor;
+    return this;
+  }
+
+  update() {
+    this.#clear(); // Always clear bg color either way
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -52,25 +77,28 @@ export class WebGLCanvas {
     if (prev.width === windowWidth && prev.height === windowHeight) {
       return;
     }
-    this.#previousWindowDimensions = { width: windowWidth, height: windowHeight };
-
-    if (!this.#resize(windowWidth, windowHeight, bgColor)) {
+    if (!this.#resize(windowWidth, windowHeight)) {
       return;
     }
 
+    this.#previousWindowDimensions = { width: windowWidth, height: windowHeight };
+
     this.gl.viewport(0, 0, this.#canvas.width, this.#canvas.height);
 
-    this.aspectRatio = this.#canvas.width / this.#canvas.height;
-    camera.setprojectionOptions({aspectRatio: this.aspectRatio});
+    if (this.#camera) {
+      this.aspectRatio = this.#canvas.width / this.#canvas.height;
+      this.#camera.setprojectionOptions({aspectRatio: this.aspectRatio});
+    }
+
+    this.#clear(); // Need to clear again due to change in gl.viewport
   }
 
   /**
    * @param {number} wWidth
    * @param {number} wHeight
-   * @param {{r: number, g: number, b: number, a: number}} bgColor
    * @returns {boolean}
    */
-  #resize(wWidth, wHeight, bgColor) {
+  #resize(wWidth, wHeight) {
     const scale = Math.min(
       wWidth / this.#dimensions.width,
       wHeight / this.#dimensions.height,
@@ -87,13 +115,12 @@ export class WebGLCanvas {
     this.#canvas.width = width;
     this.#canvas.height = height;
 
-    this.#clear(bgColor);
-
     return true;
   }
 
-  /**@param {{r: number, g: number, b: number, a: number}} bgColor */
-  #clear(bgColor) {
+  #clear() {
+    const bgColor = this.#bgColor;
+
     this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
     this.gl.clearDepth(1.0);
     this.gl.enable(this.gl.DEPTH_TEST);
