@@ -1,19 +1,11 @@
 import { Camera } from "../../base/helpers/Camera.js";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
 import { Shader, LocationType, DataType } from "../../base/helpers/WebGLShader.js";
-import { initKeyPress } from "../../base/lib/utility-functions.js";
 import { Coords } from "../../base/shapes/coord.js";
 import { FpsInfo } from "../../base/helpers/fpsInfo.js";
-import { Cube } from "../../base/shapes/cube.js";
-import { RenderMatrices } from "../../base/helpers/renderMatrices.js";
 import { Color } from "../../base/helpers/color.js";
-import { XZPlane } from "../../base/shapes/xzPlane.js";
-import { Cone } from "../../base/shapes/cone.js";
-import { Disc } from "../../base/shapes/disc.js";
-import { Sphere } from "../../base/shapes/sphere.js";
-import { Cylinder } from "../../base/shapes/cylinder.js";
+
 import { Square } from "../../base/shapes/square.js";
-import { Triangle } from "../../base/shapes/triangle.js";
 import { RenderQueue } from "../../base/helpers/renderQueue.js";
 import { KeyManager } from "../../base/helpers/keyManager.js";
 

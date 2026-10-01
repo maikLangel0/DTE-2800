@@ -97,11 +97,11 @@ let g_triangleColor = new Color([0.5, 0.5, 0.5, 1.0]);
 
 export const main = () => {
   const camera = new Camera();
-  
+
   const canvas = new WebGLCanvas("canvas", 720, 720)
     .setCamera(camera)
     .setBgColor(g_bgColor.rgba);
-  
+
   const gl = canvas.gl;
 
   // SHADERS --------------------------
@@ -304,7 +304,7 @@ function drawMain(renderInfo) {
   g_triangleColor.set([0.3, 0.3, 0.3, 1.0])
   modelMatrix.setIdentity();
   modelMatrix.rotate(90, 0, 1, 0);
-  
+
   renderInfo.triangle.updateMatrices(modelMatrix);
   renderInfo.triangle.draw({skipUpdateMatrices: true});
 

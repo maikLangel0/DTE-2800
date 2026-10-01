@@ -25,7 +25,7 @@ export class FpsInfo {
 
   /**@param {number} everyXseconds */
   showFps(everyXseconds = 1.0) {
-    
+
     if (this.#dtInterval >= everyXseconds) {
       const fps = Math.round(this.#frameCount);
       this.#fpsInDoc.innerHTML = `FPS: ${fps}`;
@@ -37,12 +37,12 @@ export class FpsInfo {
 
   /**
    * Call this inside the renderLoop to update the fps.
-   * @param {number} currentTime 
+   * @param {number} currentTime
    */
   updateFps(currentTime) {
     this.dt = (currentTime - this.#previousTime) / 1000;
-    this.totalTime += this.dt;
-  
+    this.totalTime = currentTime / 1000;
+
     this.#previousTime = currentTime;
     this.#dtInterval += this.dt;
     this.#frameCount++;

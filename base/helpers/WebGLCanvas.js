@@ -28,26 +28,25 @@ export class WebGLCanvas {
       throw Error("Canvas not found");
     }
 
-    this.#camera = null;
-    this.#bgColor = { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
-
     this.#canvas = canvas;
-    this.#canvas.height = height;
     this.#canvas.width = width;
-
-    this.#dimensions = { width, height };
-    this.#previousWindowDimensions = { width: window.innerWidth, height: window.innerHeight };
+    this.#canvas.height = height;
 
 		const ctx = this.#canvas.getContext('webgl2', {stencil: true} );
 		if (!ctx) {
       throw Error('No context found.');
     }
+		
+    this.#camera = null;
+    this.#bgColor = { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
+    
+    this.#dimensions = { width, height };
+    this.#previousWindowDimensions = { width: window.innerWidth, height: window.innerHeight };
 
 		/**@type WebGL2RenderingContext */
     this.gl = ctx;
     /**@type number */
     this.aspectRatio = this.#canvas.width / this.#canvas.height;
-
 
     return this;
   }
@@ -119,9 +118,7 @@ export class WebGLCanvas {
   }
 
   #clear() {
-    const bgColor = this.#bgColor;
-
-    this.gl.clearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+    this.gl.clearColor(this.#bgColor.r, this.#bgColor.g, this.#bgColor.b, this.#bgColor.a);
     this.gl.clearDepth(1.0);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthFunc(this.gl.LEQUAL);
