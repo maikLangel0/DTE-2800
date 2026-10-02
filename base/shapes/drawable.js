@@ -457,6 +457,7 @@ export class Drawable {
 
     this.modelViewMatrix.set(this.camera.viewMatrix);
     this.modelViewMatrix.multiply(modelMatrix);
+    this.modelViewMatrix;
 
     return this;
   }
