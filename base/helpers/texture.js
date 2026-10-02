@@ -1,24 +1,38 @@
 export class Texture {
   /**@type {WebGL2RenderingContext} */
-  #gl; 
+  #gl;
 
   /**
-   * @param {WebGL2RenderingContext} gl 
-   * @param {HTMLImageElement} image 
+   * @param {WebGL2RenderingContext} gl
+   * @param {HTMLImageElement} image
    * @param {Object} [settings]
    * @param {number} [settings.target]
    * @param {number} [settings.format]
    * @param {number} [settings.type]
-   * @param {number} [settings.texParameter] 
+   * @param {number} [settings.texParameter]
    */
   constructor(gl, image, { target = gl.TEXTURE_2D, format = gl.RGBA, type = gl.UNSIGNED_BYTE, texParameter = gl.NEAREST } = {}) {
     this.#gl = gl;
+
+    /**@type {number} */
+    this.target = target;
+    /**@type {WebGLBuffer | null} */
+    this.uvCoordinates = null;
+    /**@type {number} */
+    this.unit = 0;
+    
+    this.bindConfig = {
+      glType: this.#gl.FLOAT,
+      normalize: false,
+      stride: 0,
+      offset: 0
+    }
 
     const texture = gl.createTexture();
     gl.bindTexture(target, texture);
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 
     gl.texImage2D(
       target,
@@ -39,10 +53,7 @@ export class Texture {
 
     /**@type {WebGLTexture} */
     this.texture = texture;
-    /**@type {WebGLBuffer | null} */
-    this.uvCoordinates = null;
-    /**@type {number} */
-    this.target = target;
+    return this;
   }
 
   /**@param {number[]} uvCoords  */
@@ -55,5 +66,17 @@ export class Texture {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     this.uvCoordinates = uvBuffer;
+    return this;
+  }
+
+  setBindConfig({ glType = this.#gl.FLOAT, normalize = false, stride = 0, offset = 0 } = {}) {
+    this.bindConfig = { glType, normalize, stride, offset };
+    return this;
+  }
+
+  /**@param {number} active  */
+  setUnit(active = 0) {
+    this.unit = active;
+    return this;
   }
 }

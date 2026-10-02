@@ -4,6 +4,7 @@ import { FpsInfo } from "../../base/helpers/fpsInfo.js";
 import { ImageLoader } from "../../base/helpers/ImageLoader.js";
 import { KeyManager } from "../../base/helpers/keyManager.js";
 import { MatrixStack, RotateAround, TranslateDirection } from "../../base/helpers/matrixStack.js";
+import { Texture } from "../../base/helpers/texture.js";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas.js";
 import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader.js";
 import { Matrix4 } from "../../base/lib/cuon-matrix.js";
@@ -310,12 +311,21 @@ export const main = () => {
       z: 5,
     }
   );
-  
+
   const canvas = new WebGLCanvas("canvas", 1000, 1000)
     .setCamera(camera)
     .setBgColor(g_canvasColor.rgba);
-  
+
   const gl = canvas.gl;
+
+  const brickTexture = new Texture(gl, brickImage)
+    .setUVCoords(brickMetalUvCoords)
+
+  const metalTexture = new Texture(gl, metalImage)
+    .setUVCoords(brickMetalUvCoords)
+
+  const diceTexture = new Texture(gl, diceImage)
+    .setUVCoords(diceUvCoords)
 
   // SHADERS
   const baseShader = new Shader(gl, baseVertShader, baseFragShader);
@@ -341,45 +351,29 @@ export const main = () => {
     .bindBuffers();
 
   const cubeBrick = new Cube(gl, texShader, camera)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", brickTexture)
+    .setTexture("uSampler1", metalTexture)
+    .setTexture("uSampler2", diceTexture)
+    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
+    .setAttribute("aDiceTextureCoord", () => diceTexture.uvCoordinates)
     .setUniform("uColor", () => g_cubeColor.raw)
     .setLocalPosition({ x: 1, y: 0.01, z: 1 })
     .setAlpha(true)
-    .bindTexture(brickMetalUvCoords, brickImage, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
-    .bindTexture(brickMetalUvCoords, metalImage, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler1",
-    target: gl.TEXTURE_2D,
-  })
-    .bindTexture(diceUvCoords, diceImage, {
-    uvAttributeName: "aDiceTextureCoord",
-    samplerName: "uSampler2",
-    target: gl.TEXTURE_2D
-  })
+    .removeAttribute("aVertexColor")
     .bindBuffers();
 
   const treePiece = new Cube(gl, treeShader, camera)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", metalTexture)
+    .setAttribute("aVertexTextureCoord", () => metalTexture.uvCoordinates)
     .setUniform("uColor", () => g_treeColor.raw)
-    .bindTexture(brickMetalUvCoords, metalImage, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
+    .removeAttribute("aVertexColor")
     .bindBuffers();
 
   const stem = new Cylinder(gl, treeShader, camera, 12)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", brickTexture)
+    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
     .setUniform("uColor", () => g_treeColor.raw)
-    .bindTexture(brickMetalUvCoords, brickImage, {
-    uvAttributeName: "aVertexTextureCoord",
-    samplerName: "uSampler0",
-    target: gl.TEXTURE_2D,
-  })
+    .removeAttribute("aVertexColor")
     .bindBuffers();
 
   const keyManager = new KeyManager();

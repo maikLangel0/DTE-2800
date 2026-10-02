@@ -99,18 +99,18 @@ export const main = () => {
   const camera = new Camera();
 
   const canvas = new WebGLCanvas("canvas", 720, 720)
-    .setCamera(camera)
-    .setBgColor(g_bgColor.rgba);
+    .setBgColor(g_bgColor.rgba)
+    .setCamera(camera);
 
   const gl = canvas.gl;
 
   // SHADERS --------------------------
 
-  const baseShader = new Shader(gl, baseVertShader, baseFragShader);
-  baseShader.findLocations(baseShaderVariables);
+  const baseShader = new Shader(gl, baseVertShader, baseFragShader)
+    .findLocations(baseShaderVariables);
 
-  const coordShader = new Shader(gl, coordVertShader, coordFragShader);
-  coordShader.findLocations(coordShaderVariables);
+  const coordShader = new Shader(gl, coordVertShader, coordFragShader)
+    .findLocations(coordShaderVariables);
 
   // OBJECTS AND CAMERA ---------------
   const coords = new Coords(gl, baseShader, camera, 80)

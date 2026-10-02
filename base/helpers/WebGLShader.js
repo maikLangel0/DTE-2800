@@ -1,11 +1,9 @@
 export const LocationType = Object.freeze({
   IN: "in",
-  UNIFORM: "uniform"
+  UNIFORM: "uniform",
 })
 
 export const DataType = Object.freeze({
-  SAMPLER2D: "sampler2d",
-
   MAT4f: "mat4f",
   MAT3f: "mat3f",
 
@@ -21,6 +19,7 @@ export const DataType = Object.freeze({
   VEC2i: "vec2i",
   VEC2ui: "vec2ui",
 
+  SAMPLER2D: "sampler2d",
   FLOAT: "float",
   INT: "int",
   UINT: "uint",
@@ -41,8 +40,8 @@ const componentsInDataType = {
   [DataType.VEC2f]: 2,
   [DataType.VEC2i]: 2,
   [DataType.VEC2ui]: 2,
-  [DataType.SAMPLER2D]: 2,
 
+  [DataType.SAMPLER2D]: 1,
   [DataType.FLOAT]: 1,
   [DataType.INT]: 1,
   [DataType.UINT]: 1
@@ -102,82 +101,6 @@ export class Shader {
   }
 
   /**
-   * Runtime checks to see which type of Location you want to connect.
-   * @param {string} name
-   * @param {{buffer: WebGLBuffer; texture: WebGLTexture} | WebGLBuffer | Float32Array | number} data,
-   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
-   * @param {{ samplerName: string; activeTexture: number; target: number; }} [textureSettings]
-   *
-   */
-  connectLocationChecked(
-    name,
-    data,
-    attribSettings = {
-      glType: this.#gl.FLOAT,
-      normalize: false,
-      stride: 0,
-      offset: 0
-    },
-    textureSettings = {
-      samplerName: "uSampler",
-      activeTexture: this.#gl.TEXTURE0,
-      target: this.#gl.TEXTURE_2D
-    }
-    ) {
-    const locationInfo = this.#locations.get(name);
-
-    if (!locationInfo) {
-      throw Error("Found no location named: " + name);
-    }
-
-    // ----- FINDING THE CORRECT ATTRIBUTE TYPE TO CONNECT -----
-    // if true, either Texture or Attribute
-    if (typeof locationInfo.location === "number") {
-
-      // Check if it data is an object & has samplerName
-      // (means it wants to connect texture)
-
-      const isTextureBundle = (
-        data && typeof data === "object" &&
-        "buffer" in data && "texture" in data
-      );
-
-      if (data instanceof WebGLBuffer) {
-        this.#connectAttribute(
-          locationInfo,
-          data,
-          attribSettings
-        );
-
-      } else if (isTextureBundle) {
-        const samplerInfo = this.#locations.get(textureSettings.samplerName);
-
-        if (!samplerInfo || typeof samplerInfo.location === "number") {
-          throw Error("No sampler found named: " + textureSettings.samplerName);
-        }
-
-        this.#connectTextureAttribute(
-          locationInfo,
-          samplerInfo,
-          data.buffer,
-          data.texture,
-          attribSettings,
-          textureSettings,
-        );
-
-      } else {
-        throw Error(`'Data' is invalid on connectLocationChecked when name = ${name}`)
-      }
-
-    } else {
-      this.#connectUniform(
-        locationInfo,
-        data
-      );
-    }
-  }
-
-  /**
    * @param {string} name
    * @param {WebGLBuffer} buffer
    * @param {{glType: number; normalize: boolean; stride: number; offset: number}} settings
@@ -198,49 +121,15 @@ export class Shader {
   }
 
   /**
-   * @param {string} name
-   * @param {string} samplerName
-   * @param {WebGLBuffer} buffer
-   * @param {WebGLTexture} texture
-   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
-   * @param {{ activeTexture: number; target: number; }} textureSettings
+   * @param {WebGLTexture} texture 
+   * @param {number} target 
+   * @param {number} activeTexture 
    */
-  connectTexture(
-    name,
-    samplerName,
-    buffer,
-    texture,
-    textureSettings = {
-      activeTexture: this.#gl.TEXTURE0,
-      target: this.#gl.TEXTURE_2D
-    },
-    attribSettings = {
-      glType: this.#gl.FLOAT,
-      normalize: false,
-      stride: 0,
-      offset: 0,
-    },
-    ) {
-    const locationInfo = this.#locations.get(name);
-    if (!locationInfo) {
-      throw Error("Found no location named " + name + " for texture");
-    }
-
-    const samplerInfo = this.#locations.get(samplerName);
-    if (!samplerInfo) {
-      throw Error("Found no sampler named " + samplerName);
-    }
-
-    this.#connectTextureAttribute(
-      locationInfo,
-      samplerInfo,
-      buffer,
-      texture,
-      attribSettings,
-      textureSettings,
-    );
+  connectTexture(texture, activeTexture = 0, target = this.#gl.TEXTURE_2D) {    
+    this.#gl.activeTexture(activeTexture);
+    this.#gl.bindTexture(target, texture);
   }
-
+  
   /**
    * @param {string} name
    * @param {Float32Array | number[] | number} data
@@ -279,6 +168,10 @@ export class Shader {
   */
 	#compileShader(type, source) {
     const shader = this.#gl.createShader(type);
+
+    if (!shader) {
+      throw Error("Failed to createShader of type " + type);
+    }
 
 		this.#gl.shaderSource(shader, source);
 		this.#gl.compileShader(shader);
@@ -370,6 +263,11 @@ export class Shader {
     if (numComponents !== 1 && typeof data === "number") {
       return false;
     }
+
+    if (numComponents === 1 && typeof data === "number") {
+      return true;
+    }
+    
     // NOTE : THIS CHECK MIGHT NOT WORK FOR Float32Array & WebGLBuffer
     return data.length === numComponents;
   }
@@ -412,49 +310,6 @@ export class Shader {
     );
 
     gl.enableVertexAttribArray(location);
-  }
-
-  /**
-   * @param {{location: number; dataType: DataType}} locationInfo
-   * @param {{location: WebGLUniformLocation; dataType: DataType}} samplerInfo
-   * @param {WebGLBuffer} buffer
-   * @param {WebGLTexture} texture
-   * @param {{glType: number; normalize: boolean; stride: number, offset: number}} attribSettings
-   * @param {{ activeTexture: number; target: number; }} textureSettings
-   */
-  #connectTextureAttribute(
-    locationInfo,
-    samplerInfo,
-    buffer,
-    texture,
-    attribSettings,
-    textureSettings
-    ) {
-    const gl = this.#gl; // for convenience
-
-    const type = locationInfo.dataType;
-    const location = locationInfo.location;
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-    gl.vertexAttribPointer(
-      location,
-      this.#numOfComponents(type),
-      attribSettings.glType,
-      attribSettings.normalize,
-      attribSettings.stride,
-      attribSettings.offset
-    );
-
-    gl.enableVertexAttribArray(location);
-
-    gl.activeTexture(textureSettings.activeTexture);
-    gl.bindTexture(textureSettings.target, texture);
-
-    gl.uniform1i(
-      samplerInfo.location,
-      textureSettings.activeTexture - gl.TEXTURE0
-    );
   }
 
   /**
@@ -519,6 +374,9 @@ export class Shader {
         break;
       case DataType.UINT:
         gl.uniform1ui(location, data);
+        break;
+      case DataType.SAMPLER2D:
+        gl.uniform1i(location, data);
         break;
       default:
         throw Error("DataType of type " + type + " not implemented.");

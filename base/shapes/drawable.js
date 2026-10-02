@@ -1,4 +1,5 @@
 import { Camera } from "../helpers/Camera.js";
+import { Texture } from "../helpers/texture.js";
 import { Shader } from "../helpers/WebGLShader.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
 
@@ -12,6 +13,8 @@ export class Drawable {
   #uniforms = new Map();
   /**@type {Map<string, (self: Drawable) => WebGLBuffer | null >} */
   #attributes = new Map();
+  /**@type {Map<string, {texture: Texture, unit: number}>} */
+  #textures = new Map();
 
   /**Storing the position so you can possibly calc the dist to camera.
   * @type {{x: number; y: number; z: number;}} */
@@ -37,26 +40,6 @@ export class Drawable {
   #vertexCount;
   /**@type {number} */
   #indexCount;
-
-  /**
-   * Textures get handled differently. When binding texture(s), the user uses the bindTexture() func and passes in
-   *
-   * *textureCoordinates: number[],
-   * image: HTMLImageElement,
-   * settings: {target: number}*
-   *
-   * instead of it being handled automatically by bindBuffers().
-   * Can also have multiple textures on the same object.
-   *
-   * @type {{
-   * uvBuffer: WebGLBuffer;
-   * texture: WebGLTexture;
-   * uvAttribName: string;
-   * samplerName: string;
-   * target: number;
-   * activeTexture: number;
-  }[]} */
-  #textureBindings;
 
   // ---- MATRIX STUFF ON THE PRIVATE localModelMatrix -----
 
@@ -101,8 +84,6 @@ export class Drawable {
 
     this.#vertexCount = 0;
     this.#indexCount = 0;
-
-    this.#textureBindings = [];
 
     this.#localModelMatrix = new Matrix4();
     this.#localTransforms = () => { };
@@ -236,6 +217,38 @@ export class Drawable {
     return this.#is2D;
   }
 
+  /**
+   * @param {string} samplerName
+   * @param {Texture} texture
+   */
+  setTexture(samplerName, texture) {
+    const unit = this.#textures.get(samplerName)?.unit ?? this.#textures.size;
+    this.#textures.set(samplerName, {texture, unit: unit});
+    
+    return this;
+  }
+
+  /**@param {string} label
+   * @returns {Texture}
+   */
+  getTexture(label) {
+    const tex = this.#textures.get(label);
+    if (!tex) {
+      throw Error("Couldnt get texture named " + label);
+    }
+    return tex.texture;
+  }
+
+  /**Returns the textureUnit / activetexture 
+   * @param {string} label 
+  */
+  getTextureUnit(label) {
+    const texture = this.#textures.get(label);
+    if (!texture) {
+      throw Error(`No texture with label "${label}".`)
+    };
+    return texture.unit;
+  }
 
   // ##############################################################################
   //                               BINDING STUFF
@@ -266,71 +279,6 @@ export class Drawable {
     this.#indexCount = this.#indeces.length;
   }
 
-  /**
-   * @param {number[]} uvCoordinates
-   * @param {HTMLImageElement} image
-   * @param {{uvAttributeName: string; samplerName: string; target?: number}} settings
-  */
-  bindTexture(uvCoordinates, image, settings) {
-    const gl = this.#gl;
-    const target = settings.target ?? gl.TEXTURE_2D;
-
-    const texture = gl.createTexture();
-    gl.bindTexture(target, texture);
-
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-
-    gl.texImage2D(
-      target,
-      0,
-      gl.RGBA,
-      image.width,
-      image.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      image
-    );
-
-    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-
-    gl.bindTexture(target, null);
-
-    const uvBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoordinates), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    const activeTexture = this.#textureBindings.length;
-    const maxUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-
-    if (activeTexture >= maxUnits) {
-      throw Error(`Cant bind more than ${maxUnits} textures.`);
-    }
-
-    this.#textureBindings.push({
-      uvBuffer,
-      texture,
-      uvAttribName: settings.uvAttributeName,
-      samplerName: settings.samplerName,
-      target,
-      activeTexture,
-    });
-
-    return this;
-  }
-
-  freeTextures() {
-    if (!this.#isOwner) return;
-
-    for (const tb of this.#textureBindings) {
-      this.#gl.deleteBuffer(tb.uvBuffer);
-      this.#gl.deleteTexture(tb.texture);
-    }
-    this.#textureBindings = [];
-  }
   freeBuffers() {
     if (!this.#isOwner) return;
 
@@ -338,8 +286,6 @@ export class Drawable {
       this.#gl.deleteBuffer(buf);
     }
     this.#ownedWebGLBuffers.clear();
-
-    this.freeTextures();
   }
 
   // ##############################################################################
@@ -468,7 +414,7 @@ export class Drawable {
 
   /**Sets the position before transformations are applied, which might alter
    * the actual worldPosition.
-   * 
+   *
    * use `.updateMatrices()` then `.getWorldPosition()` to get the actual worldPosition.
    * @param {{x: number;y: number;z: number;}} pos  */
   setLocalPosition(pos) {
@@ -573,7 +519,6 @@ is2D: ${this.#is2D}`)
     clone.vertexBuffer = this.vertexBuffer;
     clone.colorBuffer = this.colorBuffer;
     clone.indexBuffer = this.indexBuffer;
-    clone.#textureBindings = [...this.#textureBindings];
 
     return clone;
   }
@@ -619,16 +564,11 @@ is2D: ${this.#is2D}`)
       shader.connectUniform(name, buffer);
     })
 
-    for (const tb of this.#textureBindings) {
-      shader.connectTexture(
-        tb.uvAttribName,
-        tb.samplerName,
-        tb.uvBuffer,
-        tb.texture,
-        { activeTexture: gl.TEXTURE0 + tb.activeTexture, target: tb.target }
-      );
-    }
-
+    this.#textures.forEach(({texture, unit}, samplerName) => {
+      shader.connectTexture(texture.texture, gl.TEXTURE0 + unit, texture.target);
+      shader.connectUniform(samplerName, unit);
+    })
+    
     this.#drawCall();
   }
 

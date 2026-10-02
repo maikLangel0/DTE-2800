@@ -4,6 +4,7 @@ import { FpsInfo } from "../base/helpers/fpsInfo.js";
 import { ImageLoader } from "../base/helpers/ImageLoader.js";
 import { KeyManager } from "../base/helpers/keyManager.js";
 import { MatrixStack, RotateAround, TranslateDirection } from "../base/helpers/matrixStack.js";
+import { Texture } from "../base/helpers/texture.js";
 import { WebGLCanvas } from "../base/helpers/WebGLCanvas.js";
 import { DataType, LocationType, Shader } from "../base/helpers/WebGLShader.js";
 import { Matrix4 } from "../base/lib/cuon-matrix.js";
@@ -34,7 +35,7 @@ import { Square } from "../base/shapes/square.js";
 *    joint3RotationZ: number;
 *    fingerPinchZ: number;
 *  }
-* }} renderInfo 
+* }} renderInfo
 */
 
 const craneFragShader = document.getElementById("crane-frag-shader").innerHTML;
@@ -42,7 +43,7 @@ const craneVertShader = document.getElementById("crane-vert-shader").innerHTML;
 
 const imageLoader = new ImageLoader();
 /**@type {[HTMLImageElement, HTMLImageElement, HTMLImageElement]} */
-const [sheetMetalTexture, brickTexture, grassTexture] = await imageLoader.load([
+const [sheetMetalImage, brickImage, grassImage] = await imageLoader.load([
   "../base/textures/sheetMetalTexture.png",
   "../base/textures/bricksLarge.png",
   "../base/textures/grassTexture.png"
@@ -111,62 +112,56 @@ const g_whiteColor = new Color([1.0, 1.0, 1.0, 1.0]);
 export const main = () => {
   // CAMERA
   const camera = new Camera();
-  
+
   const canvas = new WebGLCanvas("canvas", 700, 700)
     .setCamera(camera)
     .setBgColor(g_canvasColor.rgba);
-  
+
   const gl = canvas.gl;
+
+  const grassTexture = new Texture(gl, grassImage).setUVCoords([
+      0, 1, // TL
+      0, 0, // BL
+      1, 0, // BR
+      0, 1, // TL
+      1, 0, // BR
+      1, 1  // TR
+  ]);
+  const brickTexture = new Texture(gl, brickImage)
+    .setUVCoords(cubeUvCoords);
+  const sheetMetalTexture = new Texture(gl, sheetMetalImage)
+    .setUVCoords(cubeUvCoords);
 
   const craneShader = new Shader(gl, craneVertShader, craneFragShader)
     .findLocations(craneShaderVariables);
 
   // DRAWABLE OBJECTS
   const ground = new Square(gl, craneShader, camera)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", grassTexture)
+    .setAttribute("aVertexTextureCoord", () => grassTexture.uvCoordinates)
     .setUniform("uColor", () => g_whiteColor.raw)
-    .bindTexture( [
-        0, 1, // TL
-        0, 0, // BL
-        1, 0, // BR
-        0, 1, // TL
-        1, 0, // BR
-        1, 1  // TR
-      ], grassTexture, {
-      uvAttributeName: "aVertexTextureCoord",
-      samplerName: "uSampler0",
-      target: gl.TEXTURE_2D
-    })
+    .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const craneBase = new Cylinder(gl, craneShader, camera, 6)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", brickTexture)
+    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
     .setUniform("uColor", () => g_baseColor.raw)
-    .bindTexture(cubeUvCoords, brickTexture, {
-      uvAttributeName: "aVertexTextureCoord",
-      samplerName: "uSampler0",
-      target: gl.TEXTURE_2D,
-    })
+    .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const craneBaseTop = new Disc(gl, craneShader, camera, 6)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", brickTexture)
+    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
     .setUniform("uColor", () => g_baseColor.raw)
-    .bindTexture(cubeUvCoords, brickTexture, {
-      uvAttributeName: "aVertexTextureCoord",
-      samplerName: "uSampler0",
-      target: gl.TEXTURE_2D,
-    })
+    .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const joint = new Cube(gl, craneShader, camera)
-    .removeAttribute("aVertexColor")
+    .setTexture("uSampler0", sheetMetalTexture)
+    .setAttribute("aVertexTextureCoord", () => sheetMetalTexture.uvCoordinates)
     .setUniform("uColor", () => g_sheetColor.raw)
-    .bindTexture(cubeUvCoords, sheetMetalTexture, {
-      uvAttributeName: "aVertexTextureCoord",
-      samplerName: "uSampler0",
-      target: gl.TEXTURE_2D,
-    })
+    .removeAttribute("aVertexColor")
     .bindBuffers();
 
 
@@ -270,7 +265,7 @@ function animate(renderInfo) {
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
     renderInfo.canvas.update()
-    
+
     animate(renderInfo);
   })
 
