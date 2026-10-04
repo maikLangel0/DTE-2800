@@ -10,7 +10,7 @@ export class Drawable {
   /** @type {Shader} */
   #shader;
 
-  /**@type {Map<string, (self: Drawable) => Float32Array | number[] | number >} */
+  /**@type {Map<string, (self: Drawable) => Float32Array | number[] | number | null>} */
   #uniforms = new Map();
   /**@type {Map<string, (self: Drawable) => WebGLBuffer | null >} */
   #attributes = new Map();
@@ -93,7 +93,7 @@ export class Drawable {
     this.#indexCount = 0;
 
     this.#localModelMatrix = new Matrix4();
-    this.#localTransforms = () => { };
+    this.#localTransforms = () => {};
     this.#matricesUpdated = false;
 
     this.#isOwner = true;
@@ -126,6 +126,14 @@ export class Drawable {
      * This class' owned modelViewMatrix.
      * @type {Matrix4} */
     this.modelViewMatrix = new Matrix4();
+
+    /** This variable is public so that you can easily access it when you e.g do `.setShaderRelationship()`.
+     *
+     * This class' owned normalMatrix; instanciated if `.setNormals()` has been called previously.
+     *
+     * The type is says *Float32Array*, but it functions as a 3x3 Matrix.
+     * @type {Float32Array | null} */
+    this.normalMatrix = null;
 
     /**@type {WebGLBuffer | null} */
     this.vertexBuffer = null;
@@ -169,7 +177,7 @@ export class Drawable {
     } else if (this.#vertices) {
       verts = this.#vertices;
     } else {
-      throw Error("Cant setNormals; Either provide the vertices, or do .setVertices() first.");
+      throw Error("Unable to setNormals; Either provide the vertices as the function argument, or do .setVertices() first.");
     }
 
     for (let i = 0; i < verts.length; i += 3) {
@@ -343,7 +351,7 @@ export class Drawable {
 
   /**
    * @param {string} name
-   * @param {((self: Drawable) => number | number[] | Float32Array)} callback
+   * @param {((self: Drawable) => number | number[] | Float32Array | null)} callback
    */
   setUniform(name, callback) {
     this.#uniforms.set(name, callback);
@@ -453,7 +461,8 @@ export class Drawable {
 
     this.modelViewMatrix.set(this.camera.viewMatrix);
     this.modelViewMatrix.multiply(modelMatrix);
-    this.modelViewMatrix;
+
+    this.#updateNormalMatrix();
 
     return this;
   }
@@ -604,13 +613,15 @@ is2D: ${this.#is2D}`)
     this.#attributes.forEach((callBack, name) => {
       const buffer = callBack(this);
 
-      if (!buffer) console.warn("Attribute-buffer defined with name " + name + " is not instanciated.");
+      if (!buffer) console.warn("Attribute-buffer defined with name " + name + " is null.");
       else shader.connectAttribute(name, buffer);
     })
 
     this.#uniforms.forEach((callBack, name) => {
       const buffer = callBack(this);
-      shader.connectUniform(name, buffer);
+
+      if (!buffer) console.warn("Uniform-buffer defined with name " + name + " is null.");
+      else shader.connectUniform(name, buffer);
     })
 
     this.#textures.forEach(({texture, unit}, samplerName) => {
@@ -691,5 +702,17 @@ is2D: ${this.#is2D}`)
     this.#ownedWebGLBuffers.add(newBuffer);
 
     return newBuffer;
+  }
+
+  /**Simply updates the `this.normalMatrix`, only if `.setNormals()` has already been called.*/
+  #updateNormalMatrix() {
+    if (this.#normals.length !== 0) {
+      //@ts-ignore
+      const normalMatrix = mat3.create();
+      //@ts-ignore
+      mat3.normalFromMat4(normalMatrix, this.modelMatrix.elements);
+
+      this.normalMatrix = normalMatrix;
+    }
   }
 }

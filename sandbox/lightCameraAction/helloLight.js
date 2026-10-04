@@ -7,6 +7,7 @@ import { KeyManager } from "../../base/helpers/keyManager";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas";
 import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader";
 import { Matrix4 } from "../../base/lib/cuon-matrix";
+import { niceColorsRaw } from "../../base/lib/utility-functions";
 import { Coords } from "../../base/shapes/coord";
 import { Cube } from "../../base/shapes/cube";
 
@@ -18,18 +19,23 @@ import { Cube } from "../../base/shapes/cube";
  * keyManager: KeyManager;
  * coords: Coords;
  * cube: Cube;
+ * lightCube: Cube;
+ * lightPosition: {x: number; y: number; z: number}
  }} RenderInfo */
 /**@typedef {{name: string; locationType: ("in" | "uniform"), dataType: DataType}[]} ShaderVariables*/
 
 // ---------- SHADERSOURCE & SHADER-VARIABLES ----------
-// 
+//
 const baseVertShaderSource = document.getElementById("base-vert-shader")?.innerHTML;
 const baseFragShaderSource = document.getElementById("base-frag-shader")?.innerHTML;
 if (baseVertShaderSource === undefined || baseFragShaderSource === undefined) throw Error("idot")
 
 const specularLightingVertShaderSource = document.getElementById("lighting-vert-shader")?.innerHTML;
-const specularLightingFragShaderSource = document.getElementById("lighting-frag-shader")?.innerHTML; 
+const specularLightingFragShaderSource = document.getElementById("lighting-frag-shader")?.innerHTML;
 if (specularLightingVertShaderSource === undefined || specularLightingFragShaderSource === undefined) throw Error("idot")
+
+const lightPosInHtml = document.getElementById("lightPos");
+if (!lightPosInHtml) throw Error("idot");
 
 /**@type {ShaderVariables} */
 const baseShaderVariables = [
@@ -51,7 +57,7 @@ const baseShaderVariables = [
   {
     name: "uProjectionMatrix",
     locationType: LocationType.UNIFORM,
-    dataType: DataType.MAT4f 
+    dataType: DataType.MAT4f
   }
 ]
 
@@ -127,7 +133,7 @@ const specularLightShaderVariables = [
 // ---------- TEXTURES AND UVS ----------
 
 /**@type {HTMLImageElement} */
-const brickLarge = await loadImage('../../base/textures/bricksLarge.png');
+const brickImage = await loadImage('../../base/textures/bricksLarge.png');
 
 /**@type {number[]} */
 let cubeUvCoords = [];
@@ -146,15 +152,19 @@ cubeUvCoords = cubeUvCoords.concat(tl, bl, br, tl, br, tr);
 
 // ---------- COLORS ----------
 
+const g_specularParams = niceColorsRaw.gold;
+
 const g_bgColor = new Color([0.8, 0.8, 0.8, 1.0]);
 const g_cubeColor = new Color([0.8, 0.8, 0.8, 1.0]);
+const g_lightCubeColor = new Color(g_specularParams.diffuse);
+
 
 // ---------- MAIN ----------
 
 export const main = () => {
   const camera = new Camera();
 
-  const canvas = new WebGLCanvas("canvas", 900, 900)
+  const canvas = new WebGLCanvas("canvas", 800, 800)
     .setBgColor(g_bgColor.rgba)
     .setCamera(camera)
 
@@ -169,15 +179,44 @@ export const main = () => {
   const specularLightShader = new Shader(gl, specularLightingVertShaderSource, specularLightingFragShaderSource)
     .findLocations(specularLightShaderVariables);
 
+  specularLightShader.log();
+
   // ----- Meshes / Drawables -----
   const coords = new Coords(gl, baseShader, camera, 100)
     .bindBuffers();
 
+  const lightPosition = { x: 0, y: 0, z: 0 };
+
   const cube = new Cube(gl, specularLightShader, camera)
-    .removeAttribute("aVertexColor")
+    .removeAttributes()
+    .setAttribute("aVertexPosition", (self) => self.vertexBuffer)
     .setAttribute("aVertexNormal", (self) => self.normalBuffer)
-    .setUniform("uColor", () => g_cubeColor.raw)
+    .setUniform("uModelMatrix", (self) => self.modelMatrix.elements)
+    .setUniform("uModelViewMatrix", (self) => self.modelViewMatrix.elements)
+    .setUniform("uProjectionMatrix", (self) => self.camera.projectionMatrix.elements)
+    .setUniform("uNormalMatrix", (self) => self.normalMatrix)
+    .setUniform("uCameraPosition", (self) => self.camera.getWorldPositionRaw())
+    .setUniform("uLightPosition", () => [lightPosition.x, lightPosition.y, lightPosition.z])
+    .setUniform("uAmbientLightColor", () => g_specularParams.ambient)
+    .setUniform("uDiffuseLightColor", () => g_specularParams.diffuse)
+    .setUniform("uSpecularLightColor", () => g_specularParams.specular)
+    .setUniform("uShininess", () => g_specularParams.shininess)
+    .setUniform("uIntensity", () => g_specularParams.intensity)
+    .setLocalPosition({ x: 10, y: 5, z: 2 })
+    .setLocalTransforms((localMat) => {
+      localMat.rotate(45, 1, 0, 0);
+      localMat.scale(4, 3, 2);
+    })
     .bindBuffers();
+
+  const lightCube = new Cube(gl, baseShader, camera)
+    .setVertexColorSingle(g_lightCubeColor.rgba)
+    .setLocalTransforms((localMat) => {
+      localMat.translate(lightPosition.x, lightPosition.y, lightPosition.z)
+      localMat.scale(0.2, 0.2, 0.2)
+    })
+    .setAlpha(true)
+    .bindBuffers()
 
   const keyManager = new KeyManager();
 
@@ -191,7 +230,24 @@ export const main = () => {
 
     coords: coords,
     cube: cube,
+    lightCube: lightCube,
+
+    lightPosition: lightPosition,
   }
+
+  keyManager.setEventOn("KeyL", (dt) => {
+    renderInfo.lightPosition.x -= 5 * dt;
+  }).setEventOn("KeyJ", (dt) => {
+    renderInfo.lightPosition.x += 5 * dt;
+  }).setEventOn("KeyI", (dt) => {
+    renderInfo.lightPosition.z += 5 * dt;
+  }).setEventOn("KeyK", (dt) => {
+    renderInfo.lightPosition.z -= 5 * dt;
+  }).setEventOn("KeyU", (dt) => {
+    renderInfo.lightPosition.y += 5 * dt;
+  }).setEventOn("KeyO", (dt) => {
+    renderInfo.lightPosition.y -= 5 * dt;
+  })
 
   animate(renderInfo);
 }
@@ -203,11 +259,21 @@ function animate(ctx) {
     ctx.canvas.update()
     animate(ctx);
   })
-  
+
+  if (lightPosInHtml) {
+    lightPosInHtml.innerHTML = `
+      LightPosition: ${
+        [Math.round(ctx.lightPosition.x), Math.round(ctx.lightPosition.y), Math.round(ctx.lightPosition.z)].join(" ")
+      }
+    `;
+  }
+    
   ctx.camera.handleKeys(ctx.keyManager.keysPressed, ctx.fpsInfo.dt);
   ctx.keyManager.handleEvents();
   ctx.fpsInfo.showFps();
 
   ctx.coords.draw();
   ctx.cube.draw();
+  
+  ctx.lightCube.draw();
 }

@@ -158,12 +158,17 @@ export class Shader {
   }
 
   log() {
-    console.log(`--- ShaderProgram ---`)
-    console.log(`Locations: `)
+    /**@type {string[]} */
+    const output = [];
+    
+    output.push(`\t----- ShaderProgram -----\n`)
+    output.push(`\t\tVVV Locations VVV\n\n`)
 
     this.#locations.forEach((value, key) => {
-      console.log(`Name: ${key}, DataType: ${value.dataType}, Location: ${value.location}`)
+      output.push(`Name: ${key}, DataType: ${value.dataType}, Location: ${value.location}\n`)
     })
+
+    console.log(output.join(""))
   }
 
   // -------------------- PRIVATE --------------------

@@ -121,3 +121,34 @@ export const niceColors = {
 		intensity: 1.0
 	}
 }
+
+export const niceColorsRaw = {
+	gold: {
+		ambient: [ .24725,0.1995,  0.0745, 0.4],
+		diffuse:   [0.75164, 0.60648, 0.22648, 0.4],
+		specular:  [0.628281,0.555802,  0.366065, 0.4],
+		shininess: 51.2,
+		intensity: 1.0
+	},
+	chrome: {
+		ambient:  [0.25, 0.25, 0.25, 1.0],
+		diffuse:  [0.4, 0.4, 0.4, 1.0],
+		specular:  [0.774597, 0.774597, 0.774597, 1.0],
+		shininess: 76.8,
+		intensity: 1.0
+	},
+	pewter: {
+		ambient:  [0.105882,0.058824, 0.113725, 0.5],
+		diffuse: [0.427451,0.470588, 0.541176, 0.5],
+		specular: [0.333333,0.333333, 0.521569,  0.5],
+		shininess: 9.84615,
+		intensity: 1.0
+	},
+	jade: {
+		ambient: [0.135,0.2225, 0.1575, 0.95],
+		diffuse: [0.54,0.89, 0.63, 0.95],
+		specular: [0.316228, 0.316228,  0.316228,  0.95],
+		shininess: 12.8,
+		intensity: 1.0
+	}
+}

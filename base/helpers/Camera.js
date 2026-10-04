@@ -84,6 +84,12 @@ export class Camera {
     return this.#camPos;
   }
 
+  /** @returns {number[]} */
+  getWorldPositionRaw() {
+    const pos = this.#camPos;
+    return [pos.x, pos.y, pos.z];
+  }
+
   /**@param {{x: number; y: number; z: number;}} lookAt */
   setLookAt(lookAt) {
     this.#lookAt = lookAt;

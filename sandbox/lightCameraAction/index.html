@@ -3,7 +3,12 @@
 
 <body>
     <canvas id="canvas"></canvas>
-    <p id="fps"></p>
+    <hr>
+    <p id="fps">FPS: - </p>
+    <p id="lightPos"> - </p>
+    <hr>
+    <p>Camera: WASD to move | VB to zoom.</p>
+    <p>Light: IJKL to move in X and Z | UO to move in Y</p>
 
     <script id="base-vert-shader" type="x-shader/x-vertex">#version 300 es
       in vec3 aVertexPosition;
@@ -45,7 +50,7 @@
       uniform vec4 uAmbientLightColor;
       uniform vec4 uDiffuseLightColor;
       uniform vec4 uSpecularLightColor;
-      
+
       uniform float uShininess;
       uniform float uIntensity;
 
@@ -71,14 +76,14 @@
         } else {
           vec3 reflectedVector = normalize( reflect(-lightDirection, normalVector) );
           float cosAngle = max( dot(reflectedVector, viewDirection), 0.0 );
-          
+
           specularReflection = uIntensity * uSpecularLightColor * pow( cosAngle, uShininess );
         }
 
         vLightWeight = uAmbientLightColor + diffuseReflection + specularReflection;
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
       }
-      
+
     </script>
     <script id="lighting-frag-shader" type="x-shader/x-fragment">#version 300 es
       precision mediump float;
