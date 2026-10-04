@@ -4,6 +4,7 @@ import { Color } from "../../base/helpers/color";
 import { FpsInfo } from "../../base/helpers/fpsInfo";
 import { loadImage } from "../../base/helpers/ImageLoader";
 import { KeyManager } from "../../base/helpers/keyManager";
+import { Texture } from "../../base/helpers/texture";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas";
 import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader";
 import { Matrix4 } from "../../base/lib/cuon-matrix";
@@ -128,6 +129,16 @@ const specularLightShaderVariables = [
     locationType: LocationType.UNIFORM,
     dataType: DataType.FLOAT,
   },
+  {
+    name: "aUvCoord",
+    locationType: LocationType.IN,
+    dataType: DataType.VEC2f
+  },
+  {
+    name: "uSampler0",
+    locationType: LocationType.UNIFORM,
+    dataType: DataType.SAMPLER2D
+  }
 ]
 
 // ---------- TEXTURES AND UVS ----------
@@ -155,7 +166,6 @@ cubeUvCoords = cubeUvCoords.concat(tl, bl, br, tl, br, tr);
 const g_specularParams = niceColorsRaw.gold;
 
 const g_bgColor = new Color([0.8, 0.8, 0.8, 1.0]);
-const g_cubeColor = new Color([0.8, 0.8, 0.8, 1.0]);
 const g_lightCubeColor = new Color(g_specularParams.diffuse);
 
 
@@ -164,13 +174,14 @@ const g_lightCubeColor = new Color(g_specularParams.diffuse);
 export const main = () => {
   const camera = new Camera();
 
-  const canvas = new WebGLCanvas("canvas", 800, 800)
+  const canvas = new WebGLCanvas("canvas", 1200, 1200)
     .setBgColor(g_bgColor.rgba)
     .setCamera(camera)
 
   const gl = canvas.gl;
 
   const cubeUvBuffer = new BasicBuffer(gl, cubeUvCoords);
+  const brickTexture = new Texture(gl, brickImage);
 
   // ----- Shaders -----
   const baseShader = new Shader(gl, baseVertShaderSource, baseFragShaderSource)
@@ -191,6 +202,8 @@ export const main = () => {
     .removeAttributes()
     .setAttribute("aVertexPosition", (self) => self.vertexBuffer)
     .setAttribute("aVertexNormal", (self) => self.normalBuffer)
+    .setAttribute("aUvCoord", () => cubeUvBuffer.buffer)
+    .setTexture("uSampler0", brickTexture)
     .setUniform("uModelMatrix", (self) => self.modelMatrix.elements)
     .setUniform("uModelViewMatrix", (self) => self.modelViewMatrix.elements)
     .setUniform("uProjectionMatrix", (self) => self.camera.projectionMatrix.elements)

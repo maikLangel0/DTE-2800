@@ -36,9 +36,12 @@
     </script>
 
     <script id="lighting-vert-shader" type="x-shader/x-vertex">#version 300 es
+      precision highp float;
+    
       in vec3 aVertexPosition;
       in vec3 aVertexNormal;
-
+      in vec2 aUvCoord;
+      
       uniform mat4 uModelMatrix;
       uniform mat4 uModelViewMatrix;
       uniform mat4 uProjectionMatrix;
@@ -46,6 +49,7 @@
 
       uniform vec3 uCameraPosition;
       uniform vec3 uLightPosition;
+
 
       uniform vec4 uAmbientLightColor;
       uniform vec4 uDiffuseLightColor;
@@ -55,6 +59,7 @@
       uniform float uIntensity;
 
       out vec4 vLightWeight;
+      out vec2 vTexCoord;
 
       void main() {
         vec3 normalVector = normalize(uNormalMatrix * aVertexNormal);
@@ -82,17 +87,24 @@
 
         vLightWeight = uAmbientLightColor + diffuseReflection + specularReflection;
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+
+        vTexCoord = aUvCoord;
       }
 
     </script>
     <script id="lighting-frag-shader" type="x-shader/x-fragment">#version 300 es
-      precision mediump float;
+      precision highp float;
 
       in vec4 vLightWeight;
+      in vec2 vTexCoord;
+      
+      uniform sampler2D uSampler0;
+
       out vec4 fragColor;
 
       void main() {
-        fragColor = vLightWeight;
+        vec4 texColor = texture(uSampler0, vTexCoord);
+        fragColor = vLightWeight * texColor;
       }
 
     </script>
