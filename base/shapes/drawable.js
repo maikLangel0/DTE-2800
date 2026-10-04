@@ -2,6 +2,7 @@ import { Camera } from "../helpers/Camera.js";
 import { Texture } from "../helpers/texture.js";
 import { Shader } from "../helpers/WebGLShader.js";
 import { Matrix4 } from "../lib/cuon-matrix.js";
+import "../lib/gl-matrix.js";
 
 export class Drawable {
   /** @type {WebGL2RenderingContext} */
@@ -13,7 +14,9 @@ export class Drawable {
   #uniforms = new Map();
   /**@type {Map<string, (self: Drawable) => WebGLBuffer | null >} */
   #attributes = new Map();
-  /**@type {Map<string, {texture: Texture, unit: number}>} */
+  /**
+   * KEY: NAME_OF_SAMPLER | VALUE: { THE_TEXTURE, UNIT__LOCAL_TO_THIS_DRAWABLE }
+   * @type {Map<string, {texture: Texture, unit: number}>} */
   #textures = new Map();
 
   /**Storing the position so you can possibly calc the dist to camera.
@@ -33,9 +36,12 @@ export class Drawable {
   /**@type {number[]} */
   #vertices;
   /**@type {number[]} */
+  #normals;
+  /**@type {number[]} */
   #vertexColors;
   /**@type {number[]} */
   #indeces;
+
   /**@type {number} */
   #vertexCount;
   /**@type {number} */
@@ -79,6 +85,7 @@ export class Drawable {
     this.#is2D = false;
 
     this.#vertices = [];
+    this.#normals = [];
     this.#vertexColors = [];
     this.#indeces = [];
 
@@ -126,6 +133,8 @@ export class Drawable {
     this.colorBuffer = null;
     /**@type {WebGLBuffer | null} */
     this.indexBuffer = null;
+    /**@type {WebGLBuffer | null} */
+    this.normalBuffer = null;
   }
   // USER-AVAIALBLE FUNCTIONS TO ALTER CLASS' PRIVATE DATA --------------------
 
@@ -139,9 +148,41 @@ export class Drawable {
    * @param {number[]} vertices
    */
   setVertices(vertices) {
+    if (vertices.length % 3 != 0) throw Error("Vertices provided are not in pairs of 3.");
+
     this.#vertices = vertices;
     this.#vertexCount = vertices.length / 3;
 
+    return this;
+  }
+
+  /** Normals are based on the vertices of the Drawable, so either `setVertices()` first,
+   * or pass the `vertices` explicitly to this function.
+   * @param {number[] | null} vertices
+   */
+  setNormals(vertices = null) {
+    /**@type {number[]} */
+    let verts;
+
+    if (vertices) {
+      verts = vertices;
+    } else if (this.#vertices) {
+      verts = this.#vertices;
+    } else {
+      throw Error("Cant setNormals; Either provide the vertices, or do .setVertices() first.");
+    }
+
+    for (let i = 0; i < verts.length; i += 3) {
+      const [x, y, z] = [verts[i], verts[i + 1], verts[i + 2]];
+      if (x === undefined || y === undefined || z === undefined) throw Error("Should not happen");
+
+      //@ts-ignore from gl-matrix.js
+      let normalizedVec = vec3.create();
+      //@ts-ignore
+      vec3.normalize(normalizedVec, [x, y, z])
+
+      this.#normals.push(...normalizedVec);
+    }
     return this;
   }
 
@@ -224,7 +265,7 @@ export class Drawable {
   setTexture(samplerName, texture) {
     const unit = this.#textures.get(samplerName)?.unit ?? this.#textures.size;
     this.#textures.set(samplerName, {texture, unit: unit});
-    
+
     return this;
   }
 
@@ -239,8 +280,8 @@ export class Drawable {
     return tex.texture;
   }
 
-  /**Returns the textureUnit / activetexture 
-   * @param {string} label 
+  /**Returns the textureUnit / activetexture
+   * @param {string} label
   */
   getTextureUnit(label) {
     const texture = this.#textures.get(label);
@@ -251,7 +292,7 @@ export class Drawable {
   }
 
   // ##############################################################################
-  //                               BINDING STUFF
+  //                           BINDING STUFF + BUFFERS
   // ##############################################################################
 
   /** Binds the positionbuffer, and indexbuffer + colorbuffer if theyre set previously. */
@@ -264,6 +305,10 @@ export class Drawable {
 
     if (this.#indeces.length !== 0) {
       this.bindIndexBuffer();
+    }
+
+    if (this.#normals.length !== 0) {
+      this.bindNormalBuffer();
     }
     return this
   }
@@ -279,6 +324,10 @@ export class Drawable {
     this.#indexCount = this.#indeces.length;
   }
 
+  bindNormalBuffer() {
+    this.normalBuffer = this.#bindBuffer(this.normalBuffer, this.#normals, this.#gl.ARRAY_BUFFER, Float32Array);
+  }
+
   freeBuffers() {
     if (!this.#isOwner) return;
 
@@ -292,25 +341,6 @@ export class Drawable {
   //                              SHADER SPESIFIC
   // ##############################################################################
 
-
-  // Defines what data each shader variable should use.
-
-  // Shader variables can point to data inside the class, and outside the class:
-
-  // - Example of Data inside this class:
-  //   `'aVertexPosition', getBuffer = (it) => { it.vertexBuffer }`
-
-  // - Example of data outside this class:
-  //   `'uColor', getValue = () => { color }`
-
-  // **Important**
-
-  // Do not set uniforms or attributes that are needed when calling
-  // `bindTexture()`.
-
-  // Call this after `swapShader()` if the new shader uses different variable
-  // names or data.
-
   /**
    * @param {string} name
    * @param {((self: Drawable) => number | number[] | Float32Array)} callback
@@ -318,6 +348,16 @@ export class Drawable {
   setUniform(name, callback) {
     this.#uniforms.set(name, callback);
     return this
+  }
+
+  /**
+   * @param {{name: string; callback: ((self: Drawable) => number | number[] | Float32Array)}[]} uniforms
+   */
+  setUniforms(uniforms) {
+    for (const { name, callback } of uniforms) {
+      this.setUniform(name, callback);
+    }
+    return this;
   }
 
   /** @param {string} name */
@@ -329,7 +369,7 @@ export class Drawable {
     return this;
   }
 
-  deleteUniforms() {
+  removeUniforms() {
     this.#uniforms = new Map();
     return this;
   }
@@ -343,6 +383,16 @@ export class Drawable {
     return this
   }
 
+  /**
+   * @param {{name: string; callback: (self: Drawable) => WebGLBuffer | null}[]} attributes
+   */
+  setAttributes(attributes) {
+    for (const { name, callback } of attributes) {
+      this.setAttribute(name, callback);
+    }
+    return this;
+  }
+
   /**@param {string} name */
   removeAttribute(name) {
     const didRemove = this.#attributes.delete(name);
@@ -352,7 +402,7 @@ export class Drawable {
     return this;
   }
 
-  deleteAttributes() {
+  removeAttributes() {
     this.#attributes = new Map();
     return this;
   }
@@ -553,10 +603,9 @@ is2D: ${this.#is2D}`)
 
     this.#attributes.forEach((callBack, name) => {
       const buffer = callBack(this);
-      if (!buffer) {
-        throw Error("Attribute-buffer defined with name " + name + " is not instanciated.");
-      }
-      shader.connectAttribute(name, buffer);
+
+      if (!buffer) console.warn("Attribute-buffer defined with name " + name + " is not instanciated.");
+      else shader.connectAttribute(name, buffer);
     })
 
     this.#uniforms.forEach((callBack, name) => {
@@ -568,7 +617,7 @@ is2D: ${this.#is2D}`)
       shader.connectTexture(texture.texture, gl.TEXTURE0 + unit, texture.target);
       shader.connectUniform(samplerName, unit);
     })
-    
+
     this.#drawCall();
   }
 
@@ -619,7 +668,6 @@ is2D: ${this.#is2D}`)
   }
 
   /**
-   *
    * @param {WebGLBuffer | null} buffer
    * @param {number[]} data
    * @param {number} target

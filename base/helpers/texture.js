@@ -17,7 +17,7 @@ export class Texture {
     /**@type {number} */
     this.target = target;
     /**@type {WebGLBuffer | null} */
-    this.uvCoordinates = null;
+    this.uvBuffer = null;
     /**@type {number} */
     this.unit = 0;
     
@@ -56,7 +56,10 @@ export class Texture {
     return this;
   }
 
-  /**@param {number[]} uvCoords  */
+  /**
+   * Creates a new WebGLBuffer given the `uvCoords` and stores it in `this.uvBuffer`.
+   * @param {number[]} uvCoords 
+  * */
   setUVCoords(uvCoords) {
     const gl = this.#gl;
     const uvBuffer = gl.createBuffer();
@@ -65,7 +68,17 @@ export class Texture {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoords), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    this.uvCoordinates = uvBuffer;
+    this.uvBuffer = uvBuffer;
+    return this;
+  }
+
+  /**
+   * Simply sets the `this.uvCoords` to the `buffer` provided. Reason for this is so that `Texture`
+   * does not hold ownership of the WebGLBuffer in `this.uvBuffer`.
+   * @param {WebGLBuffer} buffer  
+   */
+  setUVBuffer(buffer) {
+    this.uvBuffer = buffer;
     return this;
   }
 

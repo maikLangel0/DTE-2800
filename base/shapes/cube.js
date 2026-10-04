@@ -70,6 +70,8 @@ export class Cube extends Drawable {
       1, -1, 1,
     ]);
 
+    this.setNormals();
+
     if (color) {
       this.setVertexColorSingle(color)
     }

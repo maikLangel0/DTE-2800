@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<header>yo</header>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <p id="fps"></p>
+
+    <script id="base-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+      in vec4 aVertexColor;
+
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+
+      out mediump vec4 vColor;
+
+      void main() {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+        vColor = aVertexColor;
+      }
+    </script>
+    <script id="base-frag-shader" type="x-shader/x-fragment">#version 300 es
+      precision mediump float;
+
+      in mediump vec4 vColor;
+      out mediump vec4 fragColor;
+
+      void main() {
+        fragColor = vColor;
+      }
+    </script>
+
+    <script id="lighting-vert-shader" type="x-shader/x-vertex">#version 300 es
+      in vec3 aVertexPosition;
+      in vec3 aVertexNormal;
+
+      uniform mat4 uModelMatrix;
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+      uniform mat3 uNormalMatrix;
+
+      uniform vec3 uCameraPosition;
+      uniform vec3 uLightPosition;
+
+      uniform vec4 uAmbientLightColor;
+      uniform vec4 uDiffuseLightColor;
+      uniform vec4 uSpecularLightColor;
+      
+      uniform float uShininess;
+      uniform float uIntensity;
+
+      out vec4 vLightWeight;
+
+      void main() {
+        vec3 normalVector = normalize(uNormalMatrix * aVertexNormal);
+
+        vec4 vertexPositionWorldPos = uModelMatrix * vec4(aVertexPosition, 1.0);
+
+        vec3 viewDirection = normalize(uCameraPosition - vec3(vertexPositionWorldPos));
+        vec3 lightDirection = normalize(uLightPosition - vec3(vertexPositionWorldPos));
+
+        float lightScalar = dot(normalVector, lightDirection);
+
+        float diffuseLightScalar = max(lightScalar, 0.0);
+        vec4 diffuseReflection = diffuseLightScalar * uDiffuseLightColor;
+
+        vec4 specularReflection;
+
+        if(lightScalar <= 1.0) {
+          specularReflection = vec4(0.0);
+        } else {
+          vec3 reflectedVector = normalize( reflect(-lightDirection, normalVector) );
+          float cosAngle = max( dot(reflectedVector, viewDirection), 0.0 );
+          
+          specularReflection = uIntensity * uSpecularLightColor * pow( cosAngle, uShininess );
+        }
+
+        vLightWeight = uAmbientLightColor + diffuseReflection + specularReflection;
+        gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+      }
+      
+    </script>
+    <script id="lighting-frag-shader" type="x-shader/x-fragment">#version 300 es
+      precision mediump float;
+
+      in vec4 vLightWeight;
+      out vec4 fragColor;
+
+      void main() {
+        fragColor = vLightWeight;
+      }
+
+    </script>
+
+    <script type="module">
+      'use strict'
+      import {main} from "./helloLight.js";
+      main();
+    </script>
+</body>

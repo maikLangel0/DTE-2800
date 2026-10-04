@@ -1,3 +1,4 @@
+import { BasicBuffer } from "../../base/helpers/BasicBuffer.js";
 import { Camera } from "../../base/helpers/Camera.js";
 import { Color } from "../../base/helpers/color.js";
 import { FpsInfo } from "../../base/helpers/fpsInfo.js";
@@ -13,6 +14,32 @@ import { Cube } from "../../base/shapes/cube.js";
 import { Cylinder } from "../../base/shapes/cylinder.js";
 import { Drawable } from "../../base/shapes/drawable.js";
 import { XZPlane } from "../../base/shapes/xzPlane.js";
+
+/**
+ * @typedef {{
+ *  gl: WebGL2RenderingContext;
+ *  canvas: WebGLCanvas;
+ *  camera: Camera;
+ *  modelMatrix: Matrix4;
+ *  fpsInfo: FpsInfo;
+ *  keyManager: KeyManager;
+ *  matrixStack: MatrixStack;
+ *  coords: Coords;
+ *  xzPlane: XZPlane;
+ *  cubeBrick: Cube;
+ *  treeStem: Cylinder;
+ *  treePiece: Cube;
+ *  animations: { cubeBrickRotationY: number }
+ *  treeAnimations: {
+ *    stemRotationZ: number;
+ *    stemBaseRotationZ: number;
+ *    branchRotationZ: number;
+ *    branchBaseRotationZ: number;
+ *    leafRotationZ: number;
+ *    leafBaseRotationZ: number;
+ *  }
+ * }} renderInfo
+ */
 
 const baseFragShader = document.getElementById("base-frag-shader").innerHTML;
 const baseVertShader = document.getElementById("base-vert-shader").innerHTML;
@@ -318,24 +345,22 @@ export const main = () => {
 
   const gl = canvas.gl;
 
-  const brickTexture = new Texture(gl, brickImage)
-    .setUVCoords(brickMetalUvCoords)
+  const brickMetalUvBuffer = new BasicBuffer(gl, brickMetalUvCoords);
+  const diceUvBuffer = new BasicBuffer(gl, diceUvCoords);
 
-  const metalTexture = new Texture(gl, metalImage)
-    .setUVCoords(brickMetalUvCoords)
-
-  const diceTexture = new Texture(gl, diceImage)
-    .setUVCoords(diceUvCoords)
+  const brickTexture = new Texture(gl, brickImage);
+  const metalTexture = new Texture(gl, metalImage);
+  const diceTexture = new Texture(gl, diceImage);
 
   // SHADERS
-  const baseShader = new Shader(gl, baseVertShader, baseFragShader);
-  baseShader.findLocations(baseShaderVariables);
+  const baseShader = new Shader(gl, baseVertShader, baseFragShader)
+    .findLocations(baseShaderVariables);
 
-  const texShader = new Shader(gl, textureVertShader, textureFragShader);
-  texShader.findLocations(texShaderVariables);
+  const texShader = new Shader(gl, textureVertShader, textureFragShader)
+    .findLocations(texShaderVariables);
 
-  const treeShader = new Shader(gl, treeVertShader, treeFragShader);
-  treeShader.findLocations(treeShaderVariables);
+  const treeShader = new Shader(gl, treeVertShader, treeFragShader)
+    .findLocations(treeShaderVariables);
 
 
   // OBJECTS TO DRAW
@@ -354,8 +379,8 @@ export const main = () => {
     .setTexture("uSampler0", brickTexture)
     .setTexture("uSampler1", metalTexture)
     .setTexture("uSampler2", diceTexture)
-    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
-    .setAttribute("aDiceTextureCoord", () => diceTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => brickMetalUvBuffer.buffer)
+    .setAttribute("aDiceTextureCoord", () => diceUvBuffer.buffer)
     .setUniform("uColor", () => g_cubeColor.raw)
     .setLocalPosition({ x: 1, y: 0.01, z: 1 })
     .setAlpha(true)
@@ -364,14 +389,14 @@ export const main = () => {
 
   const treePiece = new Cube(gl, treeShader, camera)
     .setTexture("uSampler0", metalTexture)
-    .setAttribute("aVertexTextureCoord", () => metalTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => brickMetalUvBuffer.buffer)
     .setUniform("uColor", () => g_treeColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers();
 
   const stem = new Cylinder(gl, treeShader, camera, 12)
     .setTexture("uSampler0", brickTexture)
-    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => brickMetalUvBuffer.buffer)
     .setUniform("uColor", () => g_treeColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers();
@@ -441,29 +466,7 @@ export const main = () => {
 }
 
 /**
- * @param {{
- *  gl: WebGL2RenderingContext;
- *  canvas: WebGLCanvas;
- *  camera: Camera;
- *  modelMatrix: Matrix4;
- *  fpsInfo: FpsInfo;
- *  keyManager: KeyManager;
- *  matrixStack: MatrixStack;
- *  coords: Coords;
- *  xzPlane: XZPlane;
- *  cubeBrick: Cube;
- *  treeStem: Cylinder;
- *  treePiece: Cube;
- *  animations: { cubeBrickRotationY: number }
- *  treeAnimations: {
- *    stemRotationZ: number;
- *    stemBaseRotationZ: number;
- *    branchRotationZ: number;
- *    branchBaseRotationZ: number;
- *    leafRotationZ: number;
- *    leafBaseRotationZ: number;
- *  }
- * }} renderInfo
+ * @param {renderInfo} renderInfo
  */
 function animate(renderInfo) {
   const modelMatrix = renderInfo.modelMatrix;
@@ -507,29 +510,7 @@ function animate(renderInfo) {
 }
 
 /**
- * @param {{
- *  gl: WebGL2RenderingContext;
- *  canvas: WebGLCanvas;
- *  camera: Camera;
- *  modelMatrix: Matrix4;
- *  fpsInfo: FpsInfo;
- *  keyManager: KeyManager;
- *  matrixStack: MatrixStack;
- *  coords: Coords;
- *  xzPlane: XZPlane;
- *  cubeBrick: Cube;
- *  treeStem: Cylinder;
- *  treePiece: Cube;
- *  animations: { cubeBrickRotationY: number }
- *  treeAnimations: {
- *    stemRotationZ: number;
- *    stemBaseRotationZ: number;
- *    branchRotationZ: number;
- *    branchBaseRotationZ: number;
- *    leafRotationZ: number;
- *    leafBaseRotationZ: number;
- *  }
- * }} renderInfo
+ * @param {renderInfo} renderInfo
  */
 function drawTree(renderInfo) {
   const modelMatrix = renderInfo.modelMatrix;

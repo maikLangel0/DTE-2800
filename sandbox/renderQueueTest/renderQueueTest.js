@@ -137,7 +137,7 @@ function animate(renderInfo) {
 
   window.requestAnimationFrame((currentTime) => {
     fps.updateFps(currentTime);
-    renderInfo.canvas.update(renderInfo.camera, { r: 0.8, g: 0.8, b: 0.8, a: 1.0 });
+    renderInfo.canvas.update();
     animate(renderInfo);
   })
 

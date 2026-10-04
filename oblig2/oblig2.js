@@ -1,3 +1,4 @@
+import { BasicBuffer } from "../base/helpers/BasicBuffer.js";
 import { Camera } from "../base/helpers/Camera.js";
 import { Color } from "../base/helpers/color.js";
 import { FpsInfo } from "../base/helpers/fpsInfo.js";
@@ -119,18 +120,19 @@ export const main = () => {
 
   const gl = canvas.gl;
 
-  const grassTexture = new Texture(gl, grassImage).setUVCoords([
-      0, 1, // TL
-      0, 0, // BL
-      1, 0, // BR
-      0, 1, // TL
-      1, 0, // BR
-      1, 1  // TR
+  const grassUvBuffer = new BasicBuffer(gl, [
+    0, 1, // TL
+    0, 0, // BL
+    1, 0, // BR
+    0, 1, // TL
+    1, 0, // BR
+    1, 1  // TR
   ]);
+  const cubeUvBuffer = new BasicBuffer(gl, cubeUvCoords);
+
+  const grassTexture = new Texture(gl, grassImage)
   const brickTexture = new Texture(gl, brickImage)
-    .setUVCoords(cubeUvCoords);
   const sheetMetalTexture = new Texture(gl, sheetMetalImage)
-    .setUVCoords(cubeUvCoords);
 
   const craneShader = new Shader(gl, craneVertShader, craneFragShader)
     .findLocations(craneShaderVariables);
@@ -138,28 +140,28 @@ export const main = () => {
   // DRAWABLE OBJECTS
   const ground = new Square(gl, craneShader, camera)
     .setTexture("uSampler0", grassTexture)
-    .setAttribute("aVertexTextureCoord", () => grassTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => grassUvBuffer.buffer)
     .setUniform("uColor", () => g_whiteColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const craneBase = new Cylinder(gl, craneShader, camera, 6)
     .setTexture("uSampler0", brickTexture)
-    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => cubeUvBuffer.buffer)
     .setUniform("uColor", () => g_baseColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const craneBaseTop = new Disc(gl, craneShader, camera, 6)
     .setTexture("uSampler0", brickTexture)
-    .setAttribute("aVertexTextureCoord", () => brickTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => cubeUvBuffer.buffer)
     .setUniform("uColor", () => g_baseColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers()
 
   const joint = new Cube(gl, craneShader, camera)
     .setTexture("uSampler0", sheetMetalTexture)
-    .setAttribute("aVertexTextureCoord", () => sheetMetalTexture.uvCoordinates)
+    .setAttribute("aVertexTextureCoord", () => cubeUvBuffer.buffer)
     .setUniform("uColor", () => g_sheetColor.raw)
     .removeAttribute("aVertexColor")
     .bindBuffers();

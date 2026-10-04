@@ -115,7 +115,10 @@ export class Shader {
       offset: 0
     }) {
     const locationInfo = this.#locations.get(name);
-    if (!locationInfo) return; // #getAttribLocationChecked() warns already if the attribute is not found, so I'll just return nothing here
+    if (!locationInfo) {
+      console.warn("Attribute of name " + name + " not found in shader.");
+      return
+    };
 
     this.#connectAttribute(locationInfo, buffer, settings);
   }
@@ -136,7 +139,11 @@ export class Shader {
    */
   connectUniform(name, data) {
     const locationInfo = this.#locations.get(name);
-    if (!locationInfo) return; // #getUniformLocationChecked() warns already if the uniform is not found, so I'll just return nothing here
+
+    if (!locationInfo) {
+      console.warn("Uniform of name " + name + " not found in shader.");
+      return
+    };
 
     this.#connectUniform(locationInfo, data);
   }
