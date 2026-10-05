@@ -94,6 +94,7 @@ export class Camera {
   setLookAt(lookAt) {
     this.#lookAt = lookAt;
     this.#setViewMatrix();
+    return this;
   }
 
   /**@param {{x: number; y: number; z: number;}} up */

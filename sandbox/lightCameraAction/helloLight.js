@@ -280,13 +280,13 @@ function animate(ctx) {
       }
     `;
   }
-    
+
   ctx.camera.handleKeys(ctx.keyManager.keysPressed, ctx.fpsInfo.dt);
   ctx.keyManager.handleEvents();
   ctx.fpsInfo.showFps();
 
   ctx.coords.draw();
   ctx.cube.draw();
-  
+
   ctx.lightCube.draw();
 }

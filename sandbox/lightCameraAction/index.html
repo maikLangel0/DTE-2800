@@ -104,7 +104,7 @@
 
       void main() {
         vec4 texColor = texture(uSampler0, vTexCoord);
-        fragColor = vLightWeight * texColor;
+        fragColor = vec4(vLightWeight.rgb, 0.9) * texColor;
       }
 
     </script>
