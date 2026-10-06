@@ -96,14 +96,22 @@ const addSumLines = (scene, length) => {
  * @param {THREE.Scene} scene
  * @param {number} size
  * @param {number} color
- * @returns {THREE.Mesh}
+ * @returns {THREE.Group}
  */
 const addBasicCube = (scene, size, color) => {
   const geometry = new THREE.BoxGeometry(size, size, size);
   const material = new THREE.MeshPhongMaterial({ color: color });
 
   const cube = new THREE.Mesh(geometry, material)
+  cube.position.x = -size;
+  const cube2 = new THREE.Mesh(geometry, material)
+  cube2.position.x = size;
 
-  scene.add(cube);
-  return cube;
+  const group = new THREE.Group();
+  group.add(cube);
+  group.add(cube2);
+  
+  scene.add(group);
+  
+  return group;
 }

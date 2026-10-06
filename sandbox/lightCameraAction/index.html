@@ -16,12 +16,13 @@
 
       uniform mat4 uModelViewMatrix;
       uniform mat4 uProjectionMatrix;
+      uniform float uColorScalar;
 
       out mediump vec4 vColor;
 
       void main() {
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-        vColor = aVertexColor;
+        vColor = vec4(aVertexColor.r * uColorScalar, aVertexColor.g * uColorScalar, aVertexColor.b * uColorScalar, aVertexColor.a);
       }
     </script>
     <script id="base-frag-shader" type="x-shader/x-fragment">#version 300 es
@@ -104,7 +105,7 @@
 
       void main() {
         vec4 texColor = texture(uSampler0, vTexCoord);
-        fragColor = vec4(vLightWeight.rgb, 0.9) * texColor;
+        fragColor = vLightWeight * texColor;
       }
 
     </script>

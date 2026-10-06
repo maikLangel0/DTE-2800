@@ -59,6 +59,10 @@ const baseShaderVariables = [
     name: "uProjectionMatrix",
     locationType: LocationType.UNIFORM,
     dataType: DataType.MAT4f
+  }, {
+    name: "uColorScalar",
+    locationType: LocationType.UNIFORM,
+    dataType: DataType.FLOAT
   }
 ]
 
@@ -165,9 +169,8 @@ cubeUvCoords = cubeUvCoords.concat(tl, bl, br, tl, br, tr);
 
 const g_specularParams = niceColorsRaw.gold;
 
-const g_bgColor = new Color([0.8, 0.8, 0.8, 1.0]);
+const g_bgColor = new Color([0.0, 0.0, 0.0, 1.0])
 const g_lightCubeColor = new Color(g_specularParams.diffuse);
-
 
 // ---------- MAIN ----------
 
@@ -194,6 +197,7 @@ export const main = () => {
 
   // ----- Meshes / Drawables -----
   const coords = new Coords(gl, baseShader, camera, 100)
+    .setUniform("uColorScalar", () => 0.3)
     .bindBuffers();
 
   const lightPosition = { x: 0, y: 0, z: 0 };
@@ -210,7 +214,7 @@ export const main = () => {
     .setUniform("uNormalMatrix", (self) => self.normalMatrix)
     .setUniform("uCameraPosition", (self) => self.camera.getWorldPositionRaw())
     .setUniform("uLightPosition", () => [lightPosition.x, lightPosition.y, lightPosition.z])
-    .setUniform("uAmbientLightColor", () => g_specularParams.ambient)
+    .setUniform("uAmbientLightColor", () => g_bgColor.raw)
     .setUniform("uDiffuseLightColor", () => g_specularParams.diffuse)
     .setUniform("uSpecularLightColor", () => g_specularParams.specular)
     .setUniform("uShininess", () => g_specularParams.shininess)
@@ -224,6 +228,7 @@ export const main = () => {
 
   const lightCube = new Cube(gl, baseShader, camera)
     .setVertexColorSingle(g_lightCubeColor.rgba)
+    .setUniform("uColorScalar", () => 1)
     .setLocalTransforms((localMat) => {
       localMat.translate(lightPosition.x, lightPosition.y, lightPosition.z)
       localMat.scale(0.2, 0.2, 0.2)
@@ -249,17 +254,17 @@ export const main = () => {
   }
 
   keyManager.setEventOn("KeyL", (dt) => {
-    renderInfo.lightPosition.x -= 5 * dt;
+    renderInfo.lightPosition.x -= 30 * dt;
   }).setEventOn("KeyJ", (dt) => {
-    renderInfo.lightPosition.x += 5 * dt;
+    renderInfo.lightPosition.x += 30 * dt;
   }).setEventOn("KeyI", (dt) => {
-    renderInfo.lightPosition.z += 5 * dt;
+    renderInfo.lightPosition.z += 30 * dt;
   }).setEventOn("KeyK", (dt) => {
-    renderInfo.lightPosition.z -= 5 * dt;
+    renderInfo.lightPosition.z -= 30 * dt;
   }).setEventOn("KeyU", (dt) => {
-    renderInfo.lightPosition.y += 5 * dt;
+    renderInfo.lightPosition.y += 30 * dt;
   }).setEventOn("KeyO", (dt) => {
-    renderInfo.lightPosition.y -= 5 * dt;
+    renderInfo.lightPosition.y -= 30 * dt;
   })
 
   animate(renderInfo);
@@ -282,11 +287,10 @@ function animate(ctx) {
   }
 
   ctx.camera.handleKeys(ctx.keyManager.keysPressed, ctx.fpsInfo.dt);
-  ctx.keyManager.handleEvents();
+  ctx.keyManager.handleEvents(ctx.fpsInfo.dt);
   ctx.fpsInfo.showFps();
 
   ctx.coords.draw();
   ctx.cube.draw();
-
   ctx.lightCube.draw();
 }

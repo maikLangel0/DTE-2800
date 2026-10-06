@@ -32,10 +32,10 @@ export class RenderQueue {
     let tmp = new Matrix4();
     
     for (let [_, obj] of this.#baseQueue) {
-      obj.draw(tmp);
+      obj.draw({outerModelMatrix: tmp});
     }
     for (let [_, obj] of this.#deferredQueue) {
-      obj.draw(tmp);
+      obj.draw({outerModelMatrix: tmp});
     }
   }
 }
