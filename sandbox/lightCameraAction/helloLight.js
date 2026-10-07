@@ -175,9 +175,10 @@ const g_lightCubeColor = new Color(g_specularParams.diffuse);
 // ---------- MAIN ----------
 
 export const main = () => {
-  const camera = new Camera();
+  const camera = new Camera()
+    .setWorldPosition({x: -10 ,y: -10,z: -10});
 
-  const canvas = new WebGLCanvas("canvas", 1200, 1200)
+  const canvas = new WebGLCanvas("canvas", 700, 700)
     .setBgColor(g_bgColor.rgba)
     .setCamera(camera)
 
