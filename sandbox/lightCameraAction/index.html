@@ -22,7 +22,7 @@
 
       void main() {
         gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-        vColor = vec4(aVertexColor.r * uColorScalar, aVertexColor.g * uColorScalar, aVertexColor.b * uColorScalar, aVertexColor.a);
+        vColor = vec4(aVertexColor.rgb * uColorScalar, 1.0);
       }
     </script>
     <script id="base-frag-shader" type="x-shader/x-fragment">#version 300 es
