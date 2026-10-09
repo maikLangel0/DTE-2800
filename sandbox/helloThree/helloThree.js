@@ -10,7 +10,7 @@ const CANVAS_WIDTH = window.innerWidth - 40;
 
 const scratchVec3 = new THREE.Vector3();
 
-// ---------- TEXTURES ----------  
+// ---------- TEXTURES ----------
 const texLoader = new THREE.TextureLoader();
 const grassTexture = texLoader.load(
   '../../base/textures/grassTexture.png',
@@ -21,7 +21,7 @@ grassTexture.colorSpace = THREE.SRGBColorSpace;
 grassTexture.wrapS = THREE.RepeatWrapping;
 grassTexture.wrapT = THREE.RepeatWrapping;
 
-// ---------- APPCONTEXT ---------- 
+// ---------- APPCONTEXT ----------
 const ctx = new BasicAppContext({
   canvasId: "canvas",
   fpsId: "fps",
@@ -43,7 +43,7 @@ ctx.setAnimationLoop((scene, fpsInfo) => {
 
   cubeGroup.position.y = 20 + 10 * Math.sin(fpsInfo.totalTime);
   cubeGroup.rotation.y += fpsInfo.dt;
-  
+
   pointLight.position.y = 20 + 10 * Math.sin(timeAsDegrees + degreeToRad(90));
 
   cube.rotation.x += fpsInfo.dt * 0.4;
@@ -80,7 +80,7 @@ const geometries = new GeometryMap([
 ]);
 
 export const main = () => {
-  // ---------- LIGHTS ---------- 
+  // ---------- LIGHTS ----------
   const ambientLight = new THREE.AmbientLight(0x0f0f0f, 1);
   const directionalLight = basicDirectionalLight({
     color: 0x808080,
@@ -95,8 +95,8 @@ export const main = () => {
 
   const directionalLightHelper = new DirectionalLightHelper(directionalLight, 5, new THREE.Color());
   directionalLightHelper.visible = false;
-  
-  // ---------- MESHES ---------- 
+
+  // ---------- MESHES ----------
   const cube = new THREE.Mesh(geometries.get("basicCube"), materials.get("brownPhong"));
   cube.name = "brownCube";
   cube.position.x = 10;
@@ -119,7 +119,7 @@ export const main = () => {
   cubeGroup.add(cube);
   cubeGroup.add(cube2);
 
-  // ---------- ADD ALL TO SCENE ---------- 
+  // ---------- ADD ALL TO SCENE ----------
   ctx.setObject("directional", directionalLight);
   ctx.setObject("dirLightHelp", directionalLightHelper);
   ctx.setObject("pointLight", pointLight);
@@ -146,16 +146,16 @@ function squareGeometry() {
     2, 3, 0,
   ];
   const uvs = new Float32Array([
-    0.0, 0.0, // v0: bottom-left
-    1.0, 0.0, // v1: bottom-right
-    1.0, 1.0, // v2: top-right
-    0.0, 1.0, // v3: top-left
+    0.0, 0.0, // v0: bottom left
+    1.0, 0.0, // v1: bottom right
+    1.0, 1.0, // v2: top right
+    0.0, 1.0, // v3: top left
   ]);
 
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
-  
+
   geometry.computeVertexNormals();
 
   return geometry;
