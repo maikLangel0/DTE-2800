@@ -9,17 +9,20 @@ const posBuffer = new THREE.Vector3();
 
 const ctx = new BasicAppContext({
   canvasId: "canvas",
+  fpsId: "fps",
   height: CANVAS_HEIGHT,
   width: CANVAS_WIDTH,
   fov: 60,
-  fpsId: "fps"
 })
 ctx.setAnimationLoop((scene, fpsInfo) => {
   const cube = scene.getObjectByName("brownCube");
   if (cube === undefined) return;
 
   cube.rotation.x += fpsInfo.dt;
-  cube.rotation.y += fpsInfo.dt * 2;
+  cube.rotation.y += fpsInfo.dt * 0.5;
+  cube.rotation.z += fpsInfo.dt * 1.5;
+
+  cube.scale.x = 1 + Math.sin(fpsInfo.totalTime);
 
   cube.getWorldPosition(posBuffer);
 
