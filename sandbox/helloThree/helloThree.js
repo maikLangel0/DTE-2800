@@ -1,84 +1,82 @@
 import * as THREE from "three";
+import { BasicAppContext } from "../../base/threeHelpers/basicAppContext.js";
+import { GeometryMap, LightMap, MaterialMap } from "../../base/threeHelpers/utilMaps.js";
 
 const CANVAS_HEIGHT = window.innerHeight - 20;
 const CANVAS_WIDTH = window.innerWidth - 40;
 
+const ctx = new BasicAppContext({
+  canvasId: "canvas",
+  height: CANVAS_HEIGHT,
+  width: CANVAS_WIDTH,
+  fov: 60
+})
+ctx.setAnimationLoop((scene, totaltime, dt) => {
+  const cube = scene.getObjectByName("brownCube");
+  if (cube === undefined) return;
+
+  cube.rotation.x += dt;
+  cube.rotation.y += dt * 2;
+
+  cube.getWorldPosition(posBuffer);
+  console.log(`POS: ${posBuffer.x} | TOTALTIME ${totaltime}`);
+})
+
+const materials = new MaterialMap([
+  { label: "brownPhong", value: new THREE.MeshPhongMaterial({ color: 0xac430c }) },
+  { label: "blueLine", value: new THREE.LineBasicMaterial({ color: 0x0000ff }) },
+]);
+
+const geometries = new GeometryMap([
+  { label: "basicCube", value: new THREE.BoxGeometry(10, 10, 10) }
+]);
+
+const lights = new LightMap([
+  { label: "ambient", value: new THREE.AmbientLight(0x0f0f0f, 0.2) },
+  { label: "directional", value: new THREE.DirectionalLight(0x808080, 0.8) },
+  { label: "point", value: new THREE.PointLight(0xffffff, 2) },
+])
+
+const posBuffer = new THREE.Vector3();
+
 export const main = () => {
-  const scene = new THREE.Scene() // <----- SCENE
+  const cube = new THREE.Mesh(geometries.get("basicCube"), materials.get("brownPhong"));
 
-  // ----- CANVAS
-  /**@type {HTMLElement | null} */
-  const canvas = document.getElementById("canvas")
-  if (!(canvas instanceof HTMLCanvasElement)) throw Error("id of canvas in HTML is wrong.");
+  lights.get("directional").position.set(6, 5, 5);
+  lights.get("point").position.set(6, 5, 5);
 
-  canvas.height = CANVAS_HEIGHT;
-  canvas.width = CANVAS_WIDTH;
+  ctx.setLightsFromLightsMap(lights);
+  ctx.setMesh("brownCube", cube);
 
-  // ----- RENDERER
-  const renderer = new THREE.WebGLRenderer({
-    stencil: true,
-    antialias: true,
-    canvas: canvas,
-  });
-  renderer.setClearColor(0x000000);
-
-  // ----- CAMERA
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    CANVAS_WIDTH / CANVAS_HEIGHT,
-    0.1,
-    1000
-  );
-  camera.position.set(20, 20, 20);
-  camera.lookAt(scene.position);
-
-  // ----- GEOMETRIES AND MATERIALS
-  const lines = addSumLines(scene, 10);
-  const cube = addBasicCube(scene, 10, 0xac430c);
-  scene.remove(lines);
-
-  // ----- LIGHTS
-  const ambient = new THREE.AmbientLight(0x0f0f0f, 0.2);
-
-  const directional = new THREE.DirectionalLight(0x808080, 0.8);
-  directional.position.set(6, 5, 5);
-
-  const pointLight = new THREE.PointLight(0xffffff, 2);
-  pointLight.position.set(6, 5, 5);
-  
-  scene.add(ambient);
-  scene.add(directional);
-  scene.add(pointLight);
-
-  // ----- ANIMATION LAMBDA
-  const pos = new THREE.Vector3();
-
-  /**@param {number} time */
-  const animate = (time) => {
-    cube.rotation.x = time / 2000;
-    cube.rotation.y = time / 1000;
-
-    cube.getWorldPosition(pos);
-    console.log(`POS: ${pos.x} | TIME ${time}`);
-
-    lines.rotation.x = time / 2000;
-    lines.rotation.y = time / 1000;
-
-    renderer.render(scene, camera)
-  }
-
-  renderer.setAnimationLoop(animate);
+  ctx.initScene();
+  ctx.startRender();
 }
 
 
+// ----- UNUSED BUT KEWL -----
+
 /**
  * @param {THREE.Scene} scene
+ * @param {number} size
+ * @param {number} color
+ * @returns {THREE.Mesh}
+ */
+const basicCube = (scene, size, color) => {
+  const geometry = new THREE.BoxGeometry(size, size, size);
+  const material = new THREE.MeshPhongMaterial({ color: color });
+
+  const cube = new THREE.Mesh(geometry, material)
+
+  scene.add(cube);
+
+  return cube;
+}
+
+/**
  * @param {number} length
  * @returns {THREE.Line}
  */
-const addSumLines = (scene, length) => {
-  const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-
+const addSumLines = (length) => {
   /**@type {THREE.Vector3[]} */
   const points = [];
   points.push(new THREE.Vector3(-length, 0, 0));
@@ -86,32 +84,7 @@ const addSumLines = (scene, length) => {
   points.push(new THREE.Vector3(length, 0, 0));
 
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const line = new THREE.Line(geometry, material);
+  const line = new THREE.Line(geometry, materials.get("blueLine"));
 
-  scene.add(line);
   return line;
-}
-
-/**
- * @param {THREE.Scene} scene
- * @param {number} size
- * @param {number} color
- * @returns {THREE.Group}
- */
-const addBasicCube = (scene, size, color) => {
-  const geometry = new THREE.BoxGeometry(size, size, size);
-  const material = new THREE.MeshPhongMaterial({ color: color });
-
-  const cube = new THREE.Mesh(geometry, material)
-  cube.position.x = -size;
-  const cube2 = new THREE.Mesh(geometry, material)
-  cube2.position.x = size;
-
-  const group = new THREE.Group();
-  group.add(cube);
-  group.add(cube2);
-  
-  scene.add(group);
-  
-  return group;
 }

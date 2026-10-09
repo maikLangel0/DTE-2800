@@ -3,8 +3,8 @@ export class FpsInfo {
   #dtInterval;
   #fpsInDoc;
 
-  /**@param {string} idInHtml */
-  constructor(idInHtml) {
+  /**@param {string | null} idInHtml */
+  constructor(idInHtml = "fps") {
     /** Time between previous frame and current frame. @type {number} */
     this.dt = 0;
     /** Total time since start of program. @type {number}*/
@@ -13,9 +13,11 @@ export class FpsInfo {
     this.#dtInterval = 0;
     this.#frameCount = 0;
 
-    const fpsInDoc = document.getElementById(idInHtml);
-    if (!fpsInDoc) {
-      throw Error("Couldnt find element in DOM with name " + idInHtml);
+    let fpsInDoc = null;
+    
+    if (idInHtml) {
+      fpsInDoc = document.getElementById(idInHtml);
+      if (!fpsInDoc) throw Error("Couldnt find element in DOM with name " + idInHtml);
     }
 
     this.#fpsInDoc = fpsInDoc;
@@ -23,7 +25,8 @@ export class FpsInfo {
 
   /**@param {number} everyXseconds */
   showFps(everyXseconds = 1.0) {
-
+    if (!this.#fpsInDoc) return;
+    
     if (this.#dtInterval >= everyXseconds) {
       const fps = Math.round(this.#frameCount);
       this.#fpsInDoc.innerHTML = `FPS: ${fps}`;
