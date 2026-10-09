@@ -1,12 +1,9 @@
 import * as THREE from "three";
-import { LightMap, MeshMap } from "./utilMaps.js";
+import { ObjectMap } from "./utilMaps.js";
 import { FpsInfo } from "../helpers/fpsInfo.js";
 
 export class BasicAppContext {
-  /**@type {MeshMap} */
-  #meshes = new MeshMap(null);
-  /**@type {LightMap} */
-  #lights = new LightMap(null);
+  #sceneObjects = new ObjectMap(null);
 
   /**@type {(scene: THREE.Scene, fpsInfo: FpsInfo) => void} */
   #renderLoop = () => {};
@@ -43,6 +40,8 @@ export class BasicAppContext {
       canvas: canvas,
     });
     renderer.setClearColor(0x000000);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
 
     const camera = new THREE.PerspectiveCamera(
       fov ? fov : 75,
@@ -112,62 +111,32 @@ export class BasicAppContext {
 
   /**
    * @param {string} label
-   * @param {THREE.Mesh} mesh
+   * @param {THREE.Object3D} mesh
   */
-  setMesh(label, mesh) {
-    this.#meshes.set(label, mesh);
+  setObject(label, mesh) {
+    this.#sceneObjects.set(label, mesh);
     return this;
   }
 
-  /**@param {{label: string; mesh: THREE.Mesh}[]} entries */
-  setMeshes(entries) {
+  /**@param {{label: string; mesh: THREE.Object3D}[]} entries */
+  setObjects(entries) {
     for (const { label, mesh } of entries) {
-      this.#meshes.set(label, mesh);
+      this.#sceneObjects.set(label, mesh);
     }
   }
 
-  /**@param {MeshMap} map */
-  setMeshesFromMeshMap(map) {
+  /**@param {ObjectMap} map */
+  setObjectFromObjectMap(map) {
     // makes sure the Object3DEventMap holds the name from `label`
     map.forEach((mesh, label) => { mesh.name = label });
 
-    this.#meshes = map;
+    this.#sceneObjects = map;
     return this;
   }
 
   /**@param {string} label */
-  popMesh(label) {
-    this.#meshes.pop(label);
-  }
-
-  /**
-   * @param {string} label
-   * @param {THREE.Light} light
-   */
-  setLight(label, light) {
-    this.#lights.set(label, light);
-    return this;
-  }
-
-  /**@param {{label: string; light: THREE.Light}[]} entries */
-  setLights(entries) {
-    for (const { label, light } of entries) {
-      this.#lights.set(label, light);
-    }
-  }
-
-  /**@param {LightMap} map */
-  setLightsFromLightsMap(map) {
-    // makes sure the Object3DEventMap holds the name from `label`
-    map.forEach((light, label) => { light.name = label });
-
-    this.#lights = map;
-    return this;
-  }
-
-  /**@param {string} label */
-  popLight(label) {
-    this.#lights.pop(label);
+  popObject(label) {
+    this.#sceneObjects.pop(label);
   }
 
   /** @param {(scene: THREE.Scene, fpsInfo: FpsInfo) => void} func */
@@ -176,16 +145,11 @@ export class BasicAppContext {
     return this;
   }
 
-  /** Populates the scene with all the current `this.#lights` and `this.#meshes`. */
+  /** Populates the scene with all the current objects. */
   initScene() {
-    this.#meshes.forEach((value, name) => {
+    this.#sceneObjects.forEach((value, name) => {
       if (this.scene.getObjectByName(name) !== undefined) return;
       this.scene.add(value);
-    })
-
-    this.#lights.forEach((value, name) => {
-      if (this.scene.getObjectByName(name) !== undefined) return;
-      this.scene.add(value)
     })
 
     return this;

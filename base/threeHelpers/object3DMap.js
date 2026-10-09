@@ -45,10 +45,10 @@ export class ExtendedObj3DMap {
 
     value.name = label;
     this.#inner.set(label, value);
-    
+
     return this;
   }
-  
+
   /**@param {string} label */
   get(label) {
     const mat = this.#inner.get(label);
@@ -71,7 +71,7 @@ export class ExtendedObj3DMap {
     if (res === undefined) return;
 
     res.dispose();
-    
+
     this.#inner.delete(label);
     return this;
   }
@@ -80,5 +80,9 @@ export class ExtendedObj3DMap {
   forEach(callback) {
     this.#inner.forEach(callback);
     return this;
+  }
+
+  size() {
+    return this.#inner.size;
   }
 }
