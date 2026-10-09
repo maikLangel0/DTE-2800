@@ -78,6 +78,7 @@ export class Camera {
   setWorldPosition(pos) {
     this.#camPos = pos;
     this.#setViewMatrix();
+    return this;
   }
   /** @returns {{x: number; y: number; z: number;}} */
   getWorldPosition() {
