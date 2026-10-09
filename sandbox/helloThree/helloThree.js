@@ -5,21 +5,23 @@ import { GeometryMap, LightMap, MaterialMap } from "../../base/threeHelpers/util
 const CANVAS_HEIGHT = window.innerHeight - 20;
 const CANVAS_WIDTH = window.innerWidth - 40;
 
+const posBuffer = new THREE.Vector3();
+
 const ctx = new BasicAppContext({
   canvasId: "canvas",
   height: CANVAS_HEIGHT,
   width: CANVAS_WIDTH,
   fov: 60
 })
-ctx.setAnimationLoop((scene, totaltime, dt) => {
+ctx.setAnimationLoop((scene, fpsInfo) => {
   const cube = scene.getObjectByName("brownCube");
   if (cube === undefined) return;
 
-  cube.rotation.x += dt;
-  cube.rotation.y += dt * 2;
+  cube.rotation.x += fpsInfo.dt;
+  cube.rotation.y += fpsInfo.dt * 2;
 
   cube.getWorldPosition(posBuffer);
-  console.log(`POS: ${posBuffer.x} | TOTALTIME ${totaltime}`);
+  console.log(`POS: ${posBuffer.x} | TOTALTIME ${fpsInfo.totalTime}`);
 })
 
 const materials = new MaterialMap([
@@ -36,8 +38,6 @@ const lights = new LightMap([
   { label: "directional", value: new THREE.DirectionalLight(0x808080, 0.8) },
   { label: "point", value: new THREE.PointLight(0xffffff, 2) },
 ])
-
-const posBuffer = new THREE.Vector3();
 
 export const main = () => {
   const cube = new THREE.Mesh(geometries.get("basicCube"), materials.get("brownPhong"));

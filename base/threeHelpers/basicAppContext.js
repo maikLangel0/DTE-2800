@@ -8,7 +8,7 @@ export class BasicAppContext {
   /**@type {LightMap} */
   #lights = new LightMap(null);
 
-  /**@type {(scene: THREE.Scene, totalTime: number, dt: number) => void} */
+  /**@type {(scene: THREE.Scene, fpsInfo: FpsInfo) => void} */
   #renderLoop = () => {};
 
   /**
@@ -164,13 +164,13 @@ export class BasicAppContext {
     this.#lights.pop(label);
   }
 
-  /** @param {(scene: THREE.Scene, totalTime: number, dt: number) => void} func */
+  /** @param {(scene: THREE.Scene, fpsInfo: FpsInfo) => void} func */
   setAnimationLoop(func) {
     this.#renderLoop = func;
     return this;
   }
 
-  /** Populates the scene with all the current `this.lights` and `this.#meshes`. */
+  /** Populates the scene with all the current `this.#lights` and `this.#meshes`. */
   initScene() {
     this.#meshes.forEach((value, name) => {
       if (this.scene.getObjectByName(name) !== undefined) return;
@@ -195,7 +195,7 @@ export class BasicAppContext {
   }
 
   log() {
-    
+
   }
 
   // ---------- PRIVATE FUNCTIONS ----------
@@ -206,10 +206,9 @@ export class BasicAppContext {
 
     this.#renderLoop(
       this.scene,
-      this.fpsInfo.totalTime,
-      this.fpsInfo.dt
+      this.fpsInfo
     );
-    
+
     this.renderer.render(this.scene, this.camera);
   }
 }
