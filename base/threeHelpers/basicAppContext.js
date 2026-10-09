@@ -128,6 +128,9 @@ export class BasicAppContext {
 
   /**@param {MeshMap} map */
   setMeshesFromMeshMap(map) {
+    // makes sure the Object3DEventMap holds the name from `label`
+    map.forEach((mesh, label) => { mesh.name = label });
+
     this.#meshes = map;
     return this;
   }
@@ -155,6 +158,9 @@ export class BasicAppContext {
 
   /**@param {LightMap} map */
   setLightsFromLightsMap(map) {
+    // makes sure the Object3DEventMap holds the name from `label`
+    map.forEach((light, label) => { light.name = label });
+
     this.#lights = map;
     return this;
   }

@@ -11,7 +11,8 @@ const ctx = new BasicAppContext({
   canvasId: "canvas",
   height: CANVAS_HEIGHT,
   width: CANVAS_WIDTH,
-  fov: 60
+  fov: 60,
+  fpsId: "fps"
 })
 ctx.setAnimationLoop((scene, fpsInfo) => {
   const cube = scene.getObjectByName("brownCube");
@@ -21,6 +22,8 @@ ctx.setAnimationLoop((scene, fpsInfo) => {
   cube.rotation.y += fpsInfo.dt * 2;
 
   cube.getWorldPosition(posBuffer);
+
+  fpsInfo.showFps();
   console.log(`POS: ${posBuffer.x} | TOTALTIME ${fpsInfo.totalTime}`);
 })
 
