@@ -14,12 +14,15 @@ const scratchVec3 = new THREE.Vector3();
 const texLoader = new THREE.TextureLoader();
 const grassTexture = texLoader.load(
   '../../base/textures/grassTexture.png',
-  () => { },
+  (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    
+    return tex
+  },
   () => { throw Error("grassTexture not found") }
 );
-grassTexture.colorSpace = THREE.SRGBColorSpace;
-grassTexture.wrapS = THREE.RepeatWrapping;
-grassTexture.wrapT = THREE.RepeatWrapping;
 
 // ---------- APPCONTEXT ----------
 const ctx = new BasicAppContext({
@@ -97,19 +100,26 @@ export const main = () => {
   directionalLightHelper.visible = false;
 
   // ---------- MESHES ----------
-  const cube = new THREE.Mesh(geometries.get("basicCube"), materials.get("brownPhong"));
+  const groundGeometry = geometries.get("ground");
+  const basicCubeGeometry = geometries.get("basicCube");
+
+  const brownPhongMaterial = materials.get("brownPhong");
+  const blueLambertMaterial = materials.get("blueLambert");
+  const grassStandardMaterial = materials.get("grassStandard");
+  
+  const cube = new THREE.Mesh(basicCubeGeometry, brownPhongMaterial);
   cube.name = "brownCube";
   cube.position.x = 10;
   cube.receiveShadow = true;
   cube.castShadow = true;
 
-  const cube2 = new THREE.Mesh(geometries.get("basicCube"), materials.get("blueLambert"));
+  const cube2 = new THREE.Mesh(basicCubeGeometry, blueLambertMaterial);
   cube2.name = "blueCube";
   cube2.position.x = -10;
   cube2.receiveShadow = true;
   cube2.castShadow = false;
 
-  const ground = new THREE.Mesh(geometries.get("ground"), materials.get("grassStandard"));
+  const ground = new THREE.Mesh(groundGeometry, grassStandardMaterial);
   ground.rotateX(degreeToRad(-90));
   ground.scale.set(50, 50, 1);
   ground.receiveShadow = true;

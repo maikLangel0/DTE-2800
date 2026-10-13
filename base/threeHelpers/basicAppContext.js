@@ -107,6 +107,9 @@ export class BasicAppContext {
     if (near) this.camera.near = near;
     if (far) this.camera.far = far;
     if (aspectRatio) this.camera.aspect = aspectRatio;
+
+    this.camera.updateProjectionMatrix();
+    return this;
   }
 
   /**
