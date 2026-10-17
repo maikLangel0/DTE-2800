@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { FpsInfo } from "../helpers/fpsInfo.js";
+import { KeyManager } from "../helpers/keyManager.js";
+import GUI from "lil-gui";
 
 export class BasicAppContext {
   /**@type {string | null} */
@@ -12,6 +14,17 @@ export class BasicAppContext {
 
   /**@type {(self: BasicAppContext) => void} */
   #renderLoop = () => { };
+
+  /**@type {(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => void} */
+  #onResize = (camera, renderer) => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height);
+  };
 
   /**
    * @param {Object} [options]
@@ -34,9 +47,13 @@ export class BasicAppContext {
     this.scene = new THREE.Scene();
     /**@type {THREE.TextureLoader} */
     this.textureLoader = new THREE.TextureLoader();
+    /**@type {GUI} */
+    this.lilGui = new GUI().title("animations");
 
     /**@type {FpsInfo} */
     this.fpsInfo = new FpsInfo(fpsId);
+    /**@type {KeyManager} */
+    this.keyManager = new KeyManager();
 
     // ---------- START ----------
 
@@ -46,6 +63,8 @@ export class BasicAppContext {
 
     canvas.height = height;
     canvas.width = width;
+
+    window.addEventListener('resize', this.#initOnResize);
 
     const scene = new THREE.Scene();
     scene.name = "mainScene";
@@ -129,6 +148,7 @@ export class BasicAppContext {
    *
    * @param {string} pathToTexture
    * @param {((tex: THREE.Texture) => void) | null} onSuccess
+   * @returns {Promise<THREE.Texture>}
    */
   async loadTexture(pathToTexture, onSuccess = null) {
     let tex;
@@ -199,15 +219,21 @@ export class BasicAppContext {
     this.scene.remove(obj);
   }
 
-  /** @param {(self: BasicAppContext) => void} func */
-  setAnimationLoop(func) {
-    this.#renderLoop = func;
-    return this;
-  }
-
   /**@param {string} path  */
   setFallbackTexturePath(path) {
     this.#fallbackTexturePath = path;
+    return this;
+  }
+  
+  /**@param {(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => void} func  */
+  setOnResize(func) {
+    this.#onResize = func;
+    return this;
+  }
+
+  /** @param {(self: BasicAppContext) => void} func */
+  setAnimationLoop(func) {
+    this.#renderLoop = func;
     return this;
   }
 
@@ -233,6 +259,10 @@ export class BasicAppContext {
     this.#renderLoop(this);
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  #initOnResize = () => {
+    this.#onResize(this.camera, this.renderer);
   }
 
   /**
@@ -269,7 +299,6 @@ export class BasicAppContext {
   }
 
   /**
-   *
    * @param {string} path
    * @returns {Promise<THREE.Texture>}
    */
@@ -293,7 +322,7 @@ export class BasicAppContext {
     const res = this.#fallbackTexturePath
       ? this.#loadFallbackTexture(this.#fallbackTexturePath)
       : this.#createFallbackTexture();
-    
+
     return res;
   }
 }

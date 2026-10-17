@@ -11,6 +11,14 @@ const CANVAS_WIDTH = window.innerWidth - 40;
 
 const scratchVec3 = new THREE.Vector3();
 
+// ---------- ALL ANIMATIONS ----------
+const animations = {
+  brownCubeScale: 1,
+  brownCubeParams: {min: 0, max: 1, step: 0.05},
+  blueCubeScale: 1,
+  blueCubeParams: {min: 0, max: 1, step: 0.05},
+}
+
 export const main = async () => {
   // ---------- APPCONTEXT ----------
   const ctx = new BasicAppContext(
@@ -23,47 +31,108 @@ export const main = async () => {
     }
   ).setFallbackTexturePath('../../base/textures/debugempty.png')
 
+  // ---------- INPUT HANDLING ----------
+  ctx.lilGui.title("animations");
+  const brownCubeScaleGui = ctx.lilGui
+    .add(animations, 'brownCubeScale')
+    .min(animations.brownCubeParams.min)
+    .max(animations.brownCubeParams.max)
+    .step(animations.brownCubeParams.step)
+    .name("brown cube scale");
+
+  const blueCubeScaleGui = ctx.lilGui
+    .add(animations, 'blueCubeScale')
+    .min(animations.blueCubeParams.min)
+    .max(animations.blueCubeParams.max)
+    .step(animations.blueCubeParams.step)
+    .name("blue cube scale");
+  
+  ctx.keyManager.setEventOn('KeyW', (dt) => {
+    let res = animations.brownCubeScale + dt;
+    if (res > animations.brownCubeParams.max) res = animations.brownCubeParams.max;
+    
+    animations.brownCubeScale = res;
+    brownCubeScaleGui.updateDisplay();
+  })
+  ctx.keyManager.setEventOn('KeyS', (dt) => {
+    let res = animations.brownCubeScale - dt;
+    if (res < animations.brownCubeParams.min) res = animations.brownCubeParams.min;
+    
+    animations.brownCubeScale = res;
+    brownCubeScaleGui.updateDisplay();
+  })
+  ctx.keyManager.setEventOn('KeyA', (dt) => {
+    let res = animations.blueCubeScale + dt;
+    if (res > animations.blueCubeParams.max) res = animations.blueCubeParams.max;
+    
+    animations.blueCubeScale = res;
+    blueCubeScaleGui.updateDisplay();
+  })
+  ctx.keyManager.setEventOn('KeyD', (dt) => {
+    let res = animations.blueCubeScale - dt;
+    if (res < animations.blueCubeParams.min) res = animations.blueCubeParams.min;
+    
+    animations.blueCubeScale = res;
+    blueCubeScaleGui.updateDisplay();
+  })
+
+
   // ---------- MAIN CAMERA CONTROLS ----------
   const mainCamControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
   mainCamControls.target.set(0, 0, 0);
 
-  // ---------- ANIMATIONLOOP ----------
+  // ---------- APP CALLBACKS ----------
   ctx.setAnimationLoop((self) => {
+    const keyManager = self.keyManager;
     const fpsInfo = self.fpsInfo;
     const dt = fpsInfo.dt;
-  
+    
     fpsInfo.showFps();
+    keyManager.handleEvents();
     mainCamControls.update(dt);
-  
-    const cubeGroup = self.getObjectInScene("twoCubes");
-  
-    const cube = self.getObjectInScene("brownCube");
-    const cube2 = self.getObjectInScene("blueCube");
-    const pointLight = self.getObjectInScene("pointLight");
-  
+
     const timeAsDegrees = fpsInfo.totalTime % 360;
-  
+
+    const cubeGroup = self.getObjectInScene("twoCubes");
+
+    const brownCube = self.getObjectInScene("brownCube");
+    const blueCube = self.getObjectInScene("blueCube");
+    const pointLight = self.getObjectInScene("pointLight");
+
+    brownCube.scale.setScalar(animations.brownCubeScale);
+    blueCube.scale.setScalar(animations.blueCubeScale);
+
     cubeGroup.position.y = 20 + 10 * Math.sin(fpsInfo.totalTime);
     cubeGroup.rotation.y += dt;
-  
+
     pointLight.position.y = 20 + 10 * Math.sin(timeAsDegrees + degreeToRad(90));
-  
-    cube.rotation.x += dt * 0.4;
-    cube.rotation.y += dt * 0.2;
-    cube.rotation.z += dt * 0.6;
-  
-    cube2.rotation.x += dt * 0.4;
-    cube2.rotation.y += dt * 0.2;
-    cube2.rotation.z += dt * 0.6;
-  
-    cube.scale.x = 1 + Math.sin(timeAsDegrees);
-    cube2.scale.x = 1 + Math.sin(timeAsDegrees + degreeToRad(90));
-  
+
+   brownCube.rotation.x += dt * 0.4;
+   brownCube.rotation.y += dt * 0.2;
+   brownCube.rotation.z += dt * 0.6;
+
+    blueCube.rotation.x += dt * 0.4;
+    blueCube.rotation.y += dt * 0.2;
+    blueCube.rotation.z += dt * 0.6;
+
+    blueCube.scale.x = 1 + Math.sin(timeAsDegrees + degreeToRad(90));
+
     cube.getWorldPosition(scratchVec3);
-  
+
     console.log(`POS: ${scratchVec3.x} | TOTALTIME ${fpsInfo.totalTime}`);
   })
-  
+
+  ctx.setOnResize((camera, renderer) => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height);
+  });
+
+
   // ---------- TEXTURES ----------
   const grassTexture = await ctx.loadTexture(
     '../../base/textures/grassTexture.png',
@@ -77,10 +146,10 @@ export const main = async () => {
   // ---------- OBJECTMAPS ----------
   const materials = new MaterialMap([
     { label: "brownPhong", value: new THREE.MeshPhongMaterial({ color: 0xac430c }) },
-    { label: "grassStandard", value: new THREE.MeshStandardMaterial({ color: 0xffafff, side: THREE.DoubleSide, map: grassTexture }) },
+    { label: "grassStandard", value: new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, map: grassTexture }) },
     { label: "blueLambert", value: new THREE.MeshLambertMaterial({ color: 0x0000ff, opacity: 0.2, transparent: true }) }
   ]);
-  
+
   const geometries = new GeometryMap([
     { label: "basicCube", value: new THREE.BoxGeometry(10, 10, 10) },
     { label: "ground", value: squareGeometry()}
