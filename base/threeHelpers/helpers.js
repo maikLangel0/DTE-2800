@@ -8,30 +8,6 @@ export const degreeToRad = (angle) => {
 }
 
 /**
- *
- * @param {THREE.Scene} scene
- * @param {string | number} identifier
- */
-export const getFromSceneChecked = (scene, identifier) => {
-  /**@type {THREE.Object3D | undefined} */
-  let res = undefined;
-
-  switch (typeof identifier) {
-    case "string":
-      res = scene.getObjectByName(identifier);
-      break;
-    case "number":
-      res = scene.getObjectById(identifier);
-      break;
-    default:
-      throw Error("Invalid type of identifier " + identifier + ".");
-  }
-
-  if (res === undefined) throw Error("Couldnt find object in scene with identifier " + identifier + ".")
-  else return res
-}
-
-/**
  * @param {Object} [options] 
  * @param {number} [options.color] 
  * @param {number} [options.intensity] 
