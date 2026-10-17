@@ -46,36 +46,35 @@ export const main = async () => {
     .max(animations.blueCubeParams.max)
     .step(animations.blueCubeParams.step)
     .name("blue cube scale");
-  
+
   ctx.keyManager.setEventOn('KeyW', (dt) => {
     let res = animations.brownCubeScale + dt;
     if (res > animations.brownCubeParams.max) res = animations.brownCubeParams.max;
-    
+
     animations.brownCubeScale = res;
     brownCubeScaleGui.updateDisplay();
   })
   ctx.keyManager.setEventOn('KeyS', (dt) => {
     let res = animations.brownCubeScale - dt;
     if (res < animations.brownCubeParams.min) res = animations.brownCubeParams.min;
-    
+
     animations.brownCubeScale = res;
     brownCubeScaleGui.updateDisplay();
   })
   ctx.keyManager.setEventOn('KeyA', (dt) => {
     let res = animations.blueCubeScale + dt;
     if (res > animations.blueCubeParams.max) res = animations.blueCubeParams.max;
-    
+
     animations.blueCubeScale = res;
     blueCubeScaleGui.updateDisplay();
   })
   ctx.keyManager.setEventOn('KeyD', (dt) => {
     let res = animations.blueCubeScale - dt;
     if (res < animations.blueCubeParams.min) res = animations.blueCubeParams.min;
-    
+
     animations.blueCubeScale = res;
     blueCubeScaleGui.updateDisplay();
   })
-
 
   // ---------- MAIN CAMERA CONTROLS ----------
   const mainCamControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
@@ -86,7 +85,7 @@ export const main = async () => {
     const keyManager = self.keyManager;
     const fpsInfo = self.fpsInfo;
     const dt = fpsInfo.dt;
-    
+
     fpsInfo.showFps();
     keyManager.handleEvents();
     mainCamControls.update(dt);
@@ -107,9 +106,9 @@ export const main = async () => {
 
     pointLight.position.y = 20 + 10 * Math.sin(timeAsDegrees + degreeToRad(90));
 
-   brownCube.rotation.x += dt * 0.4;
-   brownCube.rotation.y += dt * 0.2;
-   brownCube.rotation.z += dt * 0.6;
+    brownCube.rotation.x += dt * 0.4;
+    brownCube.rotation.y += dt * 0.2;
+    brownCube.rotation.z += dt * 0.6;
 
     blueCube.rotation.x += dt * 0.4;
     blueCube.rotation.y += dt * 0.2;
