@@ -290,13 +290,10 @@ export class BasicAppContext {
 
   /**@returns {Promise<THREE.Texture>} */
   async #getFallbackTexture() {
-    let res;
-
-    if (this.#fallbackTexturePath) {
-      res = this.#loadFallbackTexture(this.#fallbackTexturePath);
-    } else {
-      res = this.#createFallbackTexture();
-    }
+    const res = this.#fallbackTexturePath
+      ? this.#loadFallbackTexture(this.#fallbackTexturePath)
+      : this.#createFallbackTexture();
+    
     return res;
   }
 }
