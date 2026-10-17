@@ -71,7 +71,6 @@ export const main = async () => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      return tex
     }
   );
 

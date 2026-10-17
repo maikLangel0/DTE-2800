@@ -128,14 +128,14 @@ export class BasicAppContext {
    * Always returns a `fallbackTexture` if loading fails.
    *
    * @param {string} pathToTexture
-   * @param {((tex: THREE.Texture) => THREE.Texture) | null} textureLoadSuccessCallback
+   * @param {((tex: THREE.Texture) => void) | null} onSuccess
    */
-  async loadTexture(pathToTexture, textureLoadSuccessCallback = null) {
+  async loadTexture(pathToTexture, onSuccess = null) {
     let tex;
 
     try {
       tex = await this.textureLoader.loadAsync(pathToTexture);
-      textureLoadSuccessCallback?.(tex);
+      onSuccess?.(tex);
     }
     catch (err) {
       if (!this.#fallbackTexture) {
