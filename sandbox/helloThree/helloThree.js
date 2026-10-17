@@ -66,7 +66,7 @@ export const main = async () => {
   
   // ---------- TEXTURES ----------
   const grassTexture = await ctx.loadTexture(
-    '../../base/textures/grassTextur.png',
+    '../../base/textures/grassTexture.png',
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = THREE.RepeatWrapping;
