@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { FpsInfo } from "../helpers/fpsInfo.js";
 import { KeyManager } from "../helpers/keyManager.js";
 import GUI from "lil-gui";
+import { GeometryMap, MaterialMap } from "./utilMaps.js";
+import { createSquareGeometry } from "./geometryFunctions.js";
 
 export class BasicAppContext {
   /**@type {string | null} */
@@ -29,6 +31,10 @@ export class BasicAppContext {
   /**@type {THREE.LoadingManager} */
   #loadingManager = new THREE.LoadingManager();
 
+  // ##############################################################################
+  //                                THE CONSTRUCTOR
+  // ##############################################################################
+
   /**
    * @param {Object} [options]
    * @param {string} [options.canvasId]
@@ -46,6 +52,8 @@ export class BasicAppContext {
       fpsId = null
     } = {})
   {
+    // ---------- All that can be pre-defined ----------
+
     /**@type {THREE.Scene} */
     this.scene = new THREE.Scene();
     /**@type {THREE.TextureLoader} */
@@ -58,9 +66,21 @@ export class BasicAppContext {
     /**@type {KeyManager} */
     this.keyManager = new KeyManager();
 
+    /**Map of pre-defined materials to choose from. */
+    this.materials = new MaterialMap([
+      { label: "brownPhong", value: new THREE.MeshPhongMaterial({ color: 0xac430c }) },
+      { label: "blueLambertTransparent", value: new THREE.MeshLambertMaterial({ color: 0x0000ff, opacity: 0.2, transparent: true }) }
+    ]);
+
+    /**Map of pre-defined geometries to choose from. */
+    this.geometries = new GeometryMap([
+      { label: "basicCube", value: new THREE.BoxGeometry(10, 10, 10) },
+      { label: "ground", value: createSquareGeometry()}
+    ]);
+
+    // ---------- Start defining shii ----------
+
     window.addEventListener('resize', this.#initOnResize);
-    
-    // ---------- START ----------
 
     /**@type {HTMLElement | null} */
     const canvas = document.getElementById(canvasId)
@@ -100,6 +120,10 @@ export class BasicAppContext {
 
     return this;
   }
+
+  // ##############################################################################
+  //                              CAMERA SETTINGS
+  // ##############################################################################
 
   /**
    * @param {number} x
@@ -145,34 +169,9 @@ export class BasicAppContext {
     return this;
   }
 
-  /**
-   * Wrapper to load a texture via `this.textureLoader`.
-   * Always returns a `fallbackTexture` if loading fails.
-   *
-   * @param {string} pathToTexture
-   * @param {((tex: THREE.Texture) => void) | null} onSuccess
-   * @returns {Promise<THREE.Texture>}
-   */
-  async loadTexture(pathToTexture, onSuccess = null) {
-    let tex;
-
-    try {
-      tex = await this.textureLoader.loadAsync(pathToTexture);
-      onSuccess?.(tex);
-    }
-    catch (err) {
-      if (!this.#fallbackTexture) {
-        tex = await this.#getFallbackTexture();
-        this.#fallbackTexture = tex;
-      } else {
-        tex = this.#fallbackTexture.clone();
-        tex.needsUpdate = true;
-      }
-
-      console.warn(`Failed to load: ${pathToTexture}, using fallback.`, err);
-    }
-    return tex;
-  }
+  // ##############################################################################
+  //                          SCENE GET/SET/REMOVE/RESET
+  // ##############################################################################
 
   /**@param {THREE.Object3D} entry Checks that `name` is set on the object*/
   setObjectInScene(entry) {
@@ -222,12 +221,54 @@ export class BasicAppContext {
     this.scene.remove(obj);
   }
 
+  resetScene() {
+    this.scene.clear();
+    return this;
+  }
+
+  // ##############################################################################
+  //                              TEXTURE STUFF
+  // ##############################################################################
+
   /**@param {string} path  */
   setFallbackTexturePath(path) {
     this.#fallbackTexturePath = path;
     return this;
   }
-  
+
+  /**
+   * Wrapper to load a texture via `this.textureLoader`.
+   * Always returns a `fallbackTexture` if loading fails.
+   *
+   * @param {string} pathToTexture
+   * @param {((tex: THREE.Texture) => void) | null} onSuccess
+   * @returns {Promise<THREE.Texture>}
+   */
+  async loadTexture(pathToTexture, onSuccess = null) {
+    let tex;
+
+    try {
+      tex = await this.textureLoader.loadAsync(pathToTexture);
+      onSuccess?.(tex);
+    }
+    catch (err) {
+      if (!this.#fallbackTexture) {
+        tex = await this.#getFallbackTexture();
+        this.#fallbackTexture = tex;
+      } else {
+        tex = this.#fallbackTexture.clone();
+        tex.needsUpdate = true;
+      }
+
+      console.warn(`Failed to load: ${pathToTexture}, using fallback.`, err);
+    }
+    return tex;
+  }
+
+  // ##############################################################################
+  //                                APP CALLBACKS
+  // ##############################################################################
+
   /**@param {(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => void} func  */
   setOnResize(func) {
     this.#onResize = func;
@@ -240,20 +281,21 @@ export class BasicAppContext {
     return this;
   }
 
-  resetScene() {
-    this.scene.clear();
-    return this;
-  }
-
   startRender() {
     this.renderer.setAnimationLoop(this.#initAnimate);
   }
+
+  // ##############################################################################
+  //                                    MISC
+  // ##############################################################################
 
   log() {
 
   }
 
-  // ---------- PRIVATE FUNCTIONS ----------
+  // ##############################################################################
+  //                              PRIVATE FUNCTIONS
+  // ##############################################################################
 
   /**@param {number} time */
   #initAnimate = (time) => {

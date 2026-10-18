@@ -36,7 +36,7 @@ export const lilGuiControllerByName = (gui, name) => {
 export const basicDirectionalLight = ({
   color = 0x808080,
   intensity = 5,
-  position = [0, 100, 0],
+  position = [0, 0, 0],
   lookAt = [0, 0, 0],
   shadowMapSize = 2048,
   near = 0.1,
@@ -68,4 +68,58 @@ export const basicDirectionalLight = ({
   shadowCamera.bottom = -shadowCameraBounds;
 
   return directionalLight;
+}
+
+/**
+ * @param {Object} [options]
+ * @param {number} [options.color]
+ * @param {number} [options.intensity]
+ * @param {number} [options.distance]
+ * @param {number} [options.angle]
+ * @param {number} [options.penumbra]
+ * @param {number} [options.decay]
+ * @param {number[]} [options.position]
+ * @param {number[]} [options.lookAt]
+ * @param {number} [options.shadowMapSize]
+ * @param {number} [options.near]
+ * @param {number} [options.far]
+ * @requires {THREE.SpotLight}
+ * @returns {THREE.SpotLight}
+ */
+export const basicSpotLight = ({
+  color = 0x808080,
+  intensity = 1,
+  distance = 0,
+  angle = Math.PI / 3,
+  penumbra = 0,
+  decay = 2,
+  position = [0, 0, 0],
+  lookAt = [0, 0, 0],
+  shadowMapSize = 2048,
+  near = 0.1,
+  far = 250,
+} = {}) => {
+  const [posx, posy, posz] = [position[0], position[1], position[2]];
+  const [camx, camy, camz] = [lookAt[0], lookAt[1], lookAt[2]];
+
+  if (posx === undefined || posy === undefined || camx === undefined || camy === undefined || camz === undefined)
+    throw Error("`lookAt` or `position` is invalid.");
+
+  const light = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
+
+  light.target.position.set(0, 0, 0);
+
+  light.position.set(posx, posy, posz);
+  light.lookAt(camx, camy, camz);
+  light.castShadow = true;
+
+  light.shadow.mapSize.set(shadowMapSize, shadowMapSize);
+  light.shadow.bias = -0.0001;
+  light.shadow.normalBias = 0.02;
+
+  const shadowCamera = light.shadow.camera;
+  shadowCamera.near = near;
+  shadowCamera.far = far;
+
+  return light;
 }
