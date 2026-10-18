@@ -1,3 +1,4 @@
+import GUI, { Controller } from "lil-gui";
 import * as THREE from "three";
 
 /**
@@ -8,15 +9,28 @@ export const degreeToRad = (angle) => {
 }
 
 /**
- * @param {Object} [options] 
- * @param {number} [options.color] 
- * @param {number} [options.intensity] 
- * @param {number[]} [options.position] 
- * @param {number[]} [options.lookAt] 
- * @param {number} [options.shadowMapSize] 
- * @param {number} [options.near] 
- * @param {number} [options.far] 
- * @param {number} [options.shadowCameraBounds] 
+ *
+ * @param {GUI} gui
+ * @param {string} name
+ * @returns {Controller}
+ */
+export const lilGuiControllerByName = (gui, name) => {
+  const controller = gui.controllers.find((cont) => { return cont._name === name });
+
+  if (controller === undefined) throw Error("No controller of name: " + name);
+  return controller;
+}
+
+/**
+ * @param {Object} [options]
+ * @param {number} [options.color]
+ * @param {number} [options.intensity]
+ * @param {number[]} [options.position]
+ * @param {number[]} [options.lookAt]
+ * @param {number} [options.shadowMapSize]
+ * @param {number} [options.near]
+ * @param {number} [options.far]
+ * @param {number} [options.shadowCameraBounds]
  * @requires {THREE.DirectionalLight}
  */
 export const basicDirectionalLight = ({
@@ -32,9 +46,9 @@ export const basicDirectionalLight = ({
   const [posx, posy, posz] = [position[0], position[1], position[2]];
   const [camx, camy, camz] = [lookAt[0], lookAt[1], lookAt[2]];
 
-  if (posx === undefined || posy === undefined || camx === undefined || camy === undefined || camz === undefined) 
+  if (posx === undefined || posy === undefined || camx === undefined || camy === undefined || camz === undefined)
     throw Error("`lookAt` or `position` is invalid.");
-  
+
   const directionalLight = new THREE.DirectionalLight(color, intensity);
 
   directionalLight.position.set(posx, posy, posz);
@@ -44,7 +58,7 @@ export const basicDirectionalLight = ({
   directionalLight.shadow.mapSize.set(shadowMapSize, shadowMapSize);
   directionalLight.shadow.bias = -0.0001;
   directionalLight.shadow.normalBias = 0.02;
-  
+
   const shadowCamera = directionalLight.shadow.camera;
   shadowCamera.near = near;
   shadowCamera.far = far;

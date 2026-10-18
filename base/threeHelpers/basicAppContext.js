@@ -26,6 +26,9 @@ export class BasicAppContext {
     renderer.setSize(width, height);
   };
 
+  /**@type {THREE.LoadingManager} */
+  #loadingManager = new THREE.LoadingManager();
+
   /**
    * @param {Object} [options]
    * @param {string} [options.canvasId]
@@ -46,7 +49,7 @@ export class BasicAppContext {
     /**@type {THREE.Scene} */
     this.scene = new THREE.Scene();
     /**@type {THREE.TextureLoader} */
-    this.textureLoader = new THREE.TextureLoader();
+    this.textureLoader = new THREE.TextureLoader(this.#loadingManager);
     /**@type {GUI} */
     this.lilGui = new GUI().title("animations");
 
@@ -55,6 +58,8 @@ export class BasicAppContext {
     /**@type {KeyManager} */
     this.keyManager = new KeyManager();
 
+    window.addEventListener('resize', this.#initOnResize);
+    
     // ---------- START ----------
 
     /**@type {HTMLElement | null} */
@@ -63,8 +68,6 @@ export class BasicAppContext {
 
     canvas.height = height;
     canvas.width = width;
-
-    window.addEventListener('resize', this.#initOnResize);
 
     const scene = new THREE.Scene();
     scene.name = "mainScene";
@@ -284,8 +287,8 @@ export class BasicAppContext {
 
   #createFallbackTexture() {
     const data = new Uint8Array([
-      255, 0, 255, 255,   0, 0, 0, 255,
-      0, 0, 0, 255,       255, 0, 255, 255,
+      255, 0, 255, 255,     0, 0,   0, 255,
+        0, 0,   0, 255,   255, 0, 255, 255,
     ]);
     const tex = new THREE.DataTexture(data, 2, 2, THREE.RGBAFormat);
 

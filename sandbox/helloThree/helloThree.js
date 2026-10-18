@@ -3,8 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DirectionalLightHelper } from 'three/src/helpers/DirectionalLightHelper.js';
 import { BasicAppContext } from "../../base/threeHelpers/basicAppContext.js";
 import { GeometryMap, MaterialMap } from "../../base/threeHelpers/utilMaps.js";
-import { basicDirectionalLight, degreeToRad } from "../../base/threeHelpers/helpers.js";
-import { FirstPersonControls } from "three/examples/jsm/Addons.js";
+import { basicDirectionalLight, degreeToRad, lilGuiControllerByName } from "../../base/threeHelpers/helpers.js";
 
 const CANVAS_HEIGHT = window.innerHeight - 20;
 const CANVAS_WIDTH = window.innerWidth - 40;
@@ -33,47 +32,47 @@ export const main = async () => {
 
   // ---------- INPUT HANDLING ----------
   ctx.lilGui.title("animations");
-  const brownCubeScaleGui = ctx.lilGui
-    .add(animations, 'brownCubeScale')
+  ctx.lilGui.add(animations, 'brownCubeScale')
     .min(animations.brownCubeParams.min)
     .max(animations.brownCubeParams.max)
     .step(animations.brownCubeParams.step)
     .name("brown cube scale");
 
-  const blueCubeScaleGui = ctx.lilGui
-    .add(animations, 'blueCubeScale')
+  ctx.lilGui.add(animations, 'blueCubeScale')
     .min(animations.blueCubeParams.min)
     .max(animations.blueCubeParams.max)
     .step(animations.blueCubeParams.step)
     .name("blue cube scale");
+
+  ctx.lilGui.controllers.forEach((cont) => {console.log(cont._name)})
 
   ctx.keyManager.setEventOn('KeyW', (dt) => {
     let res = animations.brownCubeScale + dt;
     if (res > animations.brownCubeParams.max) res = animations.brownCubeParams.max;
 
     animations.brownCubeScale = res;
-    brownCubeScaleGui.updateDisplay();
-  })
-  ctx.keyManager.setEventOn('KeyS', (dt) => {
+    lilGuiControllerByName(ctx.lilGui, "brown cube scale").updateDisplay();
+
+  }).setEventOn('KeyS', (dt) => {
     let res = animations.brownCubeScale - dt;
     if (res < animations.brownCubeParams.min) res = animations.brownCubeParams.min;
 
     animations.brownCubeScale = res;
-    brownCubeScaleGui.updateDisplay();
-  })
-  ctx.keyManager.setEventOn('KeyA', (dt) => {
+    lilGuiControllerByName(ctx.lilGui, "brown cube scale").updateDisplay();
+
+  }).setEventOn('KeyA', (dt) => {
     let res = animations.blueCubeScale + dt;
     if (res > animations.blueCubeParams.max) res = animations.blueCubeParams.max;
 
     animations.blueCubeScale = res;
-    blueCubeScaleGui.updateDisplay();
-  })
-  ctx.keyManager.setEventOn('KeyD', (dt) => {
+    lilGuiControllerByName(ctx.lilGui, "blue cube scale").updateDisplay();
+
+  }).setEventOn('KeyD', (dt) => {
     let res = animations.blueCubeScale - dt;
     if (res < animations.blueCubeParams.min) res = animations.blueCubeParams.min;
 
     animations.blueCubeScale = res;
-    blueCubeScaleGui.updateDisplay();
+    lilGuiControllerByName(ctx.lilGui, "blue cube scale").updateDisplay();
   })
 
   // ---------- MAIN CAMERA CONTROLS ----------
@@ -82,13 +81,12 @@ export const main = async () => {
 
   // ---------- APP CALLBACKS ----------
   ctx.setAnimationLoop((self) => {
-    const keyManager = self.keyManager;
     const fpsInfo = self.fpsInfo;
     const dt = fpsInfo.dt;
 
     fpsInfo.showFps();
-    keyManager.handleEvents();
     mainCamControls.update(dt);
+    self.keyManager.handleEvents();
 
     const timeAsDegrees = fpsInfo.totalTime % 360;
 
