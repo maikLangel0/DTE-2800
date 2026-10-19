@@ -80,17 +80,17 @@ export const main = async () => {
   const blueLambertMaterial = ctx.materials.get("blueLambertTransparent");
   const grassStandardMaterial = ctx.materials.get("grassStandard");
 
-  const cube = new THREE.Mesh(basicCubeGeometry, brownPhongMaterial);
-  cube.name = "brownCube";
-  cube.position.x = 10;
-  cube.receiveShadow = true;
-  cube.castShadow = true;
+  const brownCube = new THREE.Mesh(basicCubeGeometry, brownPhongMaterial);
+  brownCube.name = "brownCube";
+  brownCube.position.x = 10;
+  brownCube.receiveShadow = true;
+  brownCube.castShadow = true;
 
-  const cube2 = new THREE.Mesh(basicCubeGeometry, blueLambertMaterial);
-  cube2.name = "blueCube";
-  cube2.position.x = -10;
-  cube2.receiveShadow = true;
-  cube2.castShadow = false;
+  const blueCube = new THREE.Mesh(basicCubeGeometry, blueLambertMaterial);
+  blueCube.name = "blueCube";
+  blueCube.position.x = -10;
+  blueCube.receiveShadow = true;
+  blueCube.castShadow = false;
 
   const ground = new THREE.Mesh(groundGeometry, grassStandardMaterial);
   ground.name = "ground";
@@ -101,8 +101,8 @@ export const main = async () => {
   const cubeGroup = new THREE.Group();
   cubeGroup.name = "twoCubes";
   cubeGroup.translateY(10);
-  cubeGroup.add(cube);
-  cubeGroup.add(cube2);
+  cubeGroup.add(brownCube);
+  cubeGroup.add(blueCube);
 
   // ---------- ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
@@ -115,11 +115,13 @@ export const main = async () => {
 
     const timeAsDegrees = totalTime % 360;
 
-    const cubeGroup = self.getObjectInScene("twoCubes");
+    // Feels illegal that these can be commented out due to them not being from
+    // inside this lambda-function's scope:
 
-    const blueCube = self.getObjectInScene("blueCube");
-    const brownCube = self.getObjectInScene("brownCube");
-    const pointLight = self.getObjectInScene("pointLight");
+    // const cubeGroup = self.getObjectInScene("twoCubes");
+    // const blueCube = self.getObjectInScene("blueCube");
+    // const brownCube = self.getObjectInScene("brownCube");
+    // const pointLight = self.getObjectInScene("pointLight");
 
     brownCube.scale.setScalar(animations.brownCubeScale);
     blueCube.scale.setScalar(animations.blueCubeScale);
