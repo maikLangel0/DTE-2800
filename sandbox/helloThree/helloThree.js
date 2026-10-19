@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DirectionalLightHelper } from 'three/src/helpers/DirectionalLightHelper.js';
 import { BasicAppContext } from "../../base/threeHelpers/basicAppContext.js";
 import { basicDirectionalLight, degreeToRad, lilGuiControllerByName } from "../../base/threeHelpers/helpers.js";
+import { clamp } from "../../base/lib/utility-functions.js";
 
 const CANVAS_HEIGHT = window.innerHeight - 20;
 const CANVAS_WIDTH = window.innerWidth - 40;
@@ -172,35 +173,35 @@ export const main = async () => {
   const blueCubeControllerHandle = lilGuiControllerByName(ctx.lilGui, "blue cube scale");
 
   ctx.keyManager.setEventOn('KeyW', (dt) => {
-    let res = animations.brownCubeScale + dt;
-    if (res > animations.brownCubeParams.max) res = animations.brownCubeParams.max;
-
-    animations.brownCubeScale = Math.min(
+    animations.brownCubeScale = clamp(
       animations.brownCubeScale + dt,
+      animations.brownCubeParams.min,
       animations.brownCubeParams.max
-    );
-    
+    )
     brownCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyS', (dt) => {
-    let res = animations.brownCubeScale - dt;
-    if (res < animations.brownCubeParams.min) res = animations.brownCubeParams.min;
-
-    animations.brownCubeScale = res;
+    animations.brownCubeScale = clamp(
+      animations.brownCubeScale - dt,
+      animations.brownCubeParams.min,
+      animations.brownCubeParams.max
+    )
     brownCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyA', (dt) => {
-    let res = animations.blueCubeScale + dt;
-    if (res > animations.blueCubeParams.max) res = animations.blueCubeParams.max;
-
-    animations.blueCubeScale = res;
+    animations.blueCubeScale = clamp(
+      animations.blueCubeScale + dt,
+      animations.blueCubeParams.min,
+      animations.blueCubeParams.max
+    )
     blueCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyD', (dt) => {
-    let res = animations.blueCubeScale - dt;
-    if (res < animations.blueCubeParams.min) res = animations.blueCubeParams.min;
-
-    animations.blueCubeScale = res;
+    animations.blueCubeScale = clamp(
+      animations.blueCubeScale - dt,
+      animations.blueCubeParams.min,
+      animations.blueCubeParams.max
+    )
     blueCubeControllerHandle.updateDisplay();
   })
 

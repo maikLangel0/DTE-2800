@@ -17,6 +17,16 @@ export function initKeyPress(currPressedKeys) {
 }
 
 /**
+ * @param {number} val
+ * @param {number} min
+ * @param {number} max
+ * @returns number
+ */
+export function clamp(val, min = 0, max = 10) {
+  return Math.max(Math.min(val, max), min);
+}
+
+/**
  * Roterer gitt vektor delta antall grader om gitt akse.
  * @param {number} delta
  * @param {vec3} vector
