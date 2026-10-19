@@ -50,7 +50,8 @@ export class BasicAppContext {
       width = window.innerWidth,
       fov = 75,
       fpsId = null
-    } = {})
+    } = {}
+  )
   {
     // ---------- All that can be pre-defined ----------
 

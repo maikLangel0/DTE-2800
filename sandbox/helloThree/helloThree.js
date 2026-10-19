@@ -139,7 +139,7 @@ export const main = async () => {
 
     blueCube.scale.x = 1 + Math.sin(timeAsDegrees + degreeToRad(90));
 
-    cube.getWorldPosition(scratchVec3);
+    blueCube.getWorldPosition(scratchVec3);
 
     console.log(`POS: ${scratchVec3.x, scratchVec3.y, scratchVec3.z} | TOTALTIME: ${totalTime}`);
   })
