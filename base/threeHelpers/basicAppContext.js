@@ -173,7 +173,7 @@ export class BasicAppContext {
   //                          SCENE GET/SET/REMOVE/RESET
   // ##############################################################################
 
-  /**@param {THREE.Object3D} entry Checks that `name` is set on the object*/
+  /**@param {THREE.Object3D} entry Checks that `entry.name` is set on the object*/
   setObjectInScene(entry) {
     if (entry.name.length === 0) throw Error(`Forgot to give entry with ID: ${entry.id} a name.`);
 
@@ -221,7 +221,7 @@ export class BasicAppContext {
     this.scene.remove(obj);
   }
 
-  resetScene() {
+  clearScene() {
     this.scene.clear();
     return this;
   }
@@ -318,7 +318,7 @@ export class BasicAppContext {
    */
   #throwHotpathError(errMsg) {
     if (!this.#threwError) {
-      this.resetScene();
+      this.clearScene();
       this.#renderLoop = () => { };
 
       this.#threwError = true;

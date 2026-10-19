@@ -105,25 +105,25 @@ export const main = async () => {
 
   // ---------- ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
-    const fpsInfo = self.fpsInfo;
-    const dt = fpsInfo.dt;
+    const totalTime = self.fpsInfo.totalTime;
+    const dt = self.fpsInfo.dt;
 
-    fpsInfo.showFps();
+    self.fpsInfo.showFps();
     mainCamControls.update(dt);
     self.keyManager.handleEvents();
 
-    const timeAsDegrees = fpsInfo.totalTime % 360;
+    const timeAsDegrees = totalTime % 360;
 
     const cubeGroup = self.getObjectInScene("twoCubes");
 
-    const brownCube = self.getObjectInScene("brownCube");
     const blueCube = self.getObjectInScene("blueCube");
+    const brownCube = self.getObjectInScene("brownCube");
     const pointLight = self.getObjectInScene("pointLight");
 
     brownCube.scale.setScalar(animations.brownCubeScale);
     blueCube.scale.setScalar(animations.blueCubeScale);
 
-    cubeGroup.position.y = 20 + 10 * Math.sin(fpsInfo.totalTime);
+    cubeGroup.position.y = 20 + 10 * Math.sin(timeAsDegrees);
     cubeGroup.rotation.y += dt;
 
     pointLight.position.y = 20 + 10 * Math.sin(timeAsDegrees + degreeToRad(90));
@@ -140,7 +140,7 @@ export const main = async () => {
 
     cube.getWorldPosition(scratchVec3);
 
-    console.log(`POS: ${scratchVec3.x} | TOTALTIME: ${fpsInfo.totalTime}`);
+    console.log(`POS: ${scratchVec3.x, scratchVec3.y, scratchVec3.z} | TOTALTIME: ${totalTime}`);
   })
 
   ctx.setOnResize((camera, renderer) => {
@@ -167,33 +167,41 @@ export const main = async () => {
     .step(animations.blueCubeParams.step)
     .name("blue cube scale");
 
+  // Just to show I can do it like this:
+  const brownCubeControllerHandle = lilGuiControllerByName(ctx.lilGui, "brown cube scale");
+  const blueCubeControllerHandle = lilGuiControllerByName(ctx.lilGui, "blue cube scale");
+
   ctx.keyManager.setEventOn('KeyW', (dt) => {
     let res = animations.brownCubeScale + dt;
     if (res > animations.brownCubeParams.max) res = animations.brownCubeParams.max;
 
-    animations.brownCubeScale = res;
-    lilGuiControllerByName(ctx.lilGui, "brown cube scale").updateDisplay();
+    animations.brownCubeScale = Math.min(
+      animations.brownCubeScale + dt,
+      animations.brownCubeParams.max
+    );
+    
+    brownCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyS', (dt) => {
     let res = animations.brownCubeScale - dt;
     if (res < animations.brownCubeParams.min) res = animations.brownCubeParams.min;
 
     animations.brownCubeScale = res;
-    lilGuiControllerByName(ctx.lilGui, "brown cube scale").updateDisplay();
+    brownCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyA', (dt) => {
     let res = animations.blueCubeScale + dt;
     if (res > animations.blueCubeParams.max) res = animations.blueCubeParams.max;
 
     animations.blueCubeScale = res;
-    lilGuiControllerByName(ctx.lilGui, "blue cube scale").updateDisplay();
+    blueCubeControllerHandle.updateDisplay();
 
   }).setEventOn('KeyD', (dt) => {
     let res = animations.blueCubeScale - dt;
     if (res < animations.blueCubeParams.min) res = animations.blueCubeParams.min;
 
     animations.blueCubeScale = res;
-    lilGuiControllerByName(ctx.lilGui, "blue cube scale").updateDisplay();
+    blueCubeControllerHandle.updateDisplay();
   })
 
   // ---------- ADD ALL TO SCENE ----------
