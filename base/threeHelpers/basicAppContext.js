@@ -59,7 +59,7 @@ export class BasicAppContext {
     /**@type {THREE.TextureLoader} */
     this.textureLoader = new THREE.TextureLoader(this.#loadingManager);
     /**@type {GUI} */
-    this.lilGui = new GUI().title("animations");
+    this.lilGui = new GUI().title("GUI");
 
     /**@type {FpsInfo} */
     this.fpsInfo = new FpsInfo(fpsId);
