@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<head>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <p id="fps">FPS: -</p>
+
+
+    <script type="x-shader/x-vertex" id="grassVertShader">
+      out vec2 aUvGrass;
+
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        aUvGrass = uv;
+      }
+    </script>
+    <script type="x-shader/x-fragment" id="grassFragShader">
+      precision highp float;
+
+      in vec2 aUvGrass;
+
+      uniform mat4 modelMatrix;
+
+      uniform vec4 directionalLightColor;
+      uniform vec4 ambientLightColor;
+
+      uniform vec3 directionalLightPosition;
+      uniform vec3 camPosition;
+
+      uniform vec2 movingGrassOffset; // X and Y offset
+
+      uniform float texRepeat;
+      uniform float ratio; // Intensity ratio between how visible the steadyTex is, inversely related to movingTex
+
+      uniform sampler2D steadyGrass;
+      uniform sampler2D movingGrass;
+      uniform sampler2D grassNormal;
+
+      out vec4 fragColor;
+
+      // Repeat logic from https://jsfiddle.net/tfoller/4eonav7g/
+      vec4 calcTextureRepeat(sampler2D tex, vec2 uv) {
+        vec2 fract_uv = fract(uv * texRepeat);
+        vec2 smooth_uv = texRepeat * uv;
+
+        vec4 dUv = vec4(dFdx(smooth_uv), dFdy(smooth_uv));
+
+        return textureGrad(tex, fract_uv, dUv.xy, dUv.zw);
+      }
+      
+      void main() {
+        float ratio = clamp(ratio, 0.0, 1.0);
+
+        vec4 steadyGrassTex = calcTextureRepeat(steadyGrass, aUvGrass) * ratio;
+        vec4 movingGrassTex = calcTextureRepeat(movingGrass, aUvGrass + movingGrassOffset) * (1.0 - ratio);
+
+        fragColor = (steadyGrassTex + movingGrassTex) + ambientLightColor;
+      }
+      
+
+    </script>
+
+
+    <script type="module">
+      'use strict'
+      import { main } from "./oblig3.js";
+      main()
+    </script>
+</body>

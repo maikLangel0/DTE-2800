@@ -23,6 +23,7 @@ export function createSquareGeometry() {
 
   geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  
   geometry.setIndex(indices);
 
   geometry.computeVertexNormals();

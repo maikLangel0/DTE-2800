@@ -27,6 +27,18 @@ export function clamp(val, min = 0, max = 10) {
 }
 
 /**
+ * @template T
+ * @param {T | null | undefined} val
+ * @returns {T}
+ */
+export function getOrThrow(val) {
+  if (!val || val === undefined) {
+    throw Error("Unable to get value.");
+  }
+  return val;
+}
+
+/**
  * Roterer gitt vektor delta antall grader om gitt akse.
  * @param {number} delta
  * @param {vec3} vector
