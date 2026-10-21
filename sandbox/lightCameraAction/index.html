@@ -76,7 +76,7 @@
 
         vec4 specularReflection;
 
-        if(lightScalar <= 1.0) {
+        if(lightScalar <= 0.0) {
           specularReflection = vec4(0.0);
         } else {
           vec3 reflectedVector = normalize( reflect(-lightDirection, normalVector) );
