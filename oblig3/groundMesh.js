@@ -16,31 +16,39 @@ export const createCustomGround = async ({
   uniforms
 }) => {
   const groundGeometry = createSquareGeometry();
+  groundGeometry.scale(groundSize, groundSize, 1);
   const grassCustomMaterial = new THREE.ShaderMaterial({
     uniforms: uniforms,
     fragmentShader: fragmentShader,
     vertexShader: vertexShader,
     glslVersion: THREE.GLSL3,
     transparent: true,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
   });
 
   const ground = new THREE.Mesh(groundGeometry, grassCustomMaterial);
   ground.name = "ground";
   ground.rotateX(-Math.PI / 2);
-  ground.scale.set(groundSize, groundSize, 1);
   ground.receiveShadow = true;
 
-  const shadowMaterial = new THREE.ShadowMaterial({
-    opacity: 1.0,
+  const lightOverlayMaterial = new THREE.MeshLambertMaterial({
+    color: 0xffffff,
+    blending: THREE.MultiplyBlending,
+    premultipliedAlpha: true,
+    transparent: true,
+    depthWrite: false,
+    polygonOffset: true,
+    opacity: 0.5,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
   });
 
-  const groundShadow = new THREE.Mesh(groundGeometry, shadowMaterial);
-  groundShadow.name = "groundShadow";
-  groundShadow.translateY(0.05);
-  groundShadow.rotateX(-Math.PI / 2);
-  groundShadow.scale.set(groundSize, groundSize, 1);
-  groundShadow.receiveShadow = true;
+  const lightOverlay = new THREE.Mesh(groundGeometry, lightOverlayMaterial);
+  lightOverlay.name = "lightOverlay";
+  lightOverlay.rotateX(-Math.PI / 2);
+  lightOverlay.translateZ(0.067);
+  lightOverlay.receiveShadow = true;
+  lightOverlay.renderOrder = 1;
 
-  return [ground, groundShadow];
+  return [ground, lightOverlay];
 }

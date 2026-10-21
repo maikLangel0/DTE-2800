@@ -9,49 +9,50 @@
 
     <script type="x-shader/x-vertex" id="grassVertShader">
       precision highp float;
-      
+
       out vec2 oUvGrass;
       out vec3 oVertexNormal;
       out vec3 oVertexWorldPosition;
-      
+
       void main() {
           vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      
+
           oVertexWorldPosition = worldPosition.xyz;
           oVertexNormal = normalize(mat3(modelMatrix) * normal);
           oUvGrass = uv;
-      
+
           gl_Position = projectionMatrix * viewMatrix * worldPosition;
       }
     </script>
     <script type="x-shader/x-fragment" id="grassFragShader">
       precision highp float;
-      
+
       in vec2 oUvGrass;
       in vec3 oVertexNormal;
       in vec3 oVertexWorldPosition;
-      
-      uniform vec4 ambientLightColor;
-      uniform vec4 directionalLightColor;
-      uniform vec4 pointLightColor;
-      
-      uniform vec3 directionalLightDirection;
 
-      uniform vec3 pointLightWorldPosition;
-      uniform vec3 cameraWorldPosition;
-      
-      uniform float ambientLightIntensity;
+      uniform vec4 directionalLightColor;
+      uniform vec3 directionalLightDirection;
       uniform float directionalLightIntensity;
-      uniform float pointLightIntensity;
+
+      uniform vec4 ambientLightColor;
+      uniform float ambientLightIntensity;
       
+      uniform vec4 pointLightColor;
+      uniform vec3 pointLightWorldPosition;
+      uniform float pointLightIntensity;
+
+      uniform vec3 cameraWorldPosition;
+
       uniform float texRepeat;
       uniform float ratio;
-      
+
       uniform vec2 movingGrassOffset;
-      
+
       uniform sampler2D steadyGrass;
       uniform sampler2D movingGrass;
-      
+      uniform sampler2D normalMap;
+
       out vec4 fragColor;
 
       // Repeat logic from https://jsfiddle.net/tfoller/4eonav7g/
@@ -64,41 +65,37 @@
         return textureGrad(tex, fract_uv, dUv.xy, dUv.zw);
       }
 
-      vec4 calcSpecularReflection() {
-        return vec4(0.0);
-      }
-      
       void main() {
           float blendRatio = clamp(ratio, 0.0, 1.0);
-      
+
           vec4 steadyTex = calcTextureRepeat(steadyGrass, oUvGrass) * blendRatio;
           vec4 movingTex = calcTextureRepeat(movingGrass, oUvGrass + movingGrassOffset) * (1.0 - blendRatio);
-      
           vec4 grassTex = steadyTex + movingTex;
-      
+
           // World-space lighting vectors.
+          // vec3 normalVector = normalize(oVertexNormal);
           vec3 normalVector = normalize(oVertexNormal);
           vec3 viewDirection = normalize(cameraWorldPosition - oVertexWorldPosition);
-      
+
           vec3 pointLightDirection = normalize(pointLightWorldPosition - oVertexWorldPosition);
           vec3 directionalLightDir = normalize(directionalLightDirection);
-      
+
           vec3 ambient = ambientLightColor.rgb * ambientLightIntensity;
-      
+
           // Point-light diffuse reflection.
           float pointDiffuse = max( dot(normalVector, pointLightDirection), 0.0 );
           vec3 pointDiffuseColor = pointLightColor.rgb * pointLightIntensity * pointDiffuse;
-      
+
           // Directional-light diffuse reflection.
           float directionalDiffuse = max( dot(normalVector, directionalLightDir), 0.0 );
           vec3 directionalDiffuseColor = directionalLightColor.rgb * directionalLightIntensity * directionalDiffuse;
-      
-          vec3 lighting = ambient + pointDiffuseColor + directionalDiffuseColor;
+
+          vec3 lighting = pointDiffuseColor + ambient + directionalDiffuseColor;
           fragColor = vec4(grassTex.rgb * lighting, grassTex.a);
 
           #include <tonemapping_fragment>
       }
-      
+
     </script>
 
 

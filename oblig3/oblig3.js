@@ -31,7 +31,6 @@ export const main = async () => {
   const mainCameraControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
 
   const grassTexture = await loadTexSRGB(ctx, '../../base/textures/newGrassTexture.png');
-  const grassNormal = await loadTexSRGB(ctx, '../../base/textures/grassNormal.png');
 
   const directionalLight = basicDirectionalLight({
     color: 0xffffff,
@@ -51,7 +50,7 @@ export const main = async () => {
   pointLight.translateY(10);
 
   const groundUniforms = {
-    "ratio": { value: 0.85 },
+    "ratio": { value: 0.80 },
     "movingGrassOffset": { value: animations.movingGrassOffset },
     "ambientLightColor": { value: [...ambientLight.color, 1.0] },
     "ambientLightIntensity": { value: ambientLight.intensity },
@@ -66,9 +65,8 @@ export const main = async () => {
     "texRepeat": { value: 10 },
     "steadyGrass": { value: grassTexture },
     "movingGrass": { value: grassTexture },
-    "grassNormal": { value: grassNormal }
   };
-  const [ground, groundShadow] = await createCustomGround({
+  const [ground, lightGround] = await createCustomGround({
     groundSize: GROUND_SIZE,
     uniforms: groundUniforms,
     vertexShader: getOrThrow(document.getElementById("grassVertShader")?.textContent),
@@ -103,11 +101,11 @@ export const main = async () => {
     animations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
   })
 
-  ctx.setObjectInScene(directionalLight);
-  ctx.setObjectInScene(ambientLight);
-  ctx.setObjectInScene(pointLight);
   ctx.setObjectInScene(ground);
-  ctx.setObjectInScene(groundShadow);
+  ctx.setObjectInScene(lightGround);
+  ctx.setObjectInScene(pointLight);
+  ctx.setObjectInScene(ambientLight);
+  ctx.setObjectInScene(directionalLight);
 
   ctx.startRender();
 }
