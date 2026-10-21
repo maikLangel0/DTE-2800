@@ -12,8 +12,16 @@ const CANVAS_WIDTH = window.innerWidth;
 const GROUND_SIZE = 200;
 
 export const main = async () => {
-  const dirLightWorldPosBuffer = new THREE.Vector3();
-  const dirLightTargetWorldPosBuffer = new THREE.Vector3();
+  const buffers = {
+    cameraWorldPos: new THREE.Vector3(),
+    groundWorldPos: new THREE.Vector3(),
+
+    pointLightWorldPos: new THREE.Vector3(),
+    
+    dirLightWorldPos: new THREE.Vector3(),
+    dirLightDirection: new THREE.Vector3(),
+    dirLightTargetWorldPos: new THREE.Vector3(),
+  }
 
   const animations = {
     movingGrassOffset: new THREE.Vector2(0, 0),
@@ -56,12 +64,12 @@ export const main = async () => {
     "ambientLightIntensity": { value: ambientLight.intensity },
     "directionalLightColor": { value: [...directionalLight.color, 1.0] },
     "directionalLightIntensity": { value: directionalLight.intensity },
-    "directionalLightDirection": { value: new THREE.Vector3() },
+    "directionalLightDirection": { value: buffers.dirLightDirection },
     "pointLightColor": { value: [...pointLight.color, 1.0] },
     "pointLightIntensity": { value: pointLight.intensity },
-    "pointLightWorldPosition": { value: new THREE.Vector3() },
-    "groundWorldPosition": { value: new THREE.Vector3() },
-    "cameraWorldPosition": { value: new THREE.Vector3() },
+    "pointLightWorldPosition": { value: buffers.pointLightWorldPos },
+    "groundWorldPosition": { value: buffers.groundWorldPos },
+    "cameraWorldPosition": { value: buffers.cameraWorldPos },
     "texRepeat": { value: 10 },
     "steadyGrass": { value: grassTexture },
     "movingGrass": { value: grassTexture },
@@ -82,18 +90,16 @@ export const main = async () => {
     mainCameraControls.update(dt);
     self.keyManager.handleEvents();
 
-    // ---------- POPULATING BUFFERS AND UNIFORMS ----------
-    self.camera.getWorldPosition(groundUniforms.cameraWorldPosition.value);
-    ground.getWorldPosition(groundUniforms.groundWorldPosition.value);
-    pointLight.getWorldPosition(groundUniforms.pointLightWorldPosition.value);
-    directionalLight.getWorldPosition(dirLightWorldPosBuffer);
-    directionalLight.target.getWorldPosition(dirLightTargetWorldPosBuffer);
+    // ---------- POPULATING BUFFERS ----------
+    self.camera.getWorldPosition(buffers.cameraWorldPos);
+    ground.getWorldPosition(buffers.groundWorldPos);
+    pointLight.getWorldPosition(buffers.pointLightWorldPos);
 
-    groundUniforms.directionalLightDirection.value.copy(
-      dirLightWorldPosBuffer
-        .sub(dirLightTargetWorldPosBuffer)
-        .normalize()
-    )
+    directionalLight.getWorldPosition(buffers.dirLightWorldPos);
+    directionalLight.target.getWorldPosition(buffers.dirLightTargetWorldPos);
+
+    const dirLightDirection = buffers.dirLightWorldPos.clone().sub(buffers.dirLightTargetWorldPos);
+    groundUniforms.directionalLightDirection.value.copy(dirLightDirection);
 
     // ---------- ANIMATIONS ----------
 
