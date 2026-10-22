@@ -7,7 +7,7 @@ import { createSquareGeometry } from "../base/threeHelpers/geometryFunctions";
  * @param {Record<string, THREE.IUniform<any>>} options.uniforms,
  * @param {string} options.vertexShader,
  * @param {number} options.groundSize,
- * @returns {Promise<[THREE.Mesh<THREE.BufferGeometry>, THREE.Mesh<THREE.BufferGeometry>]>}
+ * @returns {Promise<{ground: THREE.Mesh<THREE.BufferGeometry>, lightOverlay: THREE.Mesh<THREE.BufferGeometry>}>}
 */
 export const createCustomGround = async ({
   groundSize,
@@ -50,5 +50,5 @@ export const createCustomGround = async ({
   lightOverlay.receiveShadow = true;
   lightOverlay.renderOrder = 1;
 
-  return [ground, lightOverlay];
+  return {ground, lightOverlay};
 }
