@@ -3,9 +3,12 @@
 </head>
 
 <body>
-    <canvas id="canvas"></canvas>
-    <p id="fps">FPS: -</p>
 
+    <div style="top:0px; left:15px; text-align: center; color:black; position: absolute; background-color: black; width: 40ch; opacity: 0.8; z-index: 1;">
+        <p style="color: white;"> yo </p>
+        <p style="color: white;" id="fps">FPS: -</p>
+    </div>
+    <canvas id="canvas" style="top: 0px; left: 0%; position: absolute;"></canvas>
 
     <script type="x-shader/x-vertex" id="grassVertShader">
       precision highp float;
@@ -37,7 +40,7 @@
 
       uniform vec4 ambientLightColor;
       uniform float ambientLightIntensity;
-      
+
       uniform vec4 pointLightColor;
       uniform vec3 pointLightWorldPosition;
       uniform float pointLightIntensity;
@@ -72,8 +75,7 @@
           vec4 movingTex = calcTextureRepeat(movingGrass, oUvGrass + movingGrassOffset) * (1.0 - blendRatio);
           vec4 grassTex = steadyTex + movingTex;
 
-          // World-space lighting vectors.
-          // vec3 normalVector = normalize(oVertexNormal);
+          // World-space lighting vectors
           vec3 normalVector = normalize(oVertexNormal);
           vec3 viewDirection = normalize(cameraWorldPosition - oVertexWorldPosition);
 
@@ -82,11 +84,11 @@
 
           vec3 ambient = ambientLightColor.rgb * ambientLightIntensity;
 
-          // Point-light diffuse reflection.
+          // PointLight diffuse reflection
           float pointDiffuse = max( dot(normalVector, pointLightDirection), 0.0 );
           vec3 pointDiffuseColor = pointLightColor.rgb * pointLightIntensity * pointDiffuse;
 
-          // Directional-light diffuse reflection.
+          // DirectionalLight diffuse reflection
           float directionalDiffuse = max( dot(normalVector, directionalLightDir), 0.0 );
           vec3 directionalDiffuseColor = directionalLightColor.rgb * directionalLightIntensity * directionalDiffuse;
 

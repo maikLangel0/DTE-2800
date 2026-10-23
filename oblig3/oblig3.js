@@ -2,9 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../base/threeHelpers/basicAppContext";
 import { getOrThrow } from "../base/lib/utility-functions";
-import { createCustomGround } from "./groundMesh";
-import { loadTexSRGB } from "./texLoadWrapper";
-import { createMainSceneLights } from "./mainSceneLights";
+import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
@@ -23,7 +21,7 @@ export const main = async () => {
     mainDirLightTargetWorldPos: new THREE.Vector3(),
   }
 
-  const animations = {
+  const mainAnimations = {
     movingGrassOffset: new THREE.Vector2(0, 0),
   };
 
@@ -38,12 +36,30 @@ export const main = async () => {
 
   const mainCameraControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
 
-  const { mainDirectionalLight, mainPointLight, mainAmbientLight } = createMainSceneLights();
+  // ---------- ALL TEXTURES INITIALIZED ----------
+  const {
+    videoHandle: howToVideoHandle,
+    texture: howToVideoTexture
+  } = loadVideoTexture('../../base/videos/howTo.webm');
 
-  const grassTexture = await loadTexSRGB(ctx, '../../base/textures/grassTexture.png');
+  const fallbackTexture = createFallbackTexture();
+  const grassTexture = await loadTexSRGB(ctx, '../../base/textures/newGrassTexture.png');
+  const wheelRimTexture = await loadTexSRGB(ctx, '../../base/textures/tireRim.jpg');
+  const sideFaceTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
+  const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
+  const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
+  shatterAlphaMap.colorSpace = THREE.NoColorSpace;
+  // ---------- MAIN SCENE LIGHTS ----------
+  const {
+    mainDirectionalLight,
+    mainPointLight,
+    mainAmbientLight
+  } = createMainSceneLights();
+
+  // ---------- GROUND ----------
   const groundUniforms = {
     "ratio": { value: 0.80 },
-    "movingGrassOffset": { value: animations.movingGrassOffset },
+    "movingGrassOffset": { value: mainAnimations.movingGrassOffset },
     "ambientLightColor": { value: [...mainAmbientLight.color, 1.0] },
     "ambientLightIntensity": { value: mainAmbientLight.intensity },
     "directionalLightColor": { value: [...mainDirectionalLight.color, 1.0] },
@@ -58,7 +74,10 @@ export const main = async () => {
     "steadyGrass": { value: grassTexture },
     "movingGrass": { value: grassTexture },
   };
-  const { ground, lightOverlay } = await createCustomGround({
+  const {
+    ground,
+    lightOverlay
+  } = createCustomGround({
     groundSize: GROUND_SIZE,
     uniforms: groundUniforms,
     vertexShader: getOrThrow(document.getElementById("grassVertShader")?.textContent),
@@ -66,14 +85,26 @@ export const main = async () => {
   });
 
   // ---------- METAL CUBE
-  const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
   const qb = ctx.geometries.get("basicCube");
   const qbMaterial = new THREE.MeshStandardMaterial({
     color: 0x9f9f9f,
     metalness: 1.0,
     metalnessMap: metalnessTexture,
+    alphaMap: shatterAlphaMap,
+    transparent: true,
+    side: THREE.DoubleSide
+  })
+  const qbVideoMaterial = new THREE.MeshStandardMaterial({
+    color: 0x9f9f9f,
+    metalness: 1.0,
+    metalnessMap: metalnessTexture,
+    map: howToVideoTexture,
+    side: THREE.DoubleSide
   });
-  const basicCube = new THREE.Mesh(qb, qbMaterial);
+  const basicCube = new THREE.Mesh(qb, [
+    qbVideoMaterial, qbMaterial, qbMaterial,
+    qbMaterial,      qbMaterial, qbMaterial
+  ]);
   basicCube.castShadow = true;
   basicCube.name = "basicCube";
   basicCube.translateY(10);
@@ -82,10 +113,7 @@ export const main = async () => {
   const wheelCylinderHeight = 3;
   const wheel = new THREE.Group();
   wheel.name = "wheel1";
-  
-  const wheelRimTexture = await loadTexSRGB(ctx, '../../base/textures/tireRim.jpg');
-  const sideFaceTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
-  
+
   const rimGeometry = new THREE.CylinderGeometry(5, 5, wheelCylinderHeight, 20, 20, true);
   const rimMaterial = new THREE.MeshStandardMaterial({ map: wheelRimTexture });
   const rimMesh = new THREE.Mesh(rimGeometry, rimMaterial);
@@ -106,12 +134,36 @@ export const main = async () => {
   sideFaceBackMesh.castShadow = true;
   sideFaceBackMesh.translateZ(-wheelCylinderHeight / 2);
   sideFaceBackMesh.rotateY(Math.PI)
-  
+
   wheel.add(rimMesh);
   wheel.add(sideFaceFrontMesh);
   wheel.add(sideFaceBackMesh);
-  wheel.position.set(5, 5, 5);
-  
+  wheel.position.set(-7.5, 5, -7.5);
+
+  // ---------- EXTRUDE GEOMETRY EXAMPLE
+  const extrudeLength = 2;
+  const extrudeHeight = 8;
+  const halfExtrudeLength = extrudeLength / 2;
+  const halfExtrudeHeight = extrudeHeight / 2;
+
+  const extrudePoints = [
+    new THREE.Vector2(-halfExtrudeLength, -halfExtrudeHeight),
+    new THREE.Vector2(-halfExtrudeLength,  halfExtrudeHeight),
+    new THREE.Vector2(halfExtrudeLength,   halfExtrudeHeight),
+    new THREE.Vector2(halfExtrudeLength,  -halfExtrudeHeight),
+    new THREE.Vector2(-halfExtrudeLength, -halfExtrudeHeight),
+  ]
+
+  const extrudeShape = new THREE.Shape(extrudePoints);
+  const extrudeGeometry = new THREE.ExtrudeGeometry(extrudeShape, { bevelThickness: 0.4, bevelSize: 1.0});
+  const extrudeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  const extrudeMesh = new THREE.Mesh(extrudeGeometry, extrudeMaterial);
+  extrudeMesh.name = "extrudeMesh";
+  extrudeMesh.castShadow = true;
+
+  extrudeMesh.position.set(-7, halfExtrudeHeight, 5);
+
+  // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
     const totalTime = self.fpsInfo.totalTime;
     const dt = self.fpsInfo.dt;
@@ -133,9 +185,8 @@ export const main = async () => {
     groundUniforms.directionalLightDirection.value.copy(mainDirLightDirection);
 
     // ---------- ANIMATIONS ----------
-
-    animations.movingGrassOffset.x = Math.sin(totalTime) / (7 * GROUND_SIZE);
-    animations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
+    mainAnimations.movingGrassOffset.x = Math.sin(totalTime) / (7 * GROUND_SIZE);
+    mainAnimations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
   })
 
   ctx.setObjectInScene(ground);
@@ -146,6 +197,8 @@ export const main = async () => {
 
   ctx.setObjectInScene(basicCube);
   ctx.setObjectInScene(wheel);
+  ctx.setObjectInScene(extrudeMesh)
 
+  howToVideoHandle.muted = true;
   ctx.startRender();
 }
