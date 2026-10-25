@@ -254,17 +254,17 @@ export const main = () => {
     lightPosition: lightPosition,
   }
 
-  keyManager.setEventOn("KeyL", (dt) => {
+  keyManager.setHoldEventOn("KeyL", (dt) => {
     renderInfo.lightPosition.x -= 30 * dt;
-  }).setEventOn("KeyJ", (dt) => {
+  }).setHoldEventOn("KeyJ", (dt) => {
     renderInfo.lightPosition.x += 30 * dt;
-  }).setEventOn("KeyI", (dt) => {
+  }).setHoldEventOn("KeyI", (dt) => {
     renderInfo.lightPosition.z += 30 * dt;
-  }).setEventOn("KeyK", (dt) => {
+  }).setHoldEventOn("KeyK", (dt) => {
     renderInfo.lightPosition.z -= 30 * dt;
-  }).setEventOn("KeyU", (dt) => {
+  }).setHoldEventOn("KeyU", (dt) => {
     renderInfo.lightPosition.y += 30 * dt;
-  }).setEventOn("KeyO", (dt) => {
+  }).setHoldEventOn("KeyO", (dt) => {
     renderInfo.lightPosition.y -= 30 * dt;
   })
 

@@ -199,33 +199,33 @@ export const main = () => {
     }
   }
 
-  keyManager.setEventOn("KeyE", (dt) => {
+  keyManager.setHoldEventOn("KeyE", (dt) => {
     renderInfo.animations.baseRotationY += 100 * dt;
-  }).setEventOn("KeyR", (dt) => {
+  }).setHoldEventOn("KeyR", (dt) => {
     renderInfo.animations.baseRotationY -= 100 * dt;
-  }).setEventOn("KeyO", (dt) => {
+  }).setHoldEventOn("KeyO", (dt) => {
     renderInfo.animations.jointsRotationZ += 50 * dt;
-  }).setEventOn("KeyP", (dt) => {
+  }).setHoldEventOn("KeyP", (dt) => {
     renderInfo.animations.jointsRotationZ -= 50 * dt;
-  }).setEventOn("KeyZ", (dt) => {
+  }).setHoldEventOn("KeyZ", (dt) => {
     if (renderInfo.animations.fingerPinchZ < FINGERS_ROTATIONPARAMS.max) {
       renderInfo.animations.fingerPinchZ += 50 * dt;
     }
-  }).setEventOn("KeyX", (dt) => {
+  }).setHoldEventOn("KeyX", (dt) => {
     if (renderInfo.animations.fingerPinchZ > FINGERS_ROTATIONPARAMS.min - FINGERS_ROTATIONPARAMS.min / 2) {
       renderInfo.animations.fingerPinchZ -= 50 * dt;
     }
-  }).setEventOn("KeyN", (dt) => {
+  }).setHoldEventOn("KeyN", (dt) => {
     renderInfo.animations.joint1RotationZ += 40 * dt;
-  }).setEventOn("KeyM", (dt) => {
+  }).setHoldEventOn("KeyM", (dt) => {
     renderInfo.animations.joint1RotationZ -= 40 * dt;
-  }).setEventOn("KeyJ", (dt) => {
+  }).setHoldEventOn("KeyJ", (dt) => {
     renderInfo.animations.joint2RotationZ += 40 * dt;
-  }).setEventOn("KeyK", (dt) => {
+  }).setHoldEventOn("KeyK", (dt) => {
     renderInfo.animations.joint2RotationZ -= 40 * dt;
-  }).setEventOn("KeyU", (dt) => {
+  }).setHoldEventOn("KeyU", (dt) => {
     renderInfo.animations.joint3RotationZ += 40 * dt;
-  }).setEventOn("KeyI", (dt) => {
+  }).setHoldEventOn("KeyI", (dt) => {
     renderInfo.animations.joint3RotationZ -= 40 * dt;
   })
 
@@ -261,7 +261,7 @@ function animate(renderInfo) {
   const fps = renderInfo.fpsInfo;
   fps.showFps();
 
-  renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
+  renderInfo.camera.handleKeys(renderInfo.keyManager.keysHeld, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);
 
   window.requestAnimationFrame((currentTime) => {

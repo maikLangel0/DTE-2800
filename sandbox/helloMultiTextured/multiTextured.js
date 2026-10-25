@@ -431,28 +431,28 @@ export const main = () => {
     },
   }
 
-  keyManager.setEventOn("KeyZ", (dt) => {
+  keyManager.setHoldEventOn("KeyZ", (dt) => {
     renderInfo.animations.cubeBrickRotationY += 100 * dt % 360;
   })
-  keyManager.setEventOn("KeyX", (dt) => {
+  keyManager.setHoldEventOn("KeyX", (dt) => {
     renderInfo.animations.cubeBrickRotationY -= 100 * dt % 360;
   })
-  keyManager.setEventOn("KeyN", (dt) => {
+  keyManager.setHoldEventOn("KeyN", (dt) => {
     renderInfo.treeAnimations.stemRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyM", (dt) => {
+  keyManager.setHoldEventOn("KeyM", (dt) => {
     renderInfo.treeAnimations.stemRotationZ -= 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyJ", (dt) => {
+  keyManager.setHoldEventOn("KeyJ", (dt) => {
     renderInfo.treeAnimations.branchRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyK", (dt) => {
+  keyManager.setHoldEventOn("KeyK", (dt) => {
     renderInfo.treeAnimations.branchRotationZ -= 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyU", (dt) => {
+  keyManager.setHoldEventOn("KeyU", (dt) => {
     renderInfo.treeAnimations.leafRotationZ += 25 * dt % 360;
   })
-  keyManager.setEventOn("KeyI", (dt) => {
+  keyManager.setHoldEventOn("KeyI", (dt) => {
     renderInfo.treeAnimations.leafRotationZ -= 25 * dt % 360;
   })
 

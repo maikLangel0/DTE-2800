@@ -175,7 +175,7 @@ export class BasicAppContext {
   // ##############################################################################
 
   /**@param {THREE.Object3D} entry Checks that `entry.name` is set on the object*/
-  setObjectInScene(entry) {
+  addToScene(entry) {
     if (entry.name.length === 0) throw Error(`Forgot to give entry with ID: ${entry.id} a name.`);
 
     this.scene.add(entry);
@@ -183,9 +183,9 @@ export class BasicAppContext {
   }
 
   /**@param {THREE.Object3D[]} entries  */
-  setObjectsInScene(entries) {
+  addObjectsToScene(entries) {
     for (const entry of entries) {
-      this.setObjectInScene(entry);
+      this.addToScene(entry);
     }
     return this;
   }

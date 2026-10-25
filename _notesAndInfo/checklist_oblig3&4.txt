@@ -7,6 +7,7 @@
 8. Use ExtrudeGeometry somewhere in the figure
 9. Magnum opus: Animate from a standing pose to a vehicle pose (using tween).
 10. Figure out sprites.
+11. Make some programmed particles too (from the neck);
 
 WHAT TO DO IN ORDER:
 Pre:

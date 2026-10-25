@@ -174,7 +174,7 @@ export const main = async () => {
   const brownCubeControllerHandle = lilGuiControllerByName(ctx.lilGui, "brown cube scale");
   const blueCubeControllerHandle = lilGuiControllerByName(ctx.lilGui, "blue cube scale");
 
-  ctx.keyManager.setEventOn('KeyW', (dt) => {
+  ctx.keyManager.setHoldEventOn('KeyW', (dt) => {
     animations.brownCubeScale = clamp(
       animations.brownCubeScale + dt,
       animations.brownCubeParams.min,
@@ -182,7 +182,7 @@ export const main = async () => {
     )
     brownCubeControllerHandle.updateDisplay();
 
-  }).setEventOn('KeyS', (dt) => {
+  }).setHoldEventOn('KeyS', (dt) => {
     animations.brownCubeScale = clamp(
       animations.brownCubeScale - dt,
       animations.brownCubeParams.min,
@@ -190,7 +190,7 @@ export const main = async () => {
     )
     brownCubeControllerHandle.updateDisplay();
 
-  }).setEventOn('KeyA', (dt) => {
+  }).setHoldEventOn('KeyA', (dt) => {
     animations.blueCubeScale = clamp(
       animations.blueCubeScale + dt,
       animations.blueCubeParams.min,
@@ -198,7 +198,7 @@ export const main = async () => {
     )
     blueCubeControllerHandle.updateDisplay();
 
-  }).setEventOn('KeyD', (dt) => {
+  }).setHoldEventOn('KeyD', (dt) => {
     animations.blueCubeScale = clamp(
       animations.blueCubeScale - dt,
       animations.blueCubeParams.min,
@@ -208,12 +208,12 @@ export const main = async () => {
   })
 
   // ---------- ADD ALL TO SCENE ----------
-  ctx.setObjectInScene(directionalLight);
-  ctx.setObjectInScene(directionalLightHelper);
-  ctx.setObjectInScene(pointLight);
-  ctx.setObjectInScene(ambientLight);
-  ctx.setObjectInScene(cubeGroup);
-  ctx.setObjectInScene(ground);
+  ctx.addToScene(directionalLight);
+  ctx.addToScene(directionalLightHelper);
+  ctx.addToScene(pointLight);
+  ctx.addToScene(ambientLight);
+  ctx.addToScene(cubeGroup);
+  ctx.addToScene(ground);
 
   ctx.startRender();
 }

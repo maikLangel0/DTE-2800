@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../base/threeHelpers/basicAppContext";
-import { getOrThrow } from "../base/lib/utility-functions";
+import { clamp, getOrThrow } from "../base/lib/utility-functions";
 import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
+import { addTmpExamples } from "./_tmp";
+import { Transformer } from "./transformer";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
@@ -31,7 +33,7 @@ export const main = async () => {
     height: CANVAS_HEIGHT,
     width: CANVAS_WIDTH,
     fov: 60,
-  }).camPosition(20, 20, 20);
+  }).camPosition(0, 20, 50);
   ctx.renderer.setClearColor(0xADD8E6);
 
   const mainCameraControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
@@ -45,10 +47,13 @@ export const main = async () => {
   const fallbackTexture = createFallbackTexture();
   const grassTexture = await loadTexSRGB(ctx, '../../base/textures/newGrassTexture.png');
   const wheelRimTexture = await loadTexSRGB(ctx, '../../base/textures/tireRim.jpg');
-  const sideFaceTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
+  const wheelSideTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
   const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
+  const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
   shatterAlphaMap.colorSpace = THREE.NoColorSpace;
+  circleAlphaMap.colorSpace = THREE.NoColorSpace;
+
   // ---------- MAIN SCENE LIGHTS ----------
   const {
     mainDirectionalLight,
@@ -84,96 +89,32 @@ export const main = async () => {
     fragmentShader: getOrThrow(document.getElementById("grassFragShader")?.textContent),
   });
 
-  // ---------- METAL CUBE
-  const qb = ctx.geometries.get("basicCube");
-  const qbMaterial = new THREE.MeshStandardMaterial({
-    color: 0x9f9f9f,
-    metalness: 1.0,
-    metalnessMap: metalnessTexture,
-    alphaMap: shatterAlphaMap,
-    transparent: true,
-    side: THREE.DoubleSide
+  // ---------- ALL TMP EXAMPLES ----------
+  const tmpBs = await addTmpExamples(ctx);
+  tmpBs.position.setY(-20);
+
+  // ---------- START OF TRANSFORMER ----------
+  const tf = new Transformer("me", {
+    chestVideoTexture: howToVideoTexture,
+    circleAlphaMap,
+    fallbackTexture,
+    wheelRimTexture,
+    wheelSideTexture,
+    metalnessTexture,
+    shatterAlphaMap,
   })
-  const qbVideoMaterial = new THREE.MeshStandardMaterial({
-    color: 0x9f9f9f,
-    metalness: 1.0,
-    metalnessMap: metalnessTexture,
-    map: howToVideoTexture,
-    side: THREE.DoubleSide
-  });
-  const basicCube = new THREE.Mesh(qb, [
-    qbVideoMaterial, qbMaterial, qbMaterial,
-    qbMaterial,      qbMaterial, qbMaterial
-  ]);
-  basicCube.castShadow = true;
-  basicCube.name = "basicCube";
-  basicCube.translateY(10);
-
-  // ---------- WHEEL
-  const wheelCylinderHeight = 3;
-  const wheel = new THREE.Group();
-  wheel.name = "wheel1";
-
-  const rimGeometry = new THREE.CylinderGeometry(5, 5, wheelCylinderHeight, 20, 20, true);
-  const rimMaterial = new THREE.MeshStandardMaterial({ map: wheelRimTexture });
-  const rimMesh = new THREE.Mesh(rimGeometry, rimMaterial);
-  rimMesh.name = "wheel1Rim";
-  rimMesh.castShadow = true;
-  rimMesh.rotateX(Math.PI / 2);
-
-  const sideFaceGeometry = new THREE.CircleGeometry(5, 20);
-  const sideFaceMaterial = new THREE.MeshStandardMaterial({ map: sideFaceTexture });
-
-  const sideFaceFrontMesh = new THREE.Mesh(sideFaceGeometry, sideFaceMaterial);
-  sideFaceFrontMesh.name = "wheel1FrontFace";
-  sideFaceFrontMesh.castShadow = true;
-  sideFaceFrontMesh.translateZ(wheelCylinderHeight / 2);
-
-  const sideFaceBackMesh = new THREE.Mesh(sideFaceGeometry, sideFaceMaterial);
-  sideFaceBackMesh.name = "wheel1BackFace";
-  sideFaceBackMesh.castShadow = true;
-  sideFaceBackMesh.translateZ(-wheelCylinderHeight / 2);
-  sideFaceBackMesh.rotateY(Math.PI)
-
-  wheel.add(rimMesh);
-  wheel.add(sideFaceFrontMesh);
-  wheel.add(sideFaceBackMesh);
-  wheel.position.set(-7.5, 5, -7.5);
-
-  // ---------- EXTRUDE GEOMETRY EXAMPLE
-  const extrudeLength = 2;
-  const extrudeHeight = 8;
-  const halfExtrudeLength = extrudeLength / 2;
-  const halfExtrudeHeight = extrudeHeight / 2;
-
-  const extrudePoints = [
-    new THREE.Vector2(-halfExtrudeLength, -halfExtrudeHeight),
-    new THREE.Vector2(-halfExtrudeLength,  halfExtrudeHeight),
-    new THREE.Vector2(halfExtrudeLength,   halfExtrudeHeight),
-    new THREE.Vector2(halfExtrudeLength,  -halfExtrudeHeight),
-    new THREE.Vector2(-halfExtrudeLength, -halfExtrudeHeight),
-  ]
-
-  const extrudeShape = new THREE.Shape(extrudePoints);
-  const extrudeGeometry = new THREE.ExtrudeGeometry(extrudeShape, { bevelThickness: 0.4, bevelSize: 1.0});
-  const extrudeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 })
-  const extrudeMesh = new THREE.Mesh(extrudeGeometry, extrudeMaterial);
-  extrudeMesh.name = "extrudeMesh";
-  extrudeMesh.castShadow = true;
-
-  extrudeMesh.position.set(-7, halfExtrudeHeight, 5);
 
   // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
     const totalTime = self.fpsInfo.totalTime;
     const dt = self.fpsInfo.dt;
 
-    // ---------- UPDATES ----------
+    // ---------- UPDATES
     self.fpsInfo.showFps();
     mainCameraControls.update(dt);
-    self.keyManager.handleEvents();
+    self.keyManager.handleEvents(dt);
 
-    // ---------- POPULATING BUFFERS ----------
+    // ---------- POPULATING BUFFERS
     self.camera.getWorldPosition(buffers.cameraWorldPos);
     ground.getWorldPosition(buffers.groundWorldPos);
     mainPointLight.getWorldPosition(buffers.mainPointLightWorldPos);
@@ -184,21 +125,60 @@ export const main = async () => {
     const mainDirLightDirection = buffers.mainDirLightWorldPos.clone().sub(buffers.mainDirLightTargetWorldPos);
     groundUniforms.directionalLightDirection.value.copy(mainDirLightDirection);
 
-    // ---------- ANIMATIONS ----------
+    // ---------- ANIMATIONS
     mainAnimations.movingGrassOffset.x = Math.sin(totalTime) / (7 * GROUND_SIZE);
     mainAnimations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
+
+    tf.neck.rotation.set(0, tf.animations.neckRotY.currRot, 0);
+    tf.head.rotation.set(0, tf.animations.headRotY.currRot, 0);
+
   })
 
-  ctx.setObjectInScene(ground);
-  ctx.setObjectInScene(lightOverlay);
-  ctx.setObjectInScene(mainPointLight);
-  ctx.setObjectInScene(mainAmbientLight);
-  ctx.setObjectInScene(mainDirectionalLight);
 
-  ctx.setObjectInScene(basicCube);
-  ctx.setObjectInScene(wheel);
-  ctx.setObjectInScene(extrudeMesh)
+  // ---------- INPUT HANDLING ----------
+  const neckAnim = tf.animations.neckRotY;
+  const headAnim = tf.animations.headRotY;
 
-  howToVideoHandle.muted = true;
+  const neckGuiHandle = ctx.lilGui.add(neckAnim, 'currRot')
+    .min(neckAnim.min)
+    .max(neckAnim.max)
+    .step(neckAnim.step)
+    .name("Neck Rotation");
+
+  const headGuiHandle = ctx.lilGui.add(headAnim, 'currRot')
+    .min(headAnim.min)
+    .max(headAnim.max)
+    .step(headAnim.step)
+    .name("Head Rotation");
+
+  ctx.keyManager.setHoldEventOn('ArrowLeft', (dt) => {
+    neckAnim.currRot = clamp(neckAnim.currRot + 1 * dt, neckAnim.min, neckAnim.max)
+    headAnim.currRot = clamp(headAnim.currRot + 1 * dt, headAnim.min, headAnim.max)
+
+    neckGuiHandle.updateDisplay();
+    headGuiHandle.updateDisplay();
+  }).setHoldEventOn('ArrowRight', (dt) => {
+    neckAnim.currRot = clamp(neckAnim.currRot - 1 * dt, neckAnim.min, neckAnim.max)
+    headAnim.currRot = clamp(headAnim.currRot - 1 * dt, headAnim.min, headAnim.max)
+
+    neckGuiHandle.updateDisplay();
+    headGuiHandle.updateDisplay();
+  }).setPressEventOn('KeyL', () => {
+    tf.neck.position.setY((tf.dimentions.torso.h - tf.dimentions.neck.h) / 2);
+  }).setPressEventOn('KeyO', () => {
+    tf.neck.position.setY((tf.dimentions.torso.h + tf.dimentions.neck.h) / 2);
+  })
+
+  // ---------- ADD TO SCENE N RENDER ----------
+  ctx.addToScene(ground);
+  ctx.addToScene(lightOverlay);
+  ctx.addToScene(mainPointLight);
+  ctx.addToScene(mainAmbientLight);
+  ctx.addToScene(mainDirectionalLight);
+
+  ctx.addToScene(tmpBs);
+
+  ctx.addToScene(tf.self);
+
   ctx.startRender();
 }

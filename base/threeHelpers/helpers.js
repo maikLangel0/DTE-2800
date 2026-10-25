@@ -1,6 +1,13 @@
 import GUI, { Controller } from "lil-gui";
 import * as THREE from "three";
 
+/**@type {Record<number, THREE.Side>} */
+export const sideMap = {
+  0: THREE.FrontSide,
+  1: THREE.BackSide,
+  2: THREE.DoubleSide
+}
+
 /**
  * @param {number} angle
  */
