@@ -70,10 +70,10 @@ export const createMainSceneLights = () => {
   mainDirectionalLight.name = "mainDirectionalLight";
 
   const mainAmbientLight = new THREE.AmbientLight(0xafafaf, 1);
-  mainAmbientLight.name = "ambientLight";
+  mainAmbientLight.name = "mainAmbientLight";
 
   const mainPointLight = new THREE.PointLight(0xffffff, 1, 0, 1.7);
-  mainPointLight.name = "pointLight";
+  mainPointLight.name = "mainPointLight";
   mainPointLight.translateY(10);
 
   return { mainPointLight, mainAmbientLight, mainDirectionalLight };
@@ -116,10 +116,11 @@ export const createFallbackTexture = () => {
 
 /**
  * @param {string} pathToVideo
+ * @param {string} idInDom
  */
-export const loadVideoTexture = (pathToVideo) => {
+export const loadVideoTexture = (pathToVideo, idInDom) => {
   const video = document.createElement('video');
-  video.id = 'howToVideo';
+  video.id = idInDom;
   video.src = pathToVideo;
   video.autoplay = true;
   video.muted = true;
@@ -127,9 +128,9 @@ export const loadVideoTexture = (pathToVideo) => {
   video.play();
 
   const tex = new THREE.VideoTexture(video);
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
 
   return {videoHandle: video, texture: tex};
 }

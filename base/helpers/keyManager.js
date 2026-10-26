@@ -13,28 +13,28 @@ export class KeyManager {
     this.keysHeld = {};
     /**@type {Record<string, boolean>}*/
     this.keysPressed = {};
-    
+
     this.#holdEvents = new Map();
     this.#pressEvents = new Map();
     this.#releaseEvents = new Map();
 
     document.addEventListener('keyup', (event) => {
       if (!this.keysHeld[event.code]) return;
-      
+
       this.keysHeld[event.code] = false;
       this.#releaseEvents.get(event.code)?.();
     });
 
     document.addEventListener('keydown', (event) => {
       if (event.repeat) return;
-      
+
       this.keysHeld[event.code] = true;
       this.keysPressed[event.code] = true;
     });
 
     window.addEventListener('blur', () => {
-      this.keysHeld = {}; 
-      this.keysPressed = {};  
+      this.keysHeld = {};
+      this.keysPressed = {};
     })
   }
 

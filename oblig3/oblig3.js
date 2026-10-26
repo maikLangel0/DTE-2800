@@ -42,7 +42,7 @@ export const main = async () => {
   const {
     videoHandle: howToVideoHandle,
     texture: howToVideoTexture
-  } = loadVideoTexture('../../base/videos/howTo.webm');
+  } = loadVideoTexture('../../base/videos/howTo.webm', 'howToVideo');
 
   const fallbackTexture = createFallbackTexture();
   const grassTexture = await loadTexSRGB(ctx, '../../base/textures/newGrassTexture.png');
