@@ -145,6 +145,7 @@ export class BasicAppContext {
    */
   camLookAt(x, y, z) {
     this.camera.lookAt(x, y, z);
+    this.camera.updateProjectionMatrix();
     return this;
   }
 

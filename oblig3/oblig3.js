@@ -27,13 +27,15 @@ export const main = async () => {
     movingGrassOffset: new THREE.Vector2(0, 0),
   };
 
-  const ctx = new BasicAppContext({
-    canvasId: "canvas",
-    fpsId: "fps",
-    height: CANVAS_HEIGHT,
-    width: CANVAS_WIDTH,
-    fov: 60,
-  }).camPosition(0, 20, 50);
+  const ctx = new BasicAppContext(
+    {
+      canvasId: "canvas",
+      fpsId: "fps",
+      height: CANVAS_HEIGHT,
+      width: CANVAS_WIDTH,
+      fov: 60,
+    }
+  ).camPosition(0, 20, 50);
   ctx.renderer.setClearColor(0xADD8E6);
 
   const mainCameraControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
@@ -129,9 +131,10 @@ export const main = async () => {
     mainAnimations.movingGrassOffset.x = Math.sin(totalTime) / (7 * GROUND_SIZE);
     mainAnimations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
 
+    tf.radar.rotateY(dt);
+
     tf.neck.rotation.set(0, tf.animations.neckRotY.currRot, 0);
     tf.head.rotation.set(0, tf.animations.headRotY.currRot, 0);
-
   })
 
 

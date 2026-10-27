@@ -114,7 +114,6 @@ export class Transformer {
 
     /**
      * @type {{
-     *  radar: Dimention,
      *  head: Dimention,
      *  neck: Dimention,
      *  torso: Dimention,
@@ -123,34 +122,30 @@ export class Transformer {
      *  upperLegs: Dimention,
      *  lowerLegs: Dimention,
      *  feet: Dimention,
-     *  wheel: { radius: number, thickness: number }
-     *  exhausts: { radius: number, height: number }
+     *  wheel: { radius: number; thickness: number },
+     *  radarSphere: { radius: number },
+     *  radarDisc: { radius: number; thickness: number },
+     *  radarPole: { radius: number; height: number },
+     *  exhausts: { radius: number; height: number },
      * }}
      */
-    this.dimentions = {
-      /**@type {Dimention} */
-      radar: { w: BASE_DEPTH / 2, h: 1, d: BASE_DEPTH / 2 },
-      /**@type {Dimention} */
+    this.dimentions = Object.freeze({
       head: { w: BASE_WIDTH, h: 2, d: BASE_DEPTH },
-      /**@type {Dimention} */
       neck: { w: Math.sqrt(BASE_WIDTH / 2), h: 1, d: Math.sqrt(BASE_WIDTH / 2) },
 
-      /**@type {Dimention} */
       torso: { w: BASE_WIDTH, h: 8, d: BASE_DEPTH },
-      /**@type {Dimention} */
       upperArms: { w: BASE_DEPTH * 0.9, h: 8, d: BASE_DEPTH * 0.9 },
-      /**@type {Dimention} */
       lowerArms: { w: BASE_DEPTH * 0.8, h: 8, d: BASE_DEPTH * 0.8 },
-      /**@type {Dimention} */
       upperLegs: { w: BASE_DEPTH * 0.95, h: 5, d: BASE_DEPTH * 0.95 },
-      /**@type {Dimention} */
       lowerLegs: { w: BASE_DEPTH * 0.9, h: 5, d: BASE_DEPTH * 0.9 },
-      /**@type {Dimention} */
       feet: { w: BASE_DEPTH * 0.9, h: 0.5, d: BASE_DEPTH * 1.5 },
 
       wheel: { radius: BASE_DEPTH, thickness: 1 },
+      radarSphere: { radius: BASE_DEPTH / 10 },
+      radarDisc: { radius: BASE_DEPTH * 0.8, thickness: 0.2 },
+      radarPole: { radius: BASE_DEPTH / 12, height: BASE_DEPTH / 3 },
       exhausts: { radius: BASE_DEPTH * 0.4, height: 1 }
-    }
+    })
 
     // ---------- CREATING EVERYTHING ----------
     const dims = this.dimentions;
@@ -186,6 +181,12 @@ export class Transformer {
     head.position.set(0, neckDims.h / 2 + headDims.h / 2, 0);
     neck.add(head);
 
+    // ---------- RADAR
+    const radarHeight = dims.radarPole.height / 2 + dims.head.h / 2 + 0.01;
+    const radar = this.#createRadar("radar");
+    radar.position.set(0, radarHeight, 0);
+    head.add(radar);
+
     // ---------- SETTING EVERYTHING IN A GROUP ----------
     const self = new THREE.Group();
     self.name = this.#name;
@@ -211,8 +212,10 @@ export class Transformer {
 
     /**@type {THREE.Mesh} */
     this.neck = neck;
-    /**@type {THREE.Group} */
+    /**@type {THREE.Mesh} */
     this.head = head;
+    /**@type {THREE.Mesh} */
+    this.radar = radar;
 
     /**@type {THREE.Group} */
     this.self = self;
@@ -225,10 +228,7 @@ export class Transformer {
    * @returns {THREE.Mesh} torso
   */
   #createTorso(subName) {
-    const dims = this.dimentions.torso;
     const name = this.#name + "_" + subName;
-
-    const torsoGeometry = new THREE.BoxGeometry(dims.w, dims.h, dims.d);
 
     const torsoMainMaterial = this.#basicMetallicStandardMaterial;
     const torsoVideoMaterial = new THREE.MeshStandardMaterial({
@@ -240,12 +240,10 @@ export class Transformer {
       roughness: 0.1
     });
 
-    const torso = new THREE.Mesh(torsoGeometry, [
+    const torso = this.#boxGeometryTemplate(name, this.dimentions.torso, [
       torsoMainMaterial, torsoMainMaterial, torsoMainMaterial,
       torsoMainMaterial, torsoVideoMaterial, torsoMainMaterial
     ])
-    torso.name = name;
-    torso.castShadow = true;
 
     return torso;
   }
@@ -255,10 +253,8 @@ export class Transformer {
    * @returns {THREE.Mesh} torso
   */
   #createNeck(subName) {
-    const dims = this.dimentions.neck;
     const name = this.#name + "_" + subName;
 
-    const neckGeometry = new THREE.BoxGeometry(dims.w, dims.h, dims.d);
     const neckMainMaterial = new THREE.MeshStandardMaterial({
       color: this.#metalColor,
       metalness: 1.0,
@@ -276,14 +272,12 @@ export class Transformer {
       depthWrite: false,
     });
 
-    const neck = new THREE.Mesh(neckGeometry, [
+    const neck = this.#boxGeometryTemplate(name, this.dimentions.neck, [
       // @ts-ignore
       neckAlphaMaterial, neckAlphaMaterial, undefined,
       // @ts-ignore
       undefined, neckMainMaterial, neckMainMaterial
     ])
-    neck.name = name;
-    neck.castShadow = true;
 
     return neck;
   }
@@ -304,6 +298,7 @@ export class Transformer {
     const rimMesh = new THREE.Mesh(rimGeometry, rimMaterial);
     rimMesh.name = name + "Rim";
     rimMesh.castShadow = true;
+    rimMesh.receiveShadow = true;
     rimMesh.rotateX(Math.PI / 2);
 
     const sideFaceGeometry = new THREE.CircleGeometry(dims.radius, 20);
@@ -312,11 +307,13 @@ export class Transformer {
     const sideFaceFrontMesh = new THREE.Mesh(sideFaceGeometry, sideFaceMaterial);
     sideFaceFrontMesh.name = name + "FrontFace";
     sideFaceFrontMesh.castShadow = true;
+    sideFaceFrontMesh.receiveShadow = true;
     sideFaceFrontMesh.translateZ(dims.thickness / 2);
 
     const sideFaceBackMesh = new THREE.Mesh(sideFaceGeometry, sideFaceMaterial);
     sideFaceBackMesh.name = name + "BackFace";
     sideFaceBackMesh.castShadow = true;
+    sideFaceBackMesh.receiveShadow = true;
     sideFaceBackMesh.translateZ(-dims.thickness / 2);
     sideFaceBackMesh.rotateY(Math.PI)
 
@@ -331,27 +328,71 @@ export class Transformer {
 
   /**
    * @param {string} subName
-   * @returns {THREE.Mesh} wheel
+   * @returns {THREE.Mesh} radar
   */
   #createRadar(subName) {
-    const dims = this.dimentions.radar;
-    const name = this.#name + "_" + subName;
+    const poleDims = this.dimentions.radarPole;
+    const sphereDims = this.dimentions.radarSphere;
+    const discDims = this.dimentions.radarDisc;
+    const radarName = this.#name + "_" + subName;
 
+    const radarBaseMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff, map: this.#metalnessTexture, side: THREE.DoubleSide });
+    const radarCircleMaterial = radarBaseMaterial.clone();
+    radarCircleMaterial.alphaMap = this.#shatterAlphaMap;
+    radarCircleMaterial.transparent = true;
 
+    // Generating the antenna-lookin shape
+    /**@type {THREE.Vector2[]} */
+    let discPoints = [];
+    for (let i = 1; i < discDims.radius + 1; i += discDims.radius / 10) {
+      const point = new THREE.Vector2(i - 1, i ** 0.3 - 1);
+      discPoints.push(point);
+    }
+
+    const poleGeometry = new THREE.CylinderGeometry(poleDims.radius, poleDims.radius, poleDims.height, 20, 20);
+    const discGeometry = new THREE.LatheGeometry(discPoints, 20);
+    const circleGeometry = new THREE.SphereGeometry(sphereDims.radius, 20, 20);
+
+    const lowerPoleMesh = new THREE.Mesh(poleGeometry, radarBaseMaterial);
+    const upperPoleMesh = lowerPoleMesh.clone();
+    const discMesh = new THREE.Mesh(discGeometry, radarBaseMaterial);
+    const circleMesh = new THREE.Mesh(circleGeometry, radarCircleMaterial);
+    
+    const upperPoleYScaleFactor = 1.1;
+    upperPoleMesh.scale.y = upperPoleYScaleFactor;
+    upperPoleMesh.scale.x = 0.4;
+    upperPoleMesh.scale.z = 0.4;
+
+    discMesh.rotateZ(Math.PI / 10);
+
+    discMesh.position.setY(poleDims.height / 2);
+    upperPoleMesh.position.setY(poleDims.height / 2 * upperPoleYScaleFactor + discDims.thickness / 2);
+    circleMesh.position.setY(poleDims.height * upperPoleYScaleFactor + sphereDims.radius);
+
+    lowerPoleMesh.receiveShadow = true;
+    lowerPoleMesh.castShadow = true;
+    discMesh.receiveShadow = true;
+    discMesh.castShadow = true;
+    upperPoleMesh.receiveShadow = true;
+    upperPoleMesh.castShadow = true;
+    circleMesh.receiveShadow = true;
+    circleMesh.castShadow = true;
+    
+    // lowerPoleMesh root of the meshes
+    lowerPoleMesh.add(discMesh);
+    discMesh.add(upperPoleMesh);
+    discMesh.add(circleMesh);
+
+    lowerPoleMesh.name = radarName;
+    return lowerPoleMesh;
   }
 
   /**
    * @param {string} subName
-   * @returns {THREE.Group} wheel
+   * @returns {THREE.Mesh} head
   */
   #createHead(subName) {
-    const dims = this.dimentions.head;
     const name = this.#name + "_" + subName;
-
-    const headGroup = new THREE.Group();
-    headGroup.name = name;
-
-    const headGeometry = new THREE.BoxGeometry(dims.w, dims.h, dims.d);
 
     const headMainMaterial = this.#basicMetallicStandardMaterial.clone();
     const headGlassMaterial = new THREE.MeshLambertMaterial({
@@ -362,13 +403,41 @@ export class Transformer {
     })
     headMainMaterial.side = THREE.DoubleSide;
 
-    const headMesh = new THREE.Mesh(headGeometry, [
+    const head = this.#boxGeometryTemplate(name, this.dimentions.head, [
       headMainMaterial, headMainMaterial, headMainMaterial,
       headMainMaterial, headGlassMaterial, headMainMaterial
-    ]);
+    ])
 
-    headGroup.add(headMesh);
+    return head;
+  }
 
-    return headGroup;
+  /**
+   * @param {string} subName
+   *  
+   */
+  #createUpperArms(subName) {
+    const dims = this.dimentions.upperArms;
+    const name = this.#name + "_" + subName;
+
+    
+  }
+
+  // ---------- HELPER FOR THE HELPERS ----------
+
+  /**
+   * @param {string} name 
+   * @param {Dimention} dimentions 
+   * @param {THREE.Material | THREE.Material[]} material 
+   * @returns {THREE.Mesh} mesh
+   */
+  #boxGeometryTemplate(name, dimentions, material) {
+    const geometry = new THREE.BoxGeometry(dimentions.w, dimentions.h, dimentions.d);
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    mesh.name = name;
+
+    return mesh;
   }
 }
