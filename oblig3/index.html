@@ -113,7 +113,7 @@
       precision highp float;
 
       in vec2 oUv;
-      
+
       uniform sampler2D alphaMapSampler;
       uniform sampler2D mainTextureSampler;
       uniform vec3 uColor;
@@ -122,7 +122,7 @@
       void main() {
         float alphaMask = texture(alphaMapSampler, oUv).r;
         vec4 mainTexture = texture(mainTextureSampler, oUv);
-        
+
         fragColor = vec4(uColor * mainTexture.rgb, alphaMask * mainTexture.a);
       }
 
