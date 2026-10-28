@@ -97,9 +97,9 @@ export const main = async () => {
   const tmpBs = await addTmpExamples(ctx);
   tmpBs.position.setY(-20);
 
-  // ---------- START OF TRANSFORMER ----------
+  // ---------- THE TRANSFORMER ----------
   const tf = new Transformer(
-    "me",
+    "tutorialMan",
     {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),

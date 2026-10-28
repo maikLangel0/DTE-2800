@@ -46,11 +46,11 @@ export class Transformer {
 
   /**
    * @param {string} name
-   * 
+   *
    * @param {Object} armShaderPair
    * @param {string} armShaderPair.upperArmFragmentShader
-   * @param {string} armShaderPair.upperArmVertexShader  
-   * 
+   * @param {string} armShaderPair.upperArmVertexShader
+   *
    * @param {Object} [optionals]
    * @param {THREE.ColorRepresentation} [optionals.metalColor]
    * @param {THREE.Texture | null} [optionals.fallbackTexture]
@@ -182,11 +182,11 @@ export class Transformer {
     // ---------- WHEELS
     const wheelDims = dims.wheel;
     const wheel1 = this.#createWheel("wheel1");
-    wheel1.position.set(torsoDims.w / 2 + wheelDims.thickness / 2, 0, 0);
+    // wheel1.position.set(torsoDims.w / 2 + wheelDims.thickness / 2, 0, 0);
     // torso.add(wheel1);
 
     const wheel2 = this.#createWheel("wheel2");
-    wheel2.position.set(-torsoDims.w / 2 - wheelDims.thickness / 2, 0, 0);
+    // wheel2.position.set(-torsoDims.w / 2 - wheelDims.thickness / 2, 0, 0);
     // torso.add(wheel2);
 
     const wheel3 = this.#createWheel("wheel3");
@@ -236,14 +236,14 @@ export class Transformer {
 
     // ---------- LEFT LEG
     const thighDims = dims.upperLegs;
-    const legToTorsoXOffset = (torsoDims.w - thighDims.w) / 2;
-    
+    const legToTorsoXOffset = (torsoDims.w - thighDims.w + 0.01) / 2;
+
     const {
       hip: leftHip,
       knee: leftKnee
     } = this.#createLeg('leftLeg');
-    
-    leftHip.position.set(-legToTorsoXOffset , -torsoDims.h / 2, 0);
+
+    leftHip.position.set(-legToTorsoXOffset , -torsoDims.h / 2, thighDims.d / 2);
     torso.add(leftHip);
 
     // ---------- RIGHT LEG
@@ -252,9 +252,9 @@ export class Transformer {
       knee: rightKnee
     } = this.#createLeg('rightLeg');
 
-    rightHip.position.set(legToTorsoXOffset, -torsoDims.h / 2, 0);
+    rightHip.position.set(legToTorsoXOffset, -torsoDims.h / 2, thighDims.d / 2);
     torso.add(rightHip);
-    
+
     // ---------- SETTING EVERYTHING IN A GROUP ----------
     const self = new THREE.Group();
     self.name = this.#name;
@@ -265,9 +265,9 @@ export class Transformer {
       + thighDims.h
       + this.dimentions.lowerLegs.h
       + this.dimentions.feet.h;
-    
+
     self.position.y = this.height;
-    
+
     /**@type {THREE.Mesh} */
     this.torso = torso;
 
@@ -276,7 +276,7 @@ export class Transformer {
     /**@type {THREE.Group} */
     this.rightElbow = rightElbow;
     /**@type {{left: THREE.Mesh, right: THREE.Mesh}} */
-    this.rightArmFingers = rightArmFingers; 
+    this.rightArmFingers = rightArmFingers;
 
     /**@type {THREE.Group} */
     this.leftShoulder = leftShoulder;
@@ -284,7 +284,7 @@ export class Transformer {
     this.leftElbow = leftElbow;
     /**@type {{left: THREE.Mesh, right: THREE.Mesh}} */
     this.leftArmFingers = leftArmFingers;
-    
+
     /**@type {THREE.Group} */
     this.wheel1 = wheel1;
     /**@type {THREE.Group} */
@@ -305,7 +305,7 @@ export class Transformer {
     /**@type {THREE.Mesh} */
     this.radar = radar;
 
-    
+
     /**@type {THREE.Group} */
     this.self = self;
   }
@@ -446,10 +446,10 @@ export class Transformer {
     const upperPoleMesh = lowerPoleMesh.clone();
     const discMesh = new THREE.Mesh(discGeometry, radarBaseMaterial);
     const circleMesh = new THREE.Mesh(circleGeometry, radarCircleMaterial);
-    
+
     const upperPoleYScaleFactor = 1.1;
     const upperPoleYOffset = poleDims.height / 2 * upperPoleYScaleFactor;
-    
+
     upperPoleMesh.scale.y = upperPoleYScaleFactor;
     upperPoleMesh.scale.x = 0.4;
     upperPoleMesh.scale.z = 0.4;
@@ -468,7 +468,7 @@ export class Transformer {
     upperPoleMesh.castShadow = true;
     circleMesh.receiveShadow = true;
     circleMesh.castShadow = true;
-    
+
     // lowerPoleMesh root of the meshes
     lowerPoleMesh.add(discMesh);
     discMesh.add(upperPoleMesh);
@@ -551,7 +551,7 @@ export class Transformer {
     ])
     upperArm.position.x = sign * upperDims.w / 2;
     upperArm.position.y = -upperDims.h / 2;
-    
+
     shoulder.add(upperArm);
 
     // ---------- EXHAUST
@@ -575,7 +575,7 @@ export class Transformer {
     exhaust.position.y = upperDims.h / 2 + exhaustDims.height / 2;
 
     upperArm.add(exhaust);
-    
+
     // ---------- ELBOW
     const elbow = new THREE.Group();
     elbow.name = subName + "_elbow";
@@ -583,9 +583,9 @@ export class Transformer {
     elbow.position.y = -upperDims.h / 2;
 
     // elbow.rotation.z = sign * Math.PI / 8;
-    
+
     upperArm.add(elbow);
-    
+
     // ---------- LOWER-ARM
     const lowerArm = this.#boxGeometryTemplate(name + "_lower", lowerDims, basicMaterial);
     lowerArm.position.x = -sign * lowerDims.w / 2;
@@ -606,7 +606,7 @@ export class Transformer {
 
     lowerArm.add(leftFinger);
     lowerArm.add(rightFinger);
-    
+
     return {
       shoulder,
       elbow,
@@ -616,8 +616,8 @@ export class Transformer {
   }
 
   /**
-   * @param {'leftLeg' | 'rightLeg'} subName 
-   * @returns {{hip: THREE.Group, knee: THREE.Group}}  
+   * @param {'leftLeg' | 'rightLeg'} subName
+   * @returns {{hip: THREE.Group, knee: THREE.Group}}
    */
   #createLeg(subName) {
     const thighDims = this.dimentions.upperLegs;
@@ -630,11 +630,13 @@ export class Transformer {
     // ---------- HIP
     const hip = new THREE.Group();
     hip.name = name;
+
     // hip.rotation.x = Math.PI / 4;
 
     // ---------- THIGH
     const thigh = this.#boxGeometryTemplate(name + "_thigh", thighDims, basicMaterial);
     thigh.position.y = -thighDims.h / 2;
+    thigh.position.z = -thighDims.d / 2;
 
     hip.add(thigh);
 
@@ -645,7 +647,7 @@ export class Transformer {
     knee.position.z = -thighDims.d / 2;
 
     // knee.rotation.x = Math.PI / 6;
-    
+
     thigh.add(knee);
 
     // ---------- LEG
@@ -671,9 +673,9 @@ export class Transformer {
   // ---------- HELPER FOR THE HELPERS LOL ----------
 
   /**
-   * @param {string} name 
-   * @param {Dimention} dimentions 
-   * @param {THREE.Material | THREE.Material[]} material 
+   * @param {string} name
+   * @param {Dimention} dimentions
+   * @param {THREE.Material | THREE.Material[]} material
    * @returns {THREE.Mesh} mesh
    */
   #boxGeometryTemplate(name, dimentions, material) {
