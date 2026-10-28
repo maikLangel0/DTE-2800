@@ -145,6 +145,7 @@ export const main = async () => {
 
     tf.neck.rotation.set(0, tf.animations.neckRotY.currRot, 0);
     tf.head.rotation.set(0, tf.animations.headRotY.currRot, 0);
+
   })
 
 

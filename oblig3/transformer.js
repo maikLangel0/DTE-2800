@@ -160,8 +160,8 @@ export class Transformer {
       torso: { w: BASE_WIDTH, h: 8, d: BASE_DEPTH },
       upperArms: { w: BASE_DEPTH * 0.9, h: 4, d: BASE_DEPTH * 0.9 },
       lowerArms: { w: BASE_DEPTH * 0.8, h: 4, d: BASE_DEPTH * 0.8 },
-      upperLegs: { w: BASE_DEPTH * 0.95, h: 5, d: BASE_DEPTH * 0.95 },
-      lowerLegs: { w: BASE_DEPTH * 0.9, h: 5, d: BASE_DEPTH * 0.9 },
+      upperLegs: { w: BASE_DEPTH * 0.7, h: 5, d: BASE_DEPTH * 0.95 },
+      lowerLegs: { w: BASE_DEPTH * 0.6, h: 5, d: BASE_DEPTH * 0.9 },
       feet: { w: BASE_DEPTH * 0.9, h: 0.5, d: BASE_DEPTH * 1.5 },
       fingers: { w: BASE_WIDTH * 0.1, h: 2, d: BASE_WIDTH * 0.1 },
 
@@ -215,9 +215,8 @@ export class Transformer {
     // ---------- LEFT ARM
     const {
       shoulder: leftShoulder,
-      upperArm: leftUpperArm,
+      elbow: leftElbow,
       exhaust: leftExhaust,
-      lowerArm: leftLowerArm,
       fingers: leftArmFingers,
     } = this.#createArm('leftArm');
 
@@ -227,25 +226,65 @@ export class Transformer {
     // ---------- RIGHT ARM
     const {
       shoulder: rightShoulder,
-      upperArm: rightUpperArm,
+      elbow: rightElbow,
       exhaust: rightExhaust,
-      lowerArm: rightLowerArm,
       fingers: rightArmFingers,
     } = this.#createArm('rightArm');
 
     rightShoulder.position.set(torsoDims.w / 2, torsoDims.h / 2, 0);
     torso.add(rightShoulder);
 
+    // ---------- LEFT LEG
+    const thighDims = dims.upperLegs;
+    const legToTorsoXOffset = (torsoDims.w - thighDims.w) / 2;
+    
+    const {
+      hip: leftHip,
+      knee: leftKnee
+    } = this.#createLeg('leftLeg');
+    
+    leftHip.position.set(-legToTorsoXOffset , -torsoDims.h / 2, 0);
+    torso.add(leftHip);
+
+    // ---------- RIGHT LEG
+    const {
+      hip: rightHip,
+      knee: rightKnee
+    } = this.#createLeg('rightLeg');
+
+    rightHip.position.set(legToTorsoXOffset, -torsoDims.h / 2, 0);
+    torso.add(rightHip);
+    
     // ---------- SETTING EVERYTHING IN A GROUP ----------
     const self = new THREE.Group();
     self.name = this.#name;
-    self.position.setY(15);
 
     self.add(torso);
 
+    this.height = torsoDims.h / 2
+      + thighDims.h
+      + this.dimentions.lowerLegs.h
+      + this.dimentions.feet.h;
+    
+    self.position.y = this.height;
+    
     /**@type {THREE.Mesh} */
     this.torso = torso;
 
+    /**@type {THREE.Group} */
+    this.rightShoulder = rightShoulder;
+    /**@type {THREE.Group} */
+    this.rightElbow = rightElbow;
+    /**@type {{left: THREE.Mesh, right: THREE.Mesh}} */
+    this.rightArmFingers = rightArmFingers; 
+
+    /**@type {THREE.Group} */
+    this.leftShoulder = leftShoulder;
+    /**@type {THREE.Group} */
+    this.leftElbow = leftElbow;
+    /**@type {{left: THREE.Mesh, right: THREE.Mesh}} */
+    this.leftArmFingers = leftArmFingers;
+    
     /**@type {THREE.Group} */
     this.wheel1 = wheel1;
     /**@type {THREE.Group} */
@@ -266,6 +305,7 @@ export class Transformer {
     /**@type {THREE.Mesh} */
     this.radar = radar;
 
+    
     /**@type {THREE.Group} */
     this.self = self;
   }
@@ -466,10 +506,8 @@ export class Transformer {
    * @param {'leftArm' | 'rightArm'} subName
    * @returns {{
    *  shoulder: THREE.Group;
-   *  upperArm: THREE.Mesh;
-   *  exhaust: THREE.Mesh;
    *  elbow: THREE.Group;
-   *  lowerArm: THREE.Mesh;
+   *  exhaust: THREE.Mesh;
    *  fingers: { left: THREE.Mesh; right: THREE.Mesh }
    * }}
    */
@@ -492,7 +530,7 @@ export class Transformer {
     const shoulder = new THREE.Group();
     shoulder.name = name;
 
-    shoulder.rotation.z =  sign * Math.PI / 8;
+    // shoulder.rotation.z =  sign * Math.PI / 8;
 
     // ---------- UPPER-ARM
     const customMaterial = new THREE.ShaderMaterial({
@@ -507,7 +545,7 @@ export class Transformer {
         mainTextureSampler: new THREE.Uniform(this.#metalnessTexture),
       },
     })
-    const upperArm = this.#boxGeometryTemplate(name + "_upper", this.dimentions.upperArms, [
+    const upperArm = this.#boxGeometryTemplate(name + "_upper", upperDims, [
       basicMaterial, basicMaterial, basicMaterial,
       basicMaterial, customMaterial, basicMaterial,
     ])
@@ -561,12 +599,9 @@ export class Transformer {
 
     leftFinger.position.y = -lowerDims.h / 2;
     leftFinger.position.x = -lowerDims.w / 4;
-
     // leftFinger.rotation.z = -sign * Math.PI / 8;
-
     rightFinger.position.y = -lowerDims.h / 2;
     rightFinger.position.x = lowerDims.w / 4;
-
     // rightFinger.rotation.z = sign * Math.PI / 8;
 
     lowerArm.add(leftFinger);
@@ -574,11 +609,62 @@ export class Transformer {
     
     return {
       shoulder,
-      upperArm,
-      exhaust,
       elbow,
-      lowerArm,
-      fingers: { left: leftFinger, right: rightFinger }
+      fingers: { left: leftFinger, right: rightFinger },
+      exhaust,
+    };
+  }
+
+  /**
+   * @param {'leftLeg' | 'rightLeg'} subName 
+   * @returns {{hip: THREE.Group, knee: THREE.Group}}  
+   */
+  #createLeg(subName) {
+    const thighDims = this.dimentions.upperLegs;
+    const legDims = this.dimentions.lowerLegs;
+    const feetDims = this.dimentions.feet;
+    const name = this.#name = subName;
+
+    const basicMaterial = this.#basicMetallicStandardMaterial;
+
+    // ---------- HIP
+    const hip = new THREE.Group();
+    hip.name = name;
+    // hip.rotation.x = Math.PI / 4;
+
+    // ---------- THIGH
+    const thigh = this.#boxGeometryTemplate(name + "_thigh", thighDims, basicMaterial);
+    thigh.position.y = -thighDims.h / 2;
+
+    hip.add(thigh);
+
+    // ---------- KNEE
+    const knee = new THREE.Group();
+    knee.name = name + "_knee";
+    knee.position.y = -thighDims.h / 2;
+    knee.position.z = -thighDims.d / 2;
+
+    // knee.rotation.x = Math.PI / 6;
+    
+    thigh.add(knee);
+
+    // ---------- LEG
+    const leg = this.#boxGeometryTemplate(name + "_leg", legDims, basicMaterial);
+    leg.position.y = -legDims.h / 2;
+    leg.position.z = thighDims.d / 2;
+
+    knee.add(leg);
+
+    // ---------- FOOT
+    const foot = this.#boxGeometryTemplate(name + "_foot", feetDims, basicMaterial);
+    foot.position.y = -(legDims.h + feetDims.h) / 2;
+    foot.position.z = (Math.abs(feetDims.d - legDims.d) / 2)
+
+    leg.add(foot);
+
+    return {
+      hip: hip,
+      knee: knee,
     };
   }
 
