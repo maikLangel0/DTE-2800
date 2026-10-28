@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Tween } from "three/examples/jsm/libs/tween.module.js";
+import { getOrThrow } from "../base/lib/utility-functions";
 
 const BASE_WIDTH = 5;
 const BASE_DEPTH = 3;
@@ -20,7 +21,7 @@ export class Transformer {
   /**@type {THREE.MeshStandardMaterial} */
   #basicMetallicStandardMaterial;
 
-  /**@type {THREE.ColorRepresentation} */
+  /**@type {THREE.Color} */
   #metalColor;
 
   /**@type {THREE.Texture | null} */
@@ -33,23 +34,41 @@ export class Transformer {
   #shatterAlphaMap = null;
   /**@type {THREE.Texture | null} */
   #circleAlphaMap = null;
+  /**@type {THREE.Texture | null} */
+  #upperArmAlphaMap = null;
   /**@type {THREE.VideoTexture<HTMLVideoElement> | null} */
   #torsoVideoTexture = null;
 
+  /**@type {string} */
+  #upperArmVert;
+  /**@type {string} */
+  #upperArmFrag;
+
   /**
    * @param {string} name
-   * @param {Object} [options]
-   * @param {THREE.ColorRepresentation} [options.metalColor]
-   * @param {THREE.Texture | null} [options.fallbackTexture]
-   * @param {THREE.Texture | null} [options.wheelRimTexture]
-   * @param {THREE.Texture | null} [options.wheelSideTexture]
-   * @param {THREE.Texture | null} [options.metalnessTexture]
-   * @param {THREE.Texture | null} [options.shatterAlphaMap]
-   * @param {THREE.Texture | null} [options.circleAlphaMap]
-   * @param {THREE.VideoTexture | null} [options.chestVideoTexture]
+   * 
+   * @param {Object} armShaderPair
+   * @param {string} armShaderPair.upperArmFragmentShader
+   * @param {string} armShaderPair.upperArmVertexShader  
+   * 
+   * @param {Object} [optionals]
+   * @param {THREE.ColorRepresentation} [optionals.metalColor]
+   * @param {THREE.Texture | null} [optionals.fallbackTexture]
+   * @param {THREE.Texture | null} [optionals.wheelRimTexture]
+   * @param {THREE.Texture | null} [optionals.wheelSideTexture]
+   * @param {THREE.Texture | null} [optionals.metalnessTexture]
+   * @param {THREE.Texture | null} [optionals.shatterAlphaMap]
+   * @param {THREE.Texture | null} [optionals.circleAlphaMap]
+   * @param {THREE.Texture | null} [optionals.upperArmAlphaMap]
+   * @param {THREE.VideoTexture | null} [optionals.chestVideoTexture]
    */
   constructor(
-    name = "me", {
+    name = "me",
+    {
+      upperArmVertexShader,
+      upperArmFragmentShader
+    },
+    {
       metalColor = 0x9f9f9f,
       fallbackTexture = null,
       wheelRimTexture = null,
@@ -58,17 +77,21 @@ export class Transformer {
       metalnessTexture = null,
       shatterAlphaMap = null,
       circleAlphaMap = null,
+      upperArmAlphaMap = null,
     } = {}
   )
   {
     this.#name = name;
-    this.#metalColor = metalColor;
+    this.#upperArmVert = upperArmVertexShader;
+    this.#upperArmFrag = upperArmFragmentShader;
+    this.#metalColor = new THREE.Color(metalColor);
 
     this.#wheelRimTexture = wheelRimTexture ? wheelRimTexture : fallbackTexture;
     this.#wheelSideTexture = wheelSideTexture ? wheelSideTexture : fallbackTexture;
     this.#metalnessTexture = metalnessTexture ? metalnessTexture : fallbackTexture;
     this.#shatterAlphaMap = shatterAlphaMap ? shatterAlphaMap : fallbackTexture;
     this.#circleAlphaMap = circleAlphaMap ? circleAlphaMap : fallbackTexture;
+    this.#upperArmAlphaMap = upperArmAlphaMap ? upperArmAlphaMap : fallbackTexture;
     this.#torsoVideoTexture = chestVideoTexture;
 
     this.#basicMetallicStandardMaterial = new THREE.MeshStandardMaterial({
@@ -122,6 +145,7 @@ export class Transformer {
      *  upperLegs: Dimention,
      *  lowerLegs: Dimention,
      *  feet: Dimention,
+     *  fingers: Dimention,
      *  wheel: { radius: number; thickness: number },
      *  radarSphere: { radius: number },
      *  radarDisc: { radius: number; thickness: number },
@@ -134,17 +158,18 @@ export class Transformer {
       neck: { w: Math.sqrt(BASE_WIDTH / 2), h: 1, d: Math.sqrt(BASE_WIDTH / 2) },
 
       torso: { w: BASE_WIDTH, h: 8, d: BASE_DEPTH },
-      upperArms: { w: BASE_DEPTH * 0.9, h: 8, d: BASE_DEPTH * 0.9 },
-      lowerArms: { w: BASE_DEPTH * 0.8, h: 8, d: BASE_DEPTH * 0.8 },
+      upperArms: { w: BASE_DEPTH * 0.9, h: 4, d: BASE_DEPTH * 0.9 },
+      lowerArms: { w: BASE_DEPTH * 0.8, h: 4, d: BASE_DEPTH * 0.8 },
       upperLegs: { w: BASE_DEPTH * 0.95, h: 5, d: BASE_DEPTH * 0.95 },
       lowerLegs: { w: BASE_DEPTH * 0.9, h: 5, d: BASE_DEPTH * 0.9 },
       feet: { w: BASE_DEPTH * 0.9, h: 0.5, d: BASE_DEPTH * 1.5 },
+      fingers: { w: BASE_WIDTH * 0.1, h: 2, d: BASE_WIDTH * 0.1 },
 
       wheel: { radius: BASE_DEPTH, thickness: 1 },
       radarSphere: { radius: BASE_DEPTH / 10 },
       radarDisc: { radius: BASE_DEPTH * 0.8, thickness: 0.2 },
       radarPole: { radius: BASE_DEPTH / 12, height: BASE_DEPTH / 3 },
-      exhausts: { radius: BASE_DEPTH * 0.4, height: 1 }
+      exhausts: { radius: BASE_DEPTH * 0.23, height: 1.7 }
     })
 
     // ---------- CREATING EVERYTHING ----------
@@ -158,11 +183,11 @@ export class Transformer {
     const wheelDims = dims.wheel;
     const wheel1 = this.#createWheel("wheel1");
     wheel1.position.set(torsoDims.w / 2 + wheelDims.thickness / 2, 0, 0);
-    torso.add(wheel1);
+    // torso.add(wheel1);
 
     const wheel2 = this.#createWheel("wheel2");
     wheel2.position.set(-torsoDims.w / 2 - wheelDims.thickness / 2, 0, 0);
-    torso.add(wheel2);
+    // torso.add(wheel2);
 
     const wheel3 = this.#createWheel("wheel3");
     const wheel4 = this.#createWheel("wheel4");
@@ -186,6 +211,30 @@ export class Transformer {
     const radar = this.#createRadar("radar");
     radar.position.set(0, radarHeight, 0);
     head.add(radar);
+
+    // ---------- LEFT ARM
+    const {
+      shoulder: leftShoulder,
+      upperArm: leftUpperArm,
+      exhaust: leftExhaust,
+      lowerArm: leftLowerArm,
+      fingers: leftArmFingers,
+    } = this.#createArm('leftArm');
+
+    leftShoulder.position.set(-torsoDims.w / 2, torsoDims.h / 2, 0);
+    torso.add(leftShoulder);
+
+    // ---------- RIGHT ARM
+    const {
+      shoulder: rightShoulder,
+      upperArm: rightUpperArm,
+      exhaust: rightExhaust,
+      lowerArm: rightLowerArm,
+      fingers: rightArmFingers,
+    } = this.#createArm('rightArm');
+
+    rightShoulder.position.set(torsoDims.w / 2, torsoDims.h / 2, 0);
+    torso.add(rightShoulder);
 
     // ---------- SETTING EVERYTHING IN A GROUP ----------
     const self = new THREE.Group();
@@ -350,7 +399,7 @@ export class Transformer {
     }
 
     const poleGeometry = new THREE.CylinderGeometry(poleDims.radius, poleDims.radius, poleDims.height, 20, 20);
-    const discGeometry = new THREE.LatheGeometry(discPoints, 20);
+    const discGeometry = new THREE.LatheGeometry(discPoints, 40);
     const circleGeometry = new THREE.SphereGeometry(sphereDims.radius, 20, 20);
 
     const lowerPoleMesh = new THREE.Mesh(poleGeometry, radarBaseMaterial);
@@ -359,6 +408,8 @@ export class Transformer {
     const circleMesh = new THREE.Mesh(circleGeometry, radarCircleMaterial);
     
     const upperPoleYScaleFactor = 1.1;
+    const upperPoleYOffset = poleDims.height / 2 * upperPoleYScaleFactor;
+    
     upperPoleMesh.scale.y = upperPoleYScaleFactor;
     upperPoleMesh.scale.x = 0.4;
     upperPoleMesh.scale.z = 0.4;
@@ -366,7 +417,7 @@ export class Transformer {
     discMesh.rotateZ(Math.PI / 10);
 
     discMesh.position.setY(poleDims.height / 2);
-    upperPoleMesh.position.setY(poleDims.height / 2 * upperPoleYScaleFactor + discDims.thickness / 2);
+    upperPoleMesh.position.setY(upperPoleYOffset + discDims.thickness / 2);
     circleMesh.position.setY(poleDims.height * upperPoleYScaleFactor + sphereDims.radius);
 
     lowerPoleMesh.receiveShadow = true;
@@ -412,17 +463,126 @@ export class Transformer {
   }
 
   /**
-   * @param {string} subName
-   *  
+   * @param {'leftArm' | 'rightArm'} subName
+   * @returns {{
+   *  shoulder: THREE.Group;
+   *  upperArm: THREE.Mesh;
+   *  exhaust: THREE.Mesh;
+   *  elbow: THREE.Group;
+   *  lowerArm: THREE.Mesh;
+   *  fingers: { left: THREE.Mesh; right: THREE.Mesh }
+   * }}
    */
-  #createUpperArms(subName) {
-    const dims = this.dimentions.upperArms;
+  #createArm(subName) {
+    const upperDims = this.dimentions.upperArms;
+    const lowerDims = this.dimentions.lowerArms;
+    const fingerDims = this.dimentions.fingers;
+    const exhaustDims = this.dimentions.exhausts;
     const name = this.#name + "_" + subName;
 
+    /**@type {number} */
+    let sign;
+    subName === 'leftArm' ? sign = -1 : sign = 1;
+
+    const basicMaterial = this.#basicMetallicStandardMaterial.clone();
+    basicMaterial.side = THREE.DoubleSide;
+    basicMaterial.color = this.#metalColor.clone().add(new THREE.Color(0x804000));
+
+    // ---------- SHOULDER
+    const shoulder = new THREE.Group();
+    shoulder.name = name;
+
+    shoulder.rotation.z =  sign * Math.PI / 8;
+
+    // ---------- UPPER-ARM
+    const customMaterial = new THREE.ShaderMaterial({
+      fragmentShader: this.#upperArmFrag,
+      vertexShader: this.#upperArmVert,
+      glslVersion: THREE.GLSL3,
+      transparent: true,
+      depthTest: true,
+      uniforms: {
+        uColor: { value: new THREE.Color(this.#metalColor) },
+        alphaMapSampler: new THREE.Uniform(this.#upperArmAlphaMap),
+        mainTextureSampler: new THREE.Uniform(this.#metalnessTexture),
+      },
+    })
+    const upperArm = this.#boxGeometryTemplate(name + "_upper", this.dimentions.upperArms, [
+      basicMaterial, basicMaterial, basicMaterial,
+      basicMaterial, customMaterial, basicMaterial,
+    ])
+    upperArm.position.x = sign * upperDims.w / 2;
+    upperArm.position.y = -upperDims.h / 2;
     
+    shoulder.add(upperArm);
+
+    // ---------- EXHAUST
+    const exhaustMaterial = new THREE.MeshStandardMaterial({
+      color: this.#metalColor.clone().sub(new THREE.Color(0x808080)),
+      metalnessMap: this.#metalnessTexture,
+      metalness: 1.0,
+      roughness: 0.1,
+      side: THREE.DoubleSide
+    });
+    const exhaustGeometry = new THREE.CylinderGeometry(
+      exhaustDims.radius * 0.9,
+      exhaustDims.radius,
+      exhaustDims.height,
+      48, 1,
+      true
+    );
+
+    const exhaust = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
+    exhaust.name = subName + "_exhaust";
+    exhaust.position.y = upperDims.h / 2 + exhaustDims.height / 2;
+
+    upperArm.add(exhaust);
+    
+    // ---------- ELBOW
+    const elbow = new THREE.Group();
+    elbow.name = subName + "_elbow";
+    elbow.position.x = sign * upperDims.w / 2;
+    elbow.position.y = -upperDims.h / 2;
+
+    // elbow.rotation.z = sign * Math.PI / 8;
+    
+    upperArm.add(elbow);
+    
+    // ---------- LOWER-ARM
+    const lowerArm = this.#boxGeometryTemplate(name + "_lower", lowerDims, basicMaterial);
+    lowerArm.position.x = -sign * lowerDims.w / 2;
+    lowerArm.position.y = -lowerDims.h / 2;
+
+    elbow.add(lowerArm);
+
+    // ---------- FINGERS
+    const leftFinger = this.#boxGeometryTemplate(name + "_leftFinger", fingerDims, basicMaterial);
+    const rightFinger = this.#boxGeometryTemplate(name + "_rightFinger", fingerDims, basicMaterial);
+
+    leftFinger.position.y = -lowerDims.h / 2;
+    leftFinger.position.x = -lowerDims.w / 4;
+
+    // leftFinger.rotation.z = -sign * Math.PI / 8;
+
+    rightFinger.position.y = -lowerDims.h / 2;
+    rightFinger.position.x = lowerDims.w / 4;
+
+    // rightFinger.rotation.z = sign * Math.PI / 8;
+
+    lowerArm.add(leftFinger);
+    lowerArm.add(rightFinger);
+    
+    return {
+      shoulder,
+      upperArm,
+      exhaust,
+      elbow,
+      lowerArm,
+      fingers: { left: leftFinger, right: rightFinger }
+    };
   }
 
-  // ---------- HELPER FOR THE HELPERS ----------
+  // ---------- HELPER FOR THE HELPERS LOL ----------
 
   /**
    * @param {string} name 

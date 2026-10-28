@@ -302,6 +302,7 @@ export class BasicAppContext {
   /**@param {number} time */
   #initAnimate = (time) => {
     this.fpsInfo.updateFps(time);
+    this.keyManager.handleEvents(this.fpsInfo.dt);
 
     this.#renderLoop(this);
 

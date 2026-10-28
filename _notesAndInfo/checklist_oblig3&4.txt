@@ -1,7 +1,5 @@
 1. Figure out and make something simple with tween animations
-2. Find a use for different standard materials -and geometries
 4. Multiple lightsources that turn on and off
-5. Rotating radar on-top of head
 6. Figure out how to render a view to what the transformer sees:
     (https://uit.instructure.com/courses/42584/pages/vise-forstepersonskamera-i-eget-vindu-2)
 8. Use ExtrudeGeometry somewhere in the figure
@@ -9,13 +7,8 @@
 10. Figure out sprites.
 11. Make some programmed particles too (from the neck);
 
-WHAT TO DO IN ORDER:
-Pre:
-    Make multiple different obscure shapes, but make one where I can:
-        - Make it an ExtrudeGeometry
-    Animate one or more of the shapes with tween and attach a camera to it so that I can render a view from that shape.
-
-
 DONE:
+2. Find a use for different standard materials -and geometries
 3. Use MeshStandardMaterial + 'metalness', 'envMap' and 'envMapIntensity' for metallic material
+5. Rotating radar on-top of head
 7. Figure out how to use atleast 1 animated texture

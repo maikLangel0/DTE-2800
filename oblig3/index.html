@@ -97,6 +97,34 @@
 
           #include <tonemapping_fragment>
       }
+    </script>
+
+    <script type="x-shader/x-vertex" id="upperArmVertShader">
+      precision highp float;
+
+      out vec2 oUv;
+
+      void main() {
+        oUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    </script>
+    <script type="x-shader/x-fragment" id="upperArmFragShader">
+      precision highp float;
+
+      in vec2 oUv;
+      
+      uniform sampler2D alphaMapSampler;
+      uniform sampler2D mainTextureSampler;
+      uniform vec3 uColor;
+
+      out vec4 fragColor;
+      void main() {
+        float alphaMask = texture(alphaMapSampler, oUv).r;
+        vec4 mainTexture = texture(mainTextureSampler, oUv);
+        
+        fragColor = vec4(uColor * mainTexture.rgb, alphaMask * mainTexture.a);
+      }
 
     </script>
 

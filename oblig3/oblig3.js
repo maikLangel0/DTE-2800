@@ -53,8 +53,10 @@ export const main = async () => {
   const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
   const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
+  const silliAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
   shatterAlphaMap.colorSpace = THREE.NoColorSpace;
   circleAlphaMap.colorSpace = THREE.NoColorSpace;
+  silliAlphaMap.colorSpace = THREE.NoColorSpace;
 
   // ---------- MAIN SCENE LIGHTS ----------
   const {
@@ -96,25 +98,33 @@ export const main = async () => {
   tmpBs.position.setY(-20);
 
   // ---------- START OF TRANSFORMER ----------
-  const tf = new Transformer("me", {
-    chestVideoTexture: howToVideoTexture,
-    circleAlphaMap,
-    fallbackTexture,
-    wheelRimTexture,
-    wheelSideTexture,
-    metalnessTexture,
-    shatterAlphaMap,
-  })
+  const tf = new Transformer(
+    "me",
+    {
+      upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
+      upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
+    },
+    {
+      chestVideoTexture: howToVideoTexture,
+      upperArmAlphaMap: silliAlphaMap,
+      circleAlphaMap,
+      fallbackTexture,
+      wheelRimTexture,
+      wheelSideTexture,
+      metalnessTexture,
+      shatterAlphaMap,
+    }
+  )
 
   // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
     const totalTime = self.fpsInfo.totalTime;
     const dt = self.fpsInfo.dt;
 
-    // ---------- UPDATES
     self.fpsInfo.showFps();
+    
+    // ---------- EXTERNAL UPDATES
     mainCameraControls.update(dt);
-    self.keyManager.handleEvents(dt);
 
     // ---------- POPULATING BUFFERS
     self.camera.getWorldPosition(buffers.cameraWorldPos);
