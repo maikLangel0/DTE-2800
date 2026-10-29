@@ -59,7 +59,7 @@ export const basicDirectionalLight = ({
   const directionalLight = new THREE.DirectionalLight(color, intensity);
 
   directionalLight.position.set(posx, posy, posz);
-  directionalLight.lookAt(camx, camy, camz);
+  directionalLight.target.position.set(camx, camy, camz);
   directionalLight.castShadow = true;
 
   directionalLight.shadow.mapSize.set(shadowMapSize, shadowMapSize);
@@ -90,11 +90,10 @@ export const basicDirectionalLight = ({
  * @param {number} [options.shadowMapSize]
  * @param {number} [options.near]
  * @param {number} [options.far]
- * @requires {THREE.SpotLight}
  * @returns {THREE.SpotLight}
  */
 export const basicSpotLight = ({
-  color = 0x808080,
+  color = 0xffffff,
   intensity = 1,
   distance = 0,
   angle = Math.PI / 3,
@@ -117,7 +116,7 @@ export const basicSpotLight = ({
   light.target.position.set(0, 0, 0);
 
   light.position.set(posx, posy, posz);
-  light.lookAt(camx, camy, camz);
+  light.target.position.set(camx, camy, camz);
   light.castShadow = true;
 
   light.shadow.mapSize.set(shadowMapSize, shadowMapSize);

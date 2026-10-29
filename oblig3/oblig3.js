@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../base/threeHelpers/basicAppContext";
-import { clamp, getOrThrow } from "../base/lib/utility-functions";
+import { getOrThrow } from "../base/lib/utility-functions";
 import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
 import { addTmpExamples } from "./_tmp";
 import { Transformer } from "./transformer";
@@ -103,8 +103,7 @@ export const main = async () => {
     {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
-    },
-    {
+    }, {
       chestVideoTexture: howToVideoTexture,
       upperArmAlphaMap: silliAlphaMap,
       circleAlphaMap,
@@ -116,6 +115,8 @@ export const main = async () => {
     }
   )
 
+  tf.log();
+
   // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
     const totalTime = self.fpsInfo.totalTime;
@@ -124,6 +125,7 @@ export const main = async () => {
     self.fpsInfo.showFps();
     
     // ---------- EXTERNAL UPDATES
+    tf.update();
     mainCameraControls.update(dt);
 
     // ---------- POPULATING BUFFERS
@@ -141,46 +143,169 @@ export const main = async () => {
     mainAnimations.movingGrassOffset.x = Math.sin(totalTime) / (7 * GROUND_SIZE);
     mainAnimations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
 
-    tf.radar.rotateY(dt);
-
-    tf.neck.rotation.set(0, tf.animations.neckRotY.currRot, 0);
-    tf.head.rotation.set(0, tf.animations.headRotY.currRot, 0);
-
+    tf.radarRotateY(dt);
   })
 
 
   // ---------- INPUT HANDLING ----------
-  const neckAnim = tf.animations.neckRotY;
-  const headAnim = tf.animations.headRotY;
+  const animations = tf.animations;
+  const params = tf.animationParameters;
+  const neckParams = params.neckRotY;
+  const headParams = params.headRotY;
+  
+  const shoulderParamsX = params.shoulderRotX;
+  const shoulderParamsZ = params.shoulderRotZ;
 
-  const neckGuiHandle = ctx.lilGui.add(neckAnim, 'currRot')
-    .min(neckAnim.min)
-    .max(neckAnim.max)
-    .step(neckAnim.step)
+  const elbowParamsX = params.elbowRotX;
+  const elbowParamsZ = params.elbowRotZ;
+
+  const fingerParams = params.fingersRotZ;
+
+  const hipParamsX = params.hipRotX;
+  const hipParamsZ = params.hipRotZ;
+
+  const kneeParamsX = params.kneeRotX;
+  const kneeParamsZ = params.kneeRotZ;
+
+  const neckGuiHandle = ctx.lilGui.add(animations, 'neckRotY')
+    .min(neckParams.min)
+    .max(neckParams.max)
+    .step(neckParams.step)
     .name("Neck Rotation");
 
-  const headGuiHandle = ctx.lilGui.add(headAnim, 'currRot')
-    .min(headAnim.min)
-    .max(headAnim.max)
-    .step(headAnim.step)
+  const headGuiHandle = ctx.lilGui.add(animations, 'headRotY')
+    .min(headParams.min)
+    .max(headParams.max)
+    .step(headParams.step)
     .name("Head Rotation");
 
+  const leftArmGuiFolder = ctx.lilGui.addFolder('Left Arm');
+
+  const leftShoulderXGuiHandle = leftArmGuiFolder.add(animations.leftShoulderRot, 'x')
+    .min(shoulderParamsX.min)
+    .max(shoulderParamsX.max)
+    .step(shoulderParamsX.step)
+    .name("Shoulder X Rotation")
+  const leftShoulderZGuiHandle = leftArmGuiFolder.add(animations.leftShoulderRot, 'z')
+    .min(shoulderParamsZ.min)
+    .max(shoulderParamsZ.max)
+    .step(shoulderParamsZ.step)
+    .name("Shoulder Z Rotation")
+  const leftElbowXGuiHandle = leftArmGuiFolder.add(animations.leftElbowRot, 'x')
+    .min(elbowParamsX.min)
+    .max(elbowParamsX.max)
+    .step(elbowParamsX.step)
+    .name("Elbow X Rotation")
+  const leftElbowZGuiHandle = leftArmGuiFolder.add(animations.leftElbowRot, 'z')
+    .min(elbowParamsZ.min)
+    .max(elbowParamsZ.max)
+    .step(elbowParamsZ.step)
+    .name("Elbow Z Rotation")
+  const leftHandFingersGuiHandle = leftArmGuiFolder.add(animations, 'leftFingersRotZ')
+    .min(fingerParams.min)
+    .max(fingerParams.max)
+    .step(fingerParams.step)
+    .name("Finger Pinch")
+
+  const rightArmGuiFolder = ctx.lilGui.addFolder('Right Arm');
+
+  const rightShoulderXGuiHandle = rightArmGuiFolder.add(animations.rightShoulderRot, 'x')
+    .min(shoulderParamsX.min)
+    .max(shoulderParamsX.max)
+    .step(shoulderParamsX.step)
+    .name("Shoulder X Rotation")
+  const rightShoulderZGuiHandle = rightArmGuiFolder.add(animations.rightShoulderRot, 'z')
+    .min(shoulderParamsZ.min)
+    .max(shoulderParamsZ.max)
+    .step(shoulderParamsZ.step)
+    .name("Shoulder Z Rotation")
+  const rightElbowXGuiHandle = rightArmGuiFolder.add(animations.rightElbowRot, 'x')
+    .min(elbowParamsX.min)
+    .max(elbowParamsX.max)
+    .step(elbowParamsX.step)
+    .name("Elbow X Rotation")
+  const rightElbowZGuiHandle = rightArmGuiFolder.add(animations.rightElbowRot, 'z')
+    .min(elbowParamsZ.min)
+    .max(elbowParamsZ.max)
+    .step(elbowParamsZ.step)
+    .name("Elbow Z Rotation")
+  const rightHandFingersGuiHandle = rightArmGuiFolder.add(animations, 'rightFingersRotZ')
+    .min(fingerParams.min)
+    .max(fingerParams.max)
+    .step(fingerParams.step)
+    .name("Finger Pinch")
+
+  const leftLegGuiFolder = ctx.lilGui.addFolder('Left Leg');
+
+  const leftHipXGuiHandle = leftLegGuiFolder.add(animations.leftHipRot, 'x')
+    .min(hipParamsX.min)
+    .max(hipParamsX.max)
+    .step(hipParamsX.step)
+    .name("Hip X Rotation")
+  const leftHipZGuiHandle = leftLegGuiFolder.add(animations.leftHipRot, 'z')
+    .min(hipParamsZ.min)
+    .max(hipParamsZ.max)
+    .step(hipParamsZ.step)
+    .name("Hip Z Rotation")
+  const leftKneeXGuiHandle = leftLegGuiFolder.add(animations.leftKneeRot, 'x')
+    .min(kneeParamsX.min)
+    .max(kneeParamsX.max)
+    .step(kneeParamsX.step)
+    .name("Knee X Rotation")
+  const leftKneeZGuiHandle = leftLegGuiFolder.add(animations.leftKneeRot, 'z')
+    .min(kneeParamsZ.min)
+    .max(kneeParamsZ.max)
+    .step(kneeParamsZ.step)
+    .name("Knee Z Rotation")
+  
+  const rightLegGuiFolder = ctx.lilGui.addFolder('Right Leg');
+
+  const rightHipXGuiHandle = rightLegGuiFolder.add(animations.rightHipRot, 'x')
+    .min(hipParamsX.min)
+    .max(hipParamsX.max)
+    .step(hipParamsX.step)
+    .name("Hip X Rotation")
+  const rightHipZGuiHandle = rightLegGuiFolder.add(animations.rightHipRot, 'z')
+    .min(hipParamsZ.min)
+    .max(hipParamsZ.max)
+    .step(hipParamsZ.step)
+    .name("Hip Z Rotation")
+  const rightKneeXGuiHandle = rightLegGuiFolder.add(animations.rightKneeRot, 'x')
+    .min(kneeParamsX.min)
+    .max(kneeParamsX.max)
+    .step(kneeParamsX.step)
+    .name("Knee X Rotation")
+  const rightKneeZGuiHandle = rightLegGuiFolder.add(animations.rightKneeRot, 'z')
+    .min(kneeParamsZ.min)
+    .max(kneeParamsZ.max)
+    .step(kneeParamsZ.step)
+    .name("Knee Z Rotation")
+
   ctx.keyManager.setHoldEventOn('ArrowLeft', (dt) => {
-    neckAnim.currRot = clamp(neckAnim.currRot + 1 * dt, neckAnim.min, neckAnim.max)
-    headAnim.currRot = clamp(headAnim.currRot + 1 * dt, headAnim.min, headAnim.max)
+    tf.neckRotateY(dt);
+    tf.headRotateY(dt);
 
     neckGuiHandle.updateDisplay();
     headGuiHandle.updateDisplay();
-  }).setHoldEventOn('ArrowRight', (dt) => {
-    neckAnim.currRot = clamp(neckAnim.currRot - 1 * dt, neckAnim.min, neckAnim.max)
-    headAnim.currRot = clamp(headAnim.currRot - 1 * dt, headAnim.min, headAnim.max)
+  }
+  ).setHoldEventOn('ArrowRight', (dt) => {
+    tf.neckRotateY(-dt)
+    tf.headRotateY(-dt);
 
     neckGuiHandle.updateDisplay();
     headGuiHandle.updateDisplay();
-  }).setPressEventOn('KeyL', () => {
-    tf.neck.position.setY((tf.dimentions.torso.h - tf.dimentions.neck.h) / 2);
-  }).setPressEventOn('KeyO', () => {
-    tf.neck.position.setY((tf.dimentions.torso.h + tf.dimentions.neck.h) / 2);
+  }
+  ).setHoldEventOn('KeyW', (dt) => {
+    tf.rotateWheels(dt * 10);
+  }
+  ).setHoldEventOn('KeyS', (dt) => {
+    tf.rotateWheels(-dt * 10)
+  }
+  ).setPressEventOn('KeyL', () => {
+    tf.neckSetPositionY((tf.dimentions.torso.h - tf.dimentions.neck.h) / 2);
+  }
+  ).setPressEventOn('KeyO', () => {
+    tf.neckSetPositionY((tf.dimentions.torso.h + tf.dimentions.neck.h) / 2);
   })
 
   // ---------- ADD TO SCENE N RENDER ----------
@@ -192,7 +317,7 @@ export const main = async () => {
 
   ctx.addToScene(tmpBs);
 
-  ctx.addToScene(tf.self);
+  ctx.addToScene(tf.getSelf());
 
   ctx.startRender();
 }
