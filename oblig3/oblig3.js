@@ -3,8 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../base/threeHelpers/basicAppContext";
 import { getOrThrow } from "../base/lib/utility-functions";
 import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
-import { addTmpExamples } from "./_tmp";
 import { Transformer } from "./transformer";
+import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
@@ -35,7 +35,7 @@ export const main = async () => {
       width: CANVAS_WIDTH,
       fov: 60,
     }
-  ).camPosition(0, 20, 50);
+  ).camPosition(0, 40, 70);
   ctx.renderer.setClearColor(0xADD8E6);
 
   const mainCameraControls = new OrbitControls(ctx.camera, ctx.renderer.domElement);
@@ -51,9 +51,11 @@ export const main = async () => {
   const wheelRimTexture = await loadTexSRGB(ctx, '../../base/textures/tireRim.jpg');
   const wheelSideTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
   const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
+  const smokeSpriteMap = await loadTexSRGB(ctx, '../../base/textures/smoke_spritesheet.png');
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
   const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
   const silliAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
+  smokeSpriteMap.magFilter = THREE.NearestFilter;
   shatterAlphaMap.colorSpace = THREE.NoColorSpace;
   circleAlphaMap.colorSpace = THREE.NoColorSpace;
   silliAlphaMap.colorSpace = THREE.NoColorSpace;
@@ -93,9 +95,11 @@ export const main = async () => {
     fragmentShader: getOrThrow(document.getElementById("grassFragShader")?.textContent),
   });
 
-  // ---------- ALL TMP EXAMPLES ----------
-  const tmpBs = await addTmpExamples(ctx);
-  tmpBs.position.setY(-20);
+  // ---------- SMOKE SPRITEBOOK ----------
+  const smokeSpriteBook = new SpriteBook(smokeSpriteMap, "smokeSprite", 5, 8);
+  smokeSpriteBook.reverseIteration();
+  smokeSpriteBook.sprite.scale.set(5, 5);
+  smokeSpriteBook.sprite.renderOrder = 2;
 
   // ---------- THE TRANSFORMER ----------
   const tf = new Transformer(
@@ -104,6 +108,7 @@ export const main = async () => {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
     }, {
+      exhaustSmokeSpriteBook: smokeSpriteBook,
       chestVideoTexture: howToVideoTexture,
       upperArmAlphaMap: silliAlphaMap,
       circleAlphaMap,
@@ -114,8 +119,13 @@ export const main = async () => {
       shatterAlphaMap,
     }
   )
-
-  tf.log();
+  tf.setFPV({
+    canvasId: "canvasFirstPerson",
+    clearColor: 0xADD8E6,
+    fov: 45,
+    width: 250,
+    height: 150
+  })
 
   // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
@@ -123,9 +133,10 @@ export const main = async () => {
     const dt = self.fpsInfo.dt;
 
     self.fpsInfo.showFps();
-    
+    self.lilGui.controllersRecursive().forEach((c) => {c.updateDisplay()})
+
     // ---------- EXTERNAL UPDATES
-    tf.update();
+    tf.update(dt);
     mainCameraControls.update(dt);
 
     // ---------- POPULATING BUFFERS
@@ -144,6 +155,7 @@ export const main = async () => {
     mainAnimations.movingGrassOffset.y = Math.cos(totalTime) / (11 * GROUND_SIZE);
 
     tf.radarRotateY(dt);
+    tf.renderFPV(self.scene);
   })
 
 
@@ -152,7 +164,7 @@ export const main = async () => {
   const params = tf.animationParameters;
   const neckParams = params.neckRotY;
   const headParams = params.headRotY;
-  
+
   const shoulderParamsX = params.shoulderRotX;
   const shoulderParamsZ = params.shoulderRotZ;
 
@@ -257,7 +269,7 @@ export const main = async () => {
     .max(kneeParamsZ.max)
     .step(kneeParamsZ.step)
     .name("Knee Z Rotation")
-  
+
   const rightLegGuiFolder = ctx.lilGui.addFolder('Right Leg');
 
   const rightHipXGuiHandle = rightLegGuiFolder.add(animations.rightHipRot, 'x')
@@ -301,11 +313,28 @@ export const main = async () => {
   ).setHoldEventOn('KeyS', (dt) => {
     tf.rotateWheels(-dt * 10)
   }
-  ).setPressEventOn('KeyL', () => {
-    tf.neckSetPositionY((tf.dimentions.torso.h - tf.dimentions.neck.h) / 2);
+  ).setReleaseEventOn('KeyW', () => {
+    tf.setExhaustSmokeVisibility(false); // Only way to easily turn it of :(
   }
-  ).setPressEventOn('KeyO', () => {
-    tf.neckSetPositionY((tf.dimentions.torso.h + tf.dimentions.neck.h) / 2);
+  ).setReleaseEventOn('KeyS', () => {
+    tf.setExhaustSmokeVisibility(false); // Only way to easily turn it of :(
+  }
+  ).setHoldEventOn('KeyA', (dt) => {
+    tf.leftElbowRotateY(dt);
+    tf.rightElbowRotateY(dt);
+  }
+  ).setHoldEventOn('KeyD', (dt) => {
+    tf.leftElbowRotateY(-dt);
+    tf.rightElbowRotateY(-dt);
+  }
+  ).setPressEventOn('KeyL', () => {
+    tf.toggleHeadLights();
+  }
+  ).setPressEventOn('Space', () => {
+    tf.tweenToggleAnimation();
+  }
+  ).setPressEventOn('KeyP', () => {
+    tf.log();
   })
 
   // ---------- ADD TO SCENE N RENDER ----------
@@ -314,8 +343,6 @@ export const main = async () => {
   ctx.addToScene(mainPointLight);
   ctx.addToScene(mainAmbientLight);
   ctx.addToScene(mainDirectionalLight);
-
-  ctx.addToScene(tmpBs);
 
   ctx.addToScene(tf.getSelf());
 

@@ -4,11 +4,17 @@
 
 <body>
 
-    <div style="top:0px; left:15px; text-align: center; color:black; position: absolute; background-color: black; width: 40ch; opacity: 0.8; z-index: 1;">
-        <p style="color: white;"> yo </p>
+    <div style="top:0px; left:1%; text-align: center; color:black; position: absolute; background-color: black; width: 60ch; opacity: 0.8; z-index: 1;">
+        <p style="color: white;">--- ALWAYS ---</p>
+        <p style="color: white;">Spacebar: Toggle Tween | L: Toggle Lights | P: Log To Console</p>
+        <p style="color: white;">--- WHEN STANDING ---</p>
+        <p style="color: white;">ArrowLeft / ArrowRight: Look Around</p>
+        <p style="color: white;">--- WHEN DRIVING ---</p>
+        <p style="color: white;">WASD: Drive/Reverse/Turn</p>
         <p style="color: white;" id="fps">FPS: -</p>
     </div>
     <canvas id="canvas" style="top: 0px; left: 0%; position: absolute;"></canvas>
+    <canvas id="canvasFirstPerson" style="bottom: 1%; right: 1%; background:lightblue; z-index: 1; position: absolute;"></canvas>
 
     <script type="x-shader/x-vertex" id="grassVertShader">
       precision highp float;

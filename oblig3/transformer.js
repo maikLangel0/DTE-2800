@@ -1,8 +1,11 @@
 import * as THREE from "three";
-import GUI from "lil-gui";
-import { Tween } from "three/examples/jsm/libs/tween.module.js";
+import * as TWEEN from "three/examples/jsm/libs/tween.module.js";
 import { clamp, getOrThrow } from "../base/lib/utility-functions";
 import { basicSpotLight } from "../base/threeHelpers/helpers";
+import { BasicTweenBuilder } from "../base/threeHelpers/tweenBuilder";
+import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
+
+const NINETY_DEG = Math.PI / 2;
 
 const BASE_WIDTH = 5;
 const BASE_DEPTH = 3;
@@ -12,13 +15,19 @@ const BASE_DEPTH = 3;
  * @typedef {{currRot: number; min: number; max: number; step: number}} RotParams
  * @typedef {{min: number; max: number; step: number}} AnimationParameters
  * @typedef {{currPos: number; min: number; max: number; step: number}} MoveParams
+ * @typedef {{ animations: TWEEN.Tween<THREE.Euler | THREE.Vector3>[]; longestAnimationRef: TWEEN.Tween<THREE.Euler | THREE.Vector3>; }} tweenAnimObj
  */
 
 export class Transformer {
   /**@type {('standing' | 'transitioning' | 'driving')} */
   #state = 'standing';
+  /**@type {boolean} if the user explicitly calls on the `.update()` function */
+  #doesManuallyUpdate = false;
   /**@type {string} */
   #name;
+
+  /**@type {{ renderer: THREE.WebGLRenderer; camera: THREE.PerspectiveCamera} | null} */
+  #firstPerson = null;
 
   // Used so many times I might as well store it and use it as a reference
   /**@type {THREE.MeshStandardMaterial} */
@@ -26,6 +35,9 @@ export class Transformer {
 
   /**@type {THREE.Color} */
   #metalColor;
+
+  /**@type {SpriteBook | null} */
+  #smokeSpriteBook = null;
 
   /**@type {THREE.Texture | null} */
   #wheelRimTexture = null;
@@ -48,7 +60,9 @@ export class Transformer {
   #upperArmFrag;
 
   /**@type {number} */
-  #height;
+  #heightStanding;
+  /**@type {number} */
+  #heightDriving;
 
   /**@type {{
    * radar: THREE.Mesh;
@@ -59,15 +73,11 @@ export class Transformer {
    * }} */
   #neckUp;
 
-  /**@type {THREE.SpotLightHelper} */
-  #leftHeadLightHelper;
-  /**@type {THREE.SpotLightHelper} */
-  #rightHeadLightHelper;
-
   /**@type {THREE.Mesh} */
-  #torso;
+  // #torso;
 
   /**@type {{
+   * smoke: THREE.Sprite | null;
    * exhaust: THREE.Mesh;
    * shoulder: THREE.Group;
    * elbow: THREE.Group;
@@ -77,6 +87,7 @@ export class Transformer {
   #rightArm;
 
   /**@type {{
+   * smoke: THREE.Sprite | null;
    * exhaust: THREE.Mesh;
    * shoulder: THREE.Group;
    * elbow: THREE.Group;
@@ -102,6 +113,18 @@ export class Transformer {
   /**@type {THREE.Group} */
   #self;
 
+  /**@type {TWEEN.Group} */
+  #tweenGroup = new TWEEN.Group();
+
+  /**@type {tweenAnimObj} */
+  #tweenStandToDefault;
+
+  /**@type {tweenAnimObj} */
+  #tweenDefaultToDrive;
+
+  /**@type {tweenAnimObj} */
+  #tweenDriveToDefault;
+
   /**
    * @param {string} name
    *
@@ -111,6 +134,7 @@ export class Transformer {
    *
    * @param {Object} [optionals]
    * @param {THREE.ColorRepresentation} [optionals.metalColor]
+   * @param {SpriteBook | null} [optionals.exhaustSmokeSpriteBook]
    * @param {THREE.Texture | null} [optionals.fallbackTexture]
    * @param {THREE.Texture | null} [optionals.wheelRimTexture]
    * @param {THREE.Texture | null} [optionals.wheelSideTexture]
@@ -128,6 +152,7 @@ export class Transformer {
     },
     {
       metalColor = 0x9f9f9f,
+      exhaustSmokeSpriteBook = null,
       fallbackTexture = null,
       wheelRimTexture = null,
       wheelSideTexture = null,
@@ -143,6 +168,8 @@ export class Transformer {
     this.#upperArmVert = upperArmVertexShader;
     this.#upperArmFrag = upperArmFragmentShader;
     this.#metalColor = new THREE.Color(metalColor);
+
+    this.#smokeSpriteBook = exhaustSmokeSpriteBook;
 
     this.#wheelRimTexture = wheelRimTexture ? wheelRimTexture : fallbackTexture;
     this.#wheelSideTexture = wheelSideTexture ? wheelSideTexture : fallbackTexture;
@@ -216,13 +243,13 @@ export class Transformer {
 
       shoulderRotX: { min: -Math.PI, max: Math.PI / 4, step: 0.05 },
       shoulderRotZ: { min: 0, max: Math.PI / 8, step: 0.05 },
-      elbowRotX: { min: -Math.PI / 2, max: 0, step: 0.05 },
+      elbowRotX: { min: -NINETY_DEG, max: 0, step: 0.05 },
       elbowRotY: { min: -Math.PI / 4, max: Math.PI / 4, step: 0.05 },
       elbowRotZ: { min: 0, max: Math.PI / 6, step: 0.05 },
 
       fingersRotZ: { min: -Math.PI / 8, max: Math.PI / 8, step: 0.05 },
 
-      hipRotX: { min: -Math.PI / 2, max: Math.PI / 4, step: 0.05 },
+      hipRotX: { min: -NINETY_DEG, max: Math.PI / 4, step: 0.05 },
       hipRotZ: { min: 0, max: Math.PI / 4, step: 0.05 },
       kneeRotX: { min: 0, max: Math.PI / 1.25, step: 0.05 },
       kneeRotZ: { min: 0, max: Math.PI / 12, step: 0.01 },
@@ -272,16 +299,30 @@ export class Transformer {
     self.name = this.#name;
 
     // ---------- CLAC THE HEIGHT OF HIM/HER
-    const height = dims.torso.h / 2
+    const heightStanding = dims.torso.h / 2
       + dims.upperLegs.h
       + dims.lowerLegs.h
       + dims.feet.h;
 
-    self.position.y = height;
+    const heightDriving = dims.torso.h / 2
+      + dims.wheel.radius / 1.75;
 
-    // ---------- TORSO
+    this.#heightStanding = heightStanding
+    this.#heightDriving = heightDriving;
+
+    self.position.y = heightStanding;
+
+    // ---------- TORSO + BACKBLING
     const torsoDims = dims.torso;
     const torso = this.#createTorso("torso");
+
+    const {
+      leftBackBling,
+      rightBackBling
+    } = this.#createBackBling("backBling");
+
+    torso.add(leftBackBling);
+    torso.add(rightBackBling);
 
     // ---------- NECK
     const neckDims = dims.neck;
@@ -300,16 +341,6 @@ export class Transformer {
 
     neck.add(head);
 
-    const leftHeadLightHelper = new THREE.SpotLightHelper(leftHeadLight);
-    leftHeadLightHelper.visible = false;
-    const rightHeadLightHelper = new THREE.SpotLightHelper(rightHeadLight);
-    rightHeadLightHelper.visible = false;
-
-    head.add(leftHeadLightHelper);
-    head.add(rightHeadLightHelper);
-    leftHeadLightHelper.update();
-    rightHeadLightHelper.update();
-
     // ---------- RADAR
     const radarHeight = dims.radarPole.height / 2 + dims.head.h / 2 + 0.01;
     const radar = this.#createRadar("radar");
@@ -319,6 +350,7 @@ export class Transformer {
     // ---------- LEFT ARM
     const lowerArmDims = this.dimentions.lowerArms;
     const {
+      smoke: leftSmoke,
       shoulder: leftShoulder,
       elbow: leftElbow,
       lowerArm: leftLowerArm,
@@ -335,6 +367,7 @@ export class Transformer {
 
     // ---------- RIGHT ARM
     const {
+      smoke: rightSmoke,
       shoulder: rightShoulder,
       elbow: rightElbow,
       lowerArm: rightLowerArm,
@@ -377,25 +410,27 @@ export class Transformer {
     const wheelDims = dims.wheel;
 
     const wheel1 = this.#createWheel("wheel1");
-    wheel1.position.set(-(lowerArmDims.w / 2 + wheelDims.thickness / 2), -lowerArmDims.h / 4, 0);
+    wheel1.position.set(-(lowerArmDims.w / 2 + wheelDims.thickness / 2), -lowerArmDims.h / 5.5, 0);
     leftLowerArm.add(wheel1);
 
     const wheel2 = this.#createWheel("wheel2");
-    wheel2.position.set(lowerArmDims.w / 2 + wheelDims.thickness / 2, -lowerArmDims.h / 4, 0);
+    wheel2.position.set(lowerArmDims.w / 2 + wheelDims.thickness / 2, -lowerArmDims.h / 5.5, 0);
     rightLowerArm.add(wheel2);
 
     const wheel3 = this.#createWheel("wheel3");
     wheel3.position.set(-(lowerLegDims.w / 2 + wheelDims.thickness / 2), 0, 0);
+    wheel3.rotation.z = -NINETY_DEG;
     leftLowerLeg.add(wheel3);
 
     const wheel4 = this.#createWheel("wheel4");
     wheel4.position.set(lowerLegDims.w / 2 + wheelDims.thickness / 2, 0, 0);
+    wheel4.rotation.z = -NINETY_DEG;
     rightLowerLeg.add(wheel4);
 
     self.add(torso);
 
+
     // ---------- EXPOSING TO THE USER OF CLASS ----------
-    this.#height = height;
 
     this.#neckUp = {
       radar: radar,
@@ -404,10 +439,9 @@ export class Transformer {
       leftHeadLight: leftHeadLight,
       rightHeadLight: rightHeadLight
     }
-    this.#leftHeadLightHelper = leftHeadLightHelper;
-    this.#rightHeadLightHelper = rightHeadLightHelper;
 
     this.#leftArm = {
+      smoke: leftSmoke,
       exhaust: leftExhaust,
       shoulder: leftShoulder,
       elbow: leftElbow,
@@ -416,6 +450,7 @@ export class Transformer {
     }
 
     this.#rightArm = {
+      smoke: rightSmoke,
       exhaust: rightExhaust,
       shoulder: rightShoulder,
       elbow: rightElbow,
@@ -423,7 +458,8 @@ export class Transformer {
       fingers: rightArmFingers
     }
 
-    this.#torso = torso;
+    // Never used
+    // this.#torso = torso;
 
     this.#leftLeg = {
       hip: leftHip,
@@ -438,15 +474,44 @@ export class Transformer {
     }
 
     this.#self = self;
+
+    // ---------- READYING THE POSSIBLE TWEEN ANIMATIONS (has to be at bottom of constructor due to it needing all the class' variables above)
+
+    const tweenBuilder = new BasicTweenBuilder(
+      this.#tweenGroup,
+      {
+        defaultTo: { x: 0, y: 0, z: 0 },
+        defaultEasing: TWEEN.Easing.Quadratic.InOut,
+        defaultTimeMs: 500,
+      }
+    );
+
+    this.#tweenStandToDefault = this.#createTweenStandToDefault(tweenBuilder);
+    tweenBuilder.setTime(1000);
+    this.#tweenDefaultToDrive = this.#createTweenDefaultToDrive(tweenBuilder);
+    this.#tweenDriveToDefault = this.#createTweenDriveToDefault(tweenBuilder);
   }
 
-
   // ##############################################################################
-  //                              ANIMATION FUNCTIONS
+  //                                HOTLOOP UPDATES
   // ##############################################################################
 
-  /** Main purpose is to sync up external changes made to the class' `animations` object. */
-  update() {
+  /**
+   * Not necessary if you only use keyboard/mouse inputs, but if you want/do
+   * * TweenAnimations
+   * * SmokeSprites and Particles
+   * * updates directly using `this.animations...`
+   *
+   * You have to call on this function in your animation/render loop.
+   *
+   * @param {number} dt
+   */
+  update(dt) {
+    this.#doesManuallyUpdate = true;
+
+    this.#tweenGroup.update();
+    this.#smokeSpriteBook?.loop(dt);
+
     const anim = this.animations;
 
     if (this.#state === 'standing') {
@@ -456,18 +521,12 @@ export class Transformer {
       this.#leftArm.shoulder.rotation.x = anim.leftShoulderRot.x;
       this.#leftArm.shoulder.rotation.z = -anim.leftShoulderRot.z; // Rot mirrored
       this.#leftArm.elbow.rotation.x = anim.leftElbowRot.x;
-      this.#leftArm.elbow.rotation.y = anim.leftElbowRot.y;
       this.#leftArm.elbow.rotation.z = -anim.leftElbowRot.z; // Rot mirrored
-      this.#leftArm.fingers.left.rotation.z = anim.leftFingersRotZ;
-      this.#leftArm.fingers.right.rotation.z = -anim.leftFingersRotZ; // Rot mirrored on itself.
 
       this.#rightArm.shoulder.rotation.x = anim.rightShoulderRot.x;
       this.#rightArm.shoulder.rotation.z = anim.rightShoulderRot.z;
       this.#rightArm.elbow.rotation.x = anim.rightElbowRot.x;
-      this.#rightArm.elbow.rotation.y = anim.rightElbowRot.y;
       this.#rightArm.elbow.rotation.z = anim.rightElbowRot.z;
-      this.#rightArm.fingers.left.rotation.z = anim.rightFingersRotZ;
-      this.#rightArm.fingers.right.rotation.z = -anim.rightFingersRotZ; // Rot mirrored on itself.
 
       this.#leftLeg.hip.rotation.x = anim.leftHipRot.x;
       this.#leftLeg.hip.rotation.z = -anim.leftHipRot.z; // Rot mirrored
@@ -479,7 +538,34 @@ export class Transformer {
       this.#rightLeg.knee.rotation.x = anim.rightKneeRot.x;
       this.#rightLeg.knee.rotation.z = anim.rightKneeRot.z;
     }
+    else if (this.#state === 'driving') {
+      this.#leftArm.elbow.rotation.y = anim.leftElbowRot.y;
+      this.#rightArm.elbow.rotation.y = anim.rightElbowRot.y;
+    }
+
+    // Finger wiggling always allowed :D
+    this.#leftArm.fingers.left.rotation.z = anim.leftFingersRotZ;
+    this.#leftArm.fingers.right.rotation.z = -anim.leftFingersRotZ; // Rot mirrored on itself.
+
+    this.#rightArm.fingers.left.rotation.z = anim.rightFingersRotZ;
+    this.#rightArm.fingers.right.rotation.z = -anim.rightFingersRotZ; // Rot mirrored on itself.
   }
+
+  /**@param {THREE.Scene} sceneToRender */
+  renderFPV(sceneToRender) {
+    if (this.#firstPerson) {
+      const renderer = this.#firstPerson.renderer;
+      const cam = this.#firstPerson.camera;
+
+      renderer.render(sceneToRender, cam);
+    } else {
+      console.warn(".setFirstPerson() has not been called yet, so you can't renderFPV.")
+    }
+  }
+
+  // ##############################################################################
+  //                              ANIMATION FUNCTIONS
+  // ##############################################################################
 
   /**
    * @param {number} amount
@@ -502,9 +588,10 @@ export class Transformer {
 
     const params = this.animationParameters.headRotY;
 
-    rotation.y = clamp(rotation.y + amount, params.min, params.max);
+    this.animations.headRotY = clamp(rotation.y + amount, params.min, params.max);
 
-    this.animations.headRotY = rotation.y; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.y = this.animations.headRotY;
 
     return rotation.y;
   }
@@ -519,9 +606,10 @@ export class Transformer {
 
     const params = this.animationParameters.neckRotY;
 
-    rotation.y = clamp(rotation.y + amount, params.min, params.max);
+    this.animations.neckRotY = clamp(rotation.y + amount, params.min, params.max);
 
-    this.animations.neckRotY = rotation.y; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.y = this.animations.neckRotY;
 
     return rotation.y;
   }
@@ -542,9 +630,10 @@ export class Transformer {
 
     const params = this.animationParameters.shoulderRotX;
 
-    rotation.x = clamp(rotation.x + amount, params.min, params.max)
+    this.animations.leftShoulderRot.x = clamp(rotation.x + amount, params.min, params.max)
 
-    this.animations.leftShoulderRot.x = rotation.x; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.x = this.animations.leftShoulderRot.x;
 
     return rotation.x
   }
@@ -559,11 +648,30 @@ export class Transformer {
 
     const params = this.animationParameters.elbowRotX;
 
-    rotation.x = clamp(rotation.x + amount, params.min, params.max)
+    this.animations.leftElbowRot.x = clamp(rotation.x + amount, params.min, params.max)
 
-    this.animations.leftElbowRot.x = rotation.x; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.x = this.animations.leftElbowRot.x;
 
     return rotation.x;
+  }
+
+  /**
+   * @param {number} amount
+   * @returns {number} current rotation value
+   */
+  leftElbowRotateY(amount) {
+    const rotation = this.#leftArm.elbow.rotation;
+    if (this.#state !== 'driving') return rotation.y;
+
+    const params = this.animationParameters.elbowRotY;
+
+    this.animations.leftElbowRot.y = clamp(rotation.y + amount, params.min, params.max)
+
+    if (!this.#doesManuallyUpdate)
+      rotation.y = this.animations.leftElbowRot.y;
+
+    return rotation.y;
   }
 
   /**
@@ -577,21 +685,24 @@ export class Transformer {
 
     if (x !== 0) {
       const paramsX = this.animationParameters.elbowRotX;
-      rotation.x = clamp(rotation.x + x, paramsX.min, paramsX.max);
+      this.animations.leftElbowRot.x = clamp(rotation.x + x, paramsX.min, paramsX.max);
 
-      this.animations.leftElbowRot.x = rotation.x; // To sync it with outside
+      if (!this.#doesManuallyUpdate)
+        rotation.x = this.animations.leftElbowRot.x;
     }
     if (y !== 0) {
       const paramsY = this.animationParameters.elbowRotY;
-      rotation.x = clamp(rotation.y + y, paramsY.min, paramsY.max);
+      this.animations.leftElbowRot.y = clamp(rotation.y + y, paramsY.min, paramsY.max);
 
-      this.animations.leftElbowRot.y = rotation.y; // To sync it with outside
+      if (!this.#doesManuallyUpdate)
+        rotation.y = this.animations.leftElbowRot.y;
     }
     if (z !== 0) {
       const paramsZ = this.animationParameters.elbowRotZ;
-      rotation.x = clamp(rotation.z + z, paramsZ.min, paramsZ.max);
+      this.animations.leftElbowRot.z = clamp(rotation.z + z, paramsZ.min, paramsZ.max);
 
-      this.animations.leftElbowRot.z = rotation.z; // To sync it with outside
+      if (!this.#doesManuallyUpdate)
+        rotation.z = this.animations.leftElbowRot.z;
     }
   }
 
@@ -600,22 +711,23 @@ export class Transformer {
    * @returns {number} current rotation value of one of the fingers. Other one is the same, but opposite sign
    */
   leftArmFingersRotateZ(amount) {
-    const fingers = this.#leftArm.fingers;
-    const leftRot = fingers.left.rotation;
-    const rightRot = fingers.right.rotation;
+    const leftRot = this.#leftArm.fingers.left.rotation;
+    const rightRot = this.#leftArm.fingers.right.rotation;
 
     if (this.#state !== 'standing') return leftRot.z;
 
     const params = this.animationParameters.fingersRotZ;
 
-    const rotValue = clamp(leftRot.z + amount, params.min, params.max);
-    rightRot.z = -rotValue;
-    leftRot.z = rotValue;
+    this.animations.leftFingersRotZ = clamp(leftRot.z + amount, params.min, params.max);;
 
-    this.animations.leftFingersRotZ = rotValue;
+    if (!this.#doesManuallyUpdate) {
+      rightRot.z = -this.animations.leftFingersRotZ; // Inverted cuz they pinch
+      leftRot.z = this.animations.leftFingersRotZ;
+    }
 
-    return rotValue;
+    return leftRot.z;
   }
+
 
   /**
    * @param {number} amount
@@ -627,9 +739,10 @@ export class Transformer {
 
     const params = this.animationParameters.shoulderRotX;
 
-    rotation.x = clamp(rotation.x + amount, params.min, params.max)
+    this.animations.rightShoulderRot.x = clamp(rotation.x + amount, params.min, params.max);
 
-    this.animations.rightShoulderRot.x = rotation.x; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.x = this.animations.rightShoulderRot.x;
 
     return rotation.x
   }
@@ -644,11 +757,62 @@ export class Transformer {
 
     const params = this.animationParameters.elbowRotX;
 
-    rotation.x = clamp(rotation.x + amount, params.min, params.max)
+    this.animations.rightElbowRot.x = clamp(rotation.x + amount, params.min, params.max)
 
-    this.animations.rightElbowRot.x = rotation.x; // To sync it with outside
+    if (!this.#doesManuallyUpdate)
+      rotation.x = this.animations.rightElbowRot.x;
 
     return rotation.x
+  }
+
+  /**
+   * @param {number} amount
+   * @returns {number} current rotation value
+   */
+  rightElbowRotateY(amount) {
+    const rotation = this.#rightArm.elbow.rotation;
+    if (this.#state !== 'driving') return rotation.y;
+
+    const params = this.animationParameters.elbowRotY;
+
+    this.animations.rightElbowRot.y = clamp(rotation.y + amount, params.min, params.max)
+
+    if (!this.#doesManuallyUpdate)
+      rotation.y = this.animations.rightElbowRot.y;
+
+    return rotation.y;
+  }
+
+  /**
+   * @param {[number, number, number]} amounts
+   */
+  rightElbowRotate(amounts) {
+    if (this.#state !== 'standing' && (this.#state !== 'driving' && amounts[0] !== 0 && amounts[2] !== 0)) return;
+    const [x, y, z] = amounts;
+
+    const rotation = this.#rightArm.elbow.rotation;
+
+    if (x !== 0) {
+      const paramsX = this.animationParameters.elbowRotX;
+      this.animations.rightElbowRot.x = clamp(rotation.x + x, paramsX.min, paramsX.max);
+
+      if (!this.#doesManuallyUpdate)
+        rotation.x = this.animations.rightElbowRot.x;
+    }
+    if (y !== 0) {
+      const paramsY = this.animationParameters.elbowRotY;
+      this.animations.rightElbowRot.y = clamp(rotation.y + y, paramsY.min, paramsY.max);
+
+      if (!this.#doesManuallyUpdate)
+        rotation.y = this.animations.rightElbowRot.y;
+    }
+    if (z !== 0) {
+      const paramsZ = this.animationParameters.elbowRotZ;
+      this.animations.rightElbowRot.z = clamp(rotation.z + z, paramsZ.min, paramsZ.max);
+
+      if (!this.#doesManuallyUpdate)
+        rotation.z = this.animations.rightElbowRot.z;
+    }
   }
 
   /**
@@ -656,27 +820,30 @@ export class Transformer {
    * @returns {number} current rotation value of one of the fingers. Other one is the same, but opposite sign
    */
   rightArmFingersRotateZ(amount) {
-    const fingers = this.#rightArm.fingers;
-    const leftRot = fingers.left.rotation;
-    const rightRot = fingers.right.rotation;
+    const leftRot = this.#rightArm.fingers.left.rotation;
+    const rightRot = this.#rightArm.fingers.right.rotation;
 
     if (this.#state !== 'standing') return leftRot.z;
 
     const params = this.animationParameters.fingersRotZ;
 
-    const rotValue = clamp(leftRot.z + amount, params.min, params.max);
-    rightRot.z = -rotValue;
-    leftRot.z = rotValue;
+    this.animations.rightFingersRotZ = clamp(leftRot.z + amount, params.min, params.max);;
 
-    this.animations.rightFingersRotZ = rotValue; // To sync it with outside
+    if (!this.#doesManuallyUpdate) {
+      rightRot.z = -this.animations.rightFingersRotZ; // Inverted cuz they pinch
+      leftRot.z = this.animations.rightFingersRotZ;
+    }
 
-    return rotValue;
+    return leftRot.z;
   }
+
 
   /**@param {number} amount */
   rotateWheels(amount) {
     if (this.#state !== 'driving') return;
 
+    this.setExhaustSmokeVisibility(true);
+    
     this.#leftArm.wheel.rotateZ(amount);
     this.#rightArm.wheel.rotateZ(amount);
     this.#leftLeg.wheel.rotateZ(amount);
@@ -686,8 +853,124 @@ export class Transformer {
   // ---------- FUNCTIONS ON SELF
 
   /** @param {number} amount */
+  translateX(amount) {
+    this.#self.translateX(amount);
+  }
+  /** @param {number} amount */
   translateY(amount) {
     this.#self.translateY(amount);
+  }
+  /** @param {number} amount */
+  translateZ(amount) {
+    this.#self.translateZ(amount);
+  }
+
+  toggleLeftHeadLight() {
+    this.#neckUp.leftHeadLight.visible = !this.#neckUp.leftHeadLight.visible;
+  }
+
+  toggleRightHeadLight() {
+    this.#neckUp.rightHeadLight.visible = !this.#neckUp.rightHeadLight.visible;
+  }
+
+  toggleHeadLights() {
+    this.toggleLeftHeadLight();
+    this.toggleRightHeadLight();
+  }
+
+  // ##############################################################################
+  //                              SETTERS N GETTERS
+  // ##############################################################################
+
+  /**
+   * @param {Object} [options]
+   * @param {string} [options.canvasId]
+   * @param {number} [options.clearColor]
+   * @param {number} [options.width]
+   * @param {number} [options.height]
+   * @param {number} [options.fov]
+   */
+  setFPV(
+    {
+      canvasId = "firstPersonCanvas",
+      clearColor = 0xADD8E6,
+      width = window.innerWidth,
+      height = window.innerHeight,
+      fov = 75,
+    } = {}
+  )
+  {
+    const canvas = document.getElementById(canvasId);
+    if (!(canvas instanceof HTMLCanvasElement)) throw Error("id of canvas in HTML is wrong.");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const renderer = new THREE.WebGLRenderer({
+      stencil: true,
+      antialias: true,
+      canvas: canvas,
+    })
+    renderer.setClearColor(clearColor);
+
+    const camera = new THREE.PerspectiveCamera(
+      fov,
+      width / height,
+      this.dimentions.head.d / 1.9, // So nearPlane doesnt see the glass
+      2000
+    )
+    camera.name = this.#name + "_camera";
+    camera.lookAt(0, 0, 50)
+    this.#neckUp.head.add(camera);
+
+    this.#firstPerson = { renderer, camera }
+  }
+
+  setRotationsToDefault() {
+    const anim = this.animations;
+
+    anim.headRotY = this.#neckUp.head.rotation.y = 0;
+    anim.neckRotY = this.#neckUp.neck.rotation.y = 0;
+
+    anim.leftShoulderRot.x = this.#leftArm.shoulder.rotation.x = 0;
+    anim.leftShoulderRot.z = this.#leftArm.shoulder.rotation.z = 0;
+    anim.leftElbowRot.x = this.#leftArm.elbow.rotation.x = 0;
+    anim.leftElbowRot.y = this.#leftArm.elbow.rotation.y = 0;
+    anim.leftElbowRot.z = this.#leftArm.elbow.rotation.z = 0;
+    anim.leftFingersRotZ = this.#leftArm.fingers.left.rotation.z = 0;
+    this.#leftArm.fingers.right.rotation.z = 0; // this is always inverse of left.rotation.z
+
+    anim.rightShoulderRot.x = this.#rightArm.shoulder.rotation.x = 0;
+    anim.rightShoulderRot.z = this.#rightArm.shoulder.rotation.z = 0;
+    anim.rightElbowRot.x = this.#rightArm.elbow.rotation.x = 0;
+    anim.rightElbowRot.y = this.#rightArm.elbow.rotation.y = 0;
+    anim.rightElbowRot.z = this.#rightArm.elbow.rotation.z = 0;
+    anim.rightFingersRotZ = this.#rightArm.fingers.left.rotation.z = 0;
+    this.#rightArm.fingers.right.rotation.z = 0; // this is always inverse of left.rotation.z
+
+    anim.leftHipRot.x = this.#leftLeg.hip.rotation.x = 0;
+    anim.leftHipRot.z = this.#leftLeg.hip.rotation.z = 0;
+    anim.leftKneeRot.x = this.#leftLeg.knee.rotation.x = 0;
+    anim.leftKneeRot.z = this.#leftLeg.knee.rotation.z = 0;
+
+    anim.rightHipRot.x = this.#rightLeg.hip.rotation.x = 0;
+    anim.rightHipRot.z = this.#rightLeg.hip.rotation.z = 0;
+    anim.rightKneeRot.x = this.#rightLeg.knee.rotation.x = 0;
+    anim.rightKneeRot.z = this.#rightLeg.knee.rotation.z = 0;
+  }
+
+  /** 
+   * @param {boolean} bool 
+   * Only possible if `exhaustSmokeSpriteBook` was given on initialization. 
+  */
+  setExhaustSmokeVisibility(bool) {
+    const leftSmoke = this.#leftArm.smoke;
+    const rightSmoke = this.#rightArm.smoke;
+
+    if (leftSmoke && rightSmoke) {
+      leftSmoke.visible = bool;
+      rightSmoke.visible = bool;
+    }
   }
 
   /**@returns ('standing' | 'transitioning' | 'driving') state */
@@ -712,23 +995,96 @@ export class Transformer {
       leftLightWorld: leftHeadLight.getWorldPosition(v()).toArray(),
       leftTargetLocal: leftHeadLight.target.position.toArray(),
       leftTargetWorld: leftHeadLight.target.getWorldPosition(v()).toArray(),
-
+      currentState: this.#state,
     });
+  }
+
+  tweenToggleAnimation() {
+    this.tweenStandToDrive();
+    this.tweenDriveToStand();
+  }
+
+  tweenStandToDrive() {
+    if (this.#state !== 'standing') return
+    this.#state = 'transitioning';
+
+    const tweenFirst = this.#tweenStandToDefault;
+    const tweenSecond = this.#tweenDefaultToDrive;
+
+    tweenFirst.longestAnimationRef.onComplete(() => {
+      this.setRotationsToDefault();
+
+      tweenSecond.animations.forEach((anim) => {
+        anim.start();
+      })
+    });
+
+    tweenSecond.longestAnimationRef.onComplete(() => {
+      this.#state = 'driving';
+    })
+
+    tweenFirst.animations.forEach((anim) => {
+      anim.start();
+    })
+  }
+
+  tweenDriveToStand() {
+    if (this.#state !== 'driving') return;
+    this.#state = 'transitioning';
+    this.setExhaustSmokeVisibility(false);
+
+    const tween = this.#tweenDriveToDefault;
+
+    tween.animations.forEach((anim) => {
+      anim.start();
+    })
+
+    tween.longestAnimationRef.onComplete(() => {
+      this.#state = 'standing';
+
+      // Band-aid fix to reset the rotation FULLY to default
+      this.setRotationsToDefault();
+    })
+  }
+
+  /** Just a test-function to see it all working together */
+  tweenTestAnimation() {
+    if (this.#state !== 'standing') return
+    this.#state = 'transitioning';
+
+    const stageOne = this.#tweenStandToDefault;
+    const stageTwo = this.#tweenDefaultToDrive;
+    const stageThree = this.#tweenDriveToDefault;
+
+    stageOne.longestAnimationRef.onComplete(() => {
+      stageTwo.animations.forEach((anim) => {
+        anim.start();
+      })
+    })
+
+    stageTwo.longestAnimationRef.onComplete(() => {
+      this.#state = 'driving';
+
+      stageThree.animations.forEach((anim) => {
+        anim.start();
+      })
+    })
+
+    stageThree.longestAnimationRef.onStart(() => {
+      this.#state = 'transitioning';
+    })
+    stageThree.longestAnimationRef.onComplete(() => {
+      this.#state = 'standing';
+    })
+
+    stageOne.animations.forEach((anim) => {
+      anim.start();
+    })
   }
 
   // ##############################################################################
   //                              PRIVATE FUNCTIONS
   // ##############################################################################
-
-  /**
-   * @param {number[]} xyz
-   * @returns {[number, number, number]} xyz
-   */
-  #getXYZorThrow(xyz) {
-    const [x, y, z] = [xyz[0], xyz[1], xyz[2]];
-    if (x === undefined || y === undefined || z === undefined) throw Error("X, Y, or Z is undefined.");
-    return [x, y, z];
-  }
 
   // ---------- PRIVATE CREATING FUNCTIONS ----------
 
@@ -808,7 +1164,7 @@ export class Transformer {
     rimMesh.name = name + "Rim";
     rimMesh.castShadow = true;
     rimMesh.receiveShadow = true;
-    rimMesh.rotateX(Math.PI / 2);
+    rimMesh.rotateX(NINETY_DEG);
 
     const sideFaceGeometry = new THREE.CircleGeometry(dims.radius, 20);
     const sideFaceMaterial = new THREE.MeshStandardMaterial({ map: this.#wheelSideTexture });
@@ -830,7 +1186,7 @@ export class Transformer {
     wheel.add(sideFaceFrontMesh);
     wheel.add(sideFaceBackMesh);
 
-    wheel.rotateY(Math.PI / 2);
+    wheel.rotateY(NINETY_DEG);
 
     return wheel;
   }
@@ -915,7 +1271,6 @@ export class Transformer {
       color: 0x0000ff,
       opacity: 0.2,
       transparent: true,
-      depthTest: false,
     })
     headMainMaterial.side = THREE.DoubleSide;
 
@@ -927,7 +1282,7 @@ export class Transformer {
     const leftHeadLight = basicSpotLight({
       position: [headDims.w / 2, headDims.h / 2, headDims.d / 2],
       lookAt: [headDims.w / 2, headDims.h / 2, 100],
-      intensity: 5000,
+      intensity: 500,
     });
     leftHeadLight.name = "leftHeadLight";
     head.add(leftHeadLight);
@@ -936,7 +1291,7 @@ export class Transformer {
     const rightHeadLight = basicSpotLight({
       position: [-headDims.w / 2, headDims.h / 2, headDims.d / 2],
       lookAt: [-headDims.w / 2, headDims.h / 2, 100],
-      intensity: 5000,
+      intensity: 500,
     });
     rightHeadLight.name = "rightHeadLight";
     head.add(rightHeadLight);
@@ -948,10 +1303,11 @@ export class Transformer {
   /**
    * @param {'leftArm' | 'rightArm'} subName
    * @returns {{
+   *  smoke: THREE.Sprite | null;
+   *  exhaust: THREE.Mesh;
    *  shoulder: THREE.Group;
    *  elbow: THREE.Group;
    *  lowerArm: THREE.Mesh;
-   *  exhaust: THREE.Mesh;
    *  fingers: { left: THREE.Mesh; right: THREE.Mesh }
    * }}
    */
@@ -1018,6 +1374,18 @@ export class Transformer {
 
     upperArm.add(exhaust);
 
+    // ---------- EXHAUST SPRITE
+    /**@type {THREE.Sprite | null} */
+    let smoke = null;
+
+    if (this.#smokeSpriteBook) {
+      smoke = this.#smokeSpriteBook.sprite.clone();
+      smoke.position.y = exhaustDims.height / 1.5;
+      smoke.visible = false;
+
+      exhaust.add(smoke);
+    }
+
     // ---------- ELBOW
     const elbow = new THREE.Group();
     elbow.name = subName + "_elbow";
@@ -1050,11 +1418,12 @@ export class Transformer {
     lowerArm.add(rightFinger);
 
     return {
+      smoke,
+      exhaust,
       shoulder,
       elbow,
       lowerArm,
       fingers: { left: leftFinger, right: rightFinger },
-      exhaust,
     };
   }
 
@@ -1112,6 +1481,152 @@ export class Transformer {
       knee: knee,
       lowerLeg: leg,
     };
+  }
+
+  /**
+   * @param {string} subName
+   * @returns {{leftBackBling: THREE.Mesh, rightBackBling: THREE.Mesh}} backBling
+   */
+  #createBackBling(subName) {
+    const torsoDims = this.dimentions.torso;
+
+    const width = torsoDims.w / 12;
+    const height = torsoDims.h * 0.8;
+
+    const halfW = width / 2;
+    const halfH = height / 2;
+
+    const shape = new THREE.Shape()
+      .moveTo(-halfH, -halfW)
+      .lineTo(-halfH, halfW)
+      .lineTo(halfH, halfW)
+      .lineTo(halfH, -halfW)
+      .lineTo(-halfH, -halfW)
+
+    const material = this.#basicMetallicStandardMaterial.clone();
+    material.color.sub(new THREE.Color(0x808080));
+
+    const geometry = new THREE.ExtrudeGeometry(shape);
+
+    const leftBackBling = new THREE.Mesh(geometry, material);
+    const rightBackBling = leftBackBling.clone();
+
+    leftBackBling.name = this.#name + "_" + subName + "Left";
+    rightBackBling.name = this.#name + "_" + subName + "Right";
+
+    // Magic numbers below LOL cant be bothered cuz it works
+    const magifXOffset = -width * 1.2;
+
+    leftBackBling.position.x = magifXOffset - torsoDims.w / 4;
+    leftBackBling.position.z = -torsoDims.d / 2;
+    leftBackBling.rotateY(NINETY_DEG);
+    leftBackBling.rotateZ(NINETY_DEG);
+
+    rightBackBling.position.x = magifXOffset + torsoDims.w / 4;
+    rightBackBling.position.z = -torsoDims.d / 2;
+    rightBackBling.rotateY(NINETY_DEG);
+    rightBackBling.rotateZ(NINETY_DEG);
+
+    return { leftBackBling, rightBackBling };
+  }
+
+  // ---------- CREATING TWEEN ANIMATIONS ----------
+
+  /**
+   * @param {BasicTweenBuilder} tweenBuilder
+   * @returns {tweenAnimObj}
+   */
+  #createTweenStandToDefault(tweenBuilder) {
+    const headToDefault = tweenBuilder.tweenOn(this.#neckUp.head.rotation);
+    const neckToDefault = tweenBuilder.tweenOn(this.#neckUp.neck.rotation);
+
+    const leftShoulderToDefault = tweenBuilder.tweenOn(this.#leftArm.shoulder.rotation);
+    const leftElbowToDefault = tweenBuilder.tweenOn(this.#leftArm.elbow.rotation);
+
+    const rightShoulderToDefault = tweenBuilder.tweenOn(this.#rightArm.shoulder.rotation);
+    const rightElbowToDefault = tweenBuilder.tweenOn(this.#rightArm.elbow.rotation);
+
+    const leftHipToDefault = tweenBuilder.tweenOn(this.#leftLeg.hip.rotation);
+    const leftKneeToDefault = tweenBuilder.tweenOn(this.#leftLeg.knee.rotation);
+
+    const rightHipToDefault = tweenBuilder.tweenOn(this.#rightLeg.hip.rotation);
+    const rightKneeToDefault = tweenBuilder.tweenOn(this.#rightLeg.knee.rotation);
+
+    return {
+      animations: [
+        headToDefault, neckToDefault,
+        leftShoulderToDefault, leftElbowToDefault,
+        rightShoulderToDefault, rightElbowToDefault,
+        leftHipToDefault, leftKneeToDefault,
+        rightHipToDefault, rightKneeToDefault
+      ],
+      longestAnimationRef: headToDefault // all same time
+    }
+  }
+
+  /**
+   * @param {BasicTweenBuilder} tweenBuilder
+   * @returns {tweenAnimObj}
+   */
+  #createTweenDefaultToDrive(tweenBuilder) {
+    const compactHead = tweenBuilder.tweenOn(this.#neckUp.neck.position, {
+      xyz: { y: this.dimentions.torso.h / 2 - this.dimentions.neck.h / 2 }
+    });
+
+    const leftHipToDrive = tweenBuilder.tweenOn(this.#leftLeg.hip.rotation, {
+      xyz: { x: NINETY_DEG }
+    })
+    const rightHipToDrive = tweenBuilder.tweenOn(this.#rightLeg.hip.rotation, {
+      xyz: { x: NINETY_DEG }
+    })
+
+    const dropToDrive = tweenBuilder.tweenOn(this.#self.position, {
+      xyz: { y: this.#heightDriving },
+      easingFunction: TWEEN.Easing.Bounce.Out,
+      time: 2500
+    })
+
+    return {
+      animations: [
+        compactHead,
+        leftHipToDrive, rightHipToDrive,
+        dropToDrive
+      ],
+      longestAnimationRef: dropToDrive
+    }
+  }
+
+  /**
+   * @param {BasicTweenBuilder} tweenBuilder
+   * @returns {tweenAnimObj}
+   */
+  #createTweenDriveToDefault(tweenBuilder) {
+    const zipUp = tweenBuilder.tweenOn(this.#self.position, {
+      xyz: { y: this.#heightStanding },
+      time: 200,
+      easingFunction: TWEEN.Easing.Quadratic.Out
+    });
+
+    const headToDefault = tweenBuilder.tweenOn(this.#neckUp.neck.position, {
+      xyz: { y: this.dimentions.torso.h / 2 + this.dimentions.neck.h / 2}
+    })
+
+    const leftHipToDefault = tweenBuilder.tweenOn(this.#leftLeg.hip.rotation);
+    const leftElbowToDefault = tweenBuilder.tweenOn(this.#leftArm.elbow.rotation)
+
+    const rightHipToDefault = tweenBuilder.tweenOn(this.#rightLeg.hip.rotation);
+    const rightElbowToDefault = tweenBuilder.tweenOn(this.#rightArm.elbow.rotation)
+
+
+    return {
+      animations: [
+        zipUp,
+        headToDefault,
+        leftHipToDefault, rightHipToDefault,
+        leftElbowToDefault, rightElbowToDefault,
+      ],
+      longestAnimationRef: headToDefault
+    }
   }
 
   // ---------- HELPER FOR THE HELPERS LOL ----------

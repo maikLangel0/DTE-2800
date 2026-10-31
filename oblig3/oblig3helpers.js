@@ -41,7 +41,7 @@ export const createCustomGround = ({
     transparent: true,
     depthWrite: false,
     polygonOffset: true,
-    opacity: 0.5,
+    opacity: 1.0,
     polygonOffsetFactor: -1,
     polygonOffsetUnits: -1,
   });
@@ -72,9 +72,10 @@ export const createMainSceneLights = () => {
   const mainAmbientLight = new THREE.AmbientLight(0xafafaf, 1);
   mainAmbientLight.name = "mainAmbientLight";
 
-  const mainPointLight = new THREE.PointLight(0xffffff, 1, 0, 1.7);
+  const mainPointLight = new THREE.PointLight(0xffffff, 1, 0, 1);
   mainPointLight.name = "mainPointLight";
   mainPointLight.translateY(10);
+  mainPointLight.translateZ(10);
 
   return { mainPointLight, mainAmbientLight, mainDirectionalLight };
 }
@@ -134,3 +135,5 @@ export const loadVideoTexture = (pathToVideo, idInDom) => {
 
   return {videoHandle: video, texture: tex};
 }
+
+

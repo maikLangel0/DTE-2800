@@ -16,7 +16,6 @@ export const degreeToRad = (angle) => {
 }
 
 /**
- *
  * @param {GUI} gui
  * @param {string} name
  * @returns {Controller}
@@ -38,7 +37,6 @@ export const lilGuiControllerByName = (gui, name) => {
  * @param {number} [options.near]
  * @param {number} [options.far]
  * @param {number} [options.shadowCameraBounds]
- * @requires {THREE.DirectionalLight}
  */
 export const basicDirectionalLight = ({
   color = 0x808080,
