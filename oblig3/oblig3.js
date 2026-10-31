@@ -55,7 +55,6 @@ export const main = async () => {
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
   const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
   const silliAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
-  smokeSpriteMap.magFilter = THREE.NearestFilter;
   shatterAlphaMap.colorSpace = THREE.NoColorSpace;
   circleAlphaMap.colorSpace = THREE.NoColorSpace;
   silliAlphaMap.colorSpace = THREE.NoColorSpace;
