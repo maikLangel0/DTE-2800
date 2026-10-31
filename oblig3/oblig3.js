@@ -186,7 +186,7 @@ export const main = async () => {
 
   const headParamsX = params.headRotX;
   const headParamsY = params.headRotY;
-  
+
   const neckParams = params.neckRotY;
 
   const shoulderParamsX = params.shoulderRotX;
@@ -388,7 +388,6 @@ export const main = async () => {
     if (tf.getState() === 'standing')
       tf.setRotationsToDefault();
   })
-  
 
   // ---------- ADD TO SCENE N RENDER ----------
   ctx.addToScene(ground);
