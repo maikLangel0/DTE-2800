@@ -3,7 +3,6 @@ import * as TWEEN from "three/examples/jsm/libs/tween.module.js";
 import { clamp, getOrThrow } from "../base/lib/utility-functions";
 import { basicSpotLight } from "../base/threeHelpers/helpers";
 import { BasicTweenBuilder } from "../base/threeHelpers/tweenBuilder";
-import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
 
 const NINETY_DEG = Math.PI / 2;
 
@@ -189,7 +188,7 @@ export class Transformer {
     /**
      * @type {{
      *  neckRotY: number,
-     *  headRotY: number,
+     *  headRot: {x: number, y: number },
      *  leftShoulderRot: {x: number, z: number},
      *  leftElbowRot: {x: number, y: number, z: number},
      *  leftFingersRotZ: number,
@@ -204,7 +203,7 @@ export class Transformer {
      */
     this.animations = {
       neckRotY: 0,
-      headRotY: 0,
+      headRot: {x: 0, y: 0},
 
       leftShoulderRot: { x: 0, z: 0 },
       leftElbowRot: { x: 0, y: 0, z: 0 },
@@ -224,6 +223,7 @@ export class Transformer {
     /**
      * @type {{
      *  neckRotY: AnimationParameters,
+     *  headRotX: AnimationParameters,
      *  headRotY: AnimationParameters,
      *  shoulderRotX: AnimationParameters,
      *  shoulderRotZ: AnimationParameters,
@@ -238,8 +238,9 @@ export class Transformer {
      * }}
      */
     this.animationParameters = Object.freeze({
-      neckRotY: { min: -Math.PI / 4, max: Math.PI / 4, step: 0.05 }, // neckRot + headRot = 180 degrees each way
-      headRotY: { min: -Math.PI / 4, max: Math.PI / 4, step: 0.05 },
+      neckRotY: { min: -Math.PI / 2, max: Math.PI / 2, step: 0.05 }, // neckRot + headRot = 180 degrees each way
+      headRotX: { min: -Math.PI / 12, max: Math.PI / 12, step: 0.05 },
+      headRotY: { min: -Math.PI / 2, max: Math.PI / 2, step: 0.05 },
 
       shoulderRotX: { min: -Math.PI, max: Math.PI / 4, step: 0.05 },
       shoulderRotZ: { min: 0, max: Math.PI / 8, step: 0.05 },
@@ -328,6 +329,7 @@ export class Transformer {
     const neckDims = dims.neck;
     const neck = this.#createNeck("neck");
     neck.position.set(0, torsoDims.h / 2 + neckDims.h / 2, 0);
+
     torso.add(neck);
 
     // ---------- HEAD
@@ -345,6 +347,7 @@ export class Transformer {
     const radarHeight = dims.radarPole.height / 2 + dims.head.h / 2 + 0.01;
     const radar = this.#createRadar("radar");
     radar.position.set(0, radarHeight, 0);
+
     head.add(radar);
 
     // ---------- LEFT ARM
@@ -430,7 +433,7 @@ export class Transformer {
     self.add(torso);
 
 
-    // ---------- EXPOSING TO THE USER OF CLASS ----------
+    // ---------- DEFINING THE BODYPARTS FOR LATER USE ----------
 
     this.#neckUp = {
       radar: radar,
@@ -475,7 +478,7 @@ export class Transformer {
 
     this.#self = self;
 
-    // ---------- READYING THE POSSIBLE TWEEN ANIMATIONS (has to be at bottom of constructor due to it needing all the class' variables above)
+    // ---------- READYING THE POSSIBLE TWEEN ANIMATIONS (has to be at bottom of constructor due to it needing all the class' variables which are defined above)
 
     const tweenBuilder = new BasicTweenBuilder(
       this.#tweenGroup,
@@ -504,9 +507,9 @@ export class Transformer {
    *
    * You have to call on this function in your animation/render loop.
    *
-   * @param {number} dt
+   * //@param {number} dt
    */
-  update(dt) {
+  update() {
     this.#doesManuallyUpdate = true;
 
     this.#tweenGroup.update();
@@ -514,7 +517,8 @@ export class Transformer {
     const anim = this.animations;
 
     if (this.#state === 'standing') {
-      this.#neckUp.head.rotation.y = anim.headRotY;
+      this.#neckUp.head.rotation.x = anim.headRot.x;
+      this.#neckUp.head.rotation.y = anim.headRot.y;
       this.#neckUp.neck.rotation.y = anim.neckRotY;
 
       this.#leftArm.shoulder.rotation.x = anim.leftShoulderRot.x;
@@ -566,6 +570,10 @@ export class Transformer {
   //                              ANIMATION FUNCTIONS
   // ##############################################################################
 
+  // A lot of the functions below go unused, but they're available IF
+  // the user/I would WANT to use them. Didnt make leg rotations though
+  // cuz you get the gist :(
+
   /**
    * @param {number} amount
    * @returns {number} current rotation value
@@ -587,12 +595,30 @@ export class Transformer {
 
     const params = this.animationParameters.headRotY;
 
-    this.animations.headRotY = clamp(rotation.y + amount, params.min, params.max);
+    this.animations.headRot.y = clamp(rotation.y + amount, params.min, params.max);
 
     if (!this.#doesManuallyUpdate)
-      rotation.y = this.animations.headRotY;
+      rotation.y = this.animations.headRot.y;
 
     return rotation.y;
+  }
+
+  /**
+   * @param {number} amount
+   * @returns {number} current rotation value
+   */
+  headRotateX(amount) {
+    const rotation = this.#neckUp.head.rotation;
+    if (this.#state !== 'standing') return rotation.x; // If not correct state, dont do anything
+
+    const params = this.animationParameters.headRotX;
+
+    this.animations.headRot.x = clamp(rotation.x + amount, params.min, params.max);
+
+    if (!this.#doesManuallyUpdate)
+      rotation.x = this.animations.headRot.x;
+
+    return rotation.x;
   }
 
   /**
@@ -928,7 +954,8 @@ export class Transformer {
   setRotationsToDefault() {
     const anim = this.animations;
 
-    anim.headRotY = this.#neckUp.head.rotation.y = 0;
+    anim.headRot.x = this.#neckUp.head.rotation.x = 0;
+    anim.headRot.y = this.#neckUp.head.rotation.y = 0;
     anim.neckRotY = this.#neckUp.neck.rotation.y = 0;
 
     anim.leftShoulderRot.x = this.#leftArm.shoulder.rotation.x = 0;
@@ -981,22 +1008,13 @@ export class Transformer {
     return this.#self;
   }
 
-  log() {
-    const v = () => new THREE.Vector3();
-
-    const leftHeadLight = getOrThrow(this.#neckUp.head.getObjectByName("leftHeadLight"));
-    if (!(leftHeadLight instanceof THREE.SpotLight)) return;
-
-    console.log("________________________________\nHEAD AND LIGHTS + CURRENT STATE: ")
-    console.table({
-      headLocal: this.#neckUp.head.position.toArray(),
-      headWorld: this.#neckUp.head.getWorldPosition(v()).toArray(),
-      leftLightLocal: leftHeadLight.position.toArray(),
-      leftLightWorld: leftHeadLight.getWorldPosition(v()).toArray(),
-      leftTargetLocal: leftHeadLight.target.position.toArray(),
-      leftTargetWorld: leftHeadLight.target.getWorldPosition(v()).toArray(),
-      currentState: this.#state,
-    });
+  /**Literally just a band-aid function cuz I cant be bothered to pass in the particles in the constructor.
+   * @param {THREE.Object3D} thing
+   * @param {{x?: number; y?: number; z?: number}} offset
+  */
+  addToNeck(thing, { x = 0, y = 0, z = 0 } = {}) {
+    thing.position.set(x, y, z);
+    this.#neckUp.neck.add(thing);
   }
 
   tweenToggleAnimation() {
@@ -1082,6 +1100,24 @@ export class Transformer {
     })
   }
 
+  log() {
+    const v = () => new THREE.Vector3();
+
+    const leftHeadLight = getOrThrow(this.#neckUp.head.getObjectByName("leftHeadLight"));
+    if (!(leftHeadLight instanceof THREE.SpotLight)) return;
+
+    console.log("________________________________\nHEAD AND LIGHTS + CURRENT STATE: ")
+    console.table({
+      headLocal: this.#neckUp.head.position.toArray(),
+      headWorld: this.#neckUp.head.getWorldPosition(v()).toArray(),
+      leftLightLocal: leftHeadLight.position.toArray(),
+      leftLightWorld: leftHeadLight.getWorldPosition(v()).toArray(),
+      leftTargetLocal: leftHeadLight.target.position.toArray(),
+      leftTargetWorld: leftHeadLight.target.getWorldPosition(v()).toArray(),
+      currentState: this.#state,
+    });
+  }
+
   // ##############################################################################
   //                              PRIVATE FUNCTIONS
   // ##############################################################################
@@ -1143,6 +1179,7 @@ export class Transformer {
       // @ts-ignore
       undefined, neckMainMaterial, neckMainMaterial
     ])
+    neck.renderOrder = 3; // grounds' MeshLambertMaterial is renderorder 1 so it looked weird through the alpha of this geometry.
 
     return neck;
   }
@@ -1278,6 +1315,7 @@ export class Transformer {
       headMainMaterial, headMainMaterial, headMainMaterial,
       headMainMaterial, headGlassMaterial, headMainMaterial
     ])
+    head.rotation.order = 'YXZ'; // BAND-AID FIX | yaw and pitch of headrot X n Y is awkward without this.
 
     const leftHeadLight = basicSpotLight({
       position: [headDims.w / 2, headDims.h / 2, headDims.d / 2],
@@ -1338,7 +1376,7 @@ export class Transformer {
       transparent: true,
       depthTest: true,
       uniforms: {
-        uColor: { value: new THREE.Color(this.#metalColor) },
+        uColor: { value: this.#metalColor },
         alphaMapSampler: new THREE.Uniform(this.#upperArmAlphaMap),
         mainTextureSampler: new THREE.Uniform(this.#metalnessTexture),
       },

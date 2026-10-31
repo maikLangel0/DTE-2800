@@ -7,7 +7,7 @@ export class SpriteBook {
 
   #currIndex = 0;
   #totalIndices = 0;
-  
+
   #width = 0;
   #height = 0;
 
@@ -48,7 +48,7 @@ export class SpriteBook {
     this.#spriteMap = spriteMap;
 
     const spriteMat = new THREE.SpriteMaterial({ map: spriteMap });
-    
+
     /**@type {THREE.Sprite} */
     this.sprite = new THREE.Sprite(spriteMat); // public
     this.sprite.name = spriteName;
@@ -56,10 +56,6 @@ export class SpriteBook {
 
 
   // ---------- SET N GET ----------
-  getSprite() {
-    return this.sprite;
-  }
-
   reverseIteration() {
     this.#reversed = true;
     this.#currIndex = this.#totalIndices - 1;
@@ -76,7 +72,7 @@ export class SpriteBook {
     const idx = clamp(tileIdx, 0, this.#totalIndices - 1);
     this.#currIndex = idx;
   }
-  
+
   /** @param {number[] | number} indices */
   excludeIndices(indices) {
     if (typeof indices === 'number') {
@@ -93,7 +89,7 @@ export class SpriteBook {
 
   // ---------- LOOP N UPDATE ----------
   /**
-   * @param {number} dt 
+   * @param {number} dt
    */
   loop(dt) {
     this.#loopTimer += dt * 1000;
@@ -125,13 +121,13 @@ export class SpriteBook {
     })
     console.log(`All indices: ${this.#allIndices}`)
   }
-  
+
   // ---------- PRIVATE ----------
 
   #calculateOffsets() {
     const actualIndex = this.#allIndices[this.#currIndex];
     if (actualIndex === undefined) throw Error("HOW");
-    
+
     this.#offsetX = (actualIndex % this.#width) / this.#width;
     this.#offsetY = (this.#height - Math.floor(actualIndex / this.#width) - 1) / this.#height;
   }

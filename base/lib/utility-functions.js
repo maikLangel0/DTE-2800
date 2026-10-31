@@ -32,7 +32,7 @@ export function clamp(val, min = 0, max = 10) {
  * @returns {T}
  */
 export function getOrThrow(val) {
-  if (!val || val === undefined) {
+  if (val === null || val === undefined) {
     throw Error("Unable to get value.");
   }
   return val;

@@ -16,7 +16,7 @@ export const createCustomGround = ({
   vertexShader,
   fragmentShader,
   uniforms
-}) => {
+ }) => {
   const groundGeometry = createSquareGeometry();
   groundGeometry.scale(groundSize, groundSize, 1);
 
@@ -101,7 +101,7 @@ export const loadTexSRGB = async (ctx, pathToTex) => {
 export const createFallbackTexture = () => {
   const data = new Uint8Array([
     255, 0, 255, 255,     0, 0,   0, 255,
-      0, 0,   0, 255,   255, 0, 255, 255,
+    0,   0,   0, 255,   255, 0, 255, 255,
   ]);
   const tex = new THREE.DataTexture(data, 2, 2, THREE.RGBAFormat);
 

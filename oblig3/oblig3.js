@@ -5,6 +5,7 @@ import { getOrThrow } from "../base/lib/utility-functions";
 import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
 import { Transformer } from "./transformer";
 import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
+import { Particles } from "./particles";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
@@ -96,9 +97,27 @@ export const main = async () => {
 
   // ---------- SMOKE SPRITEBOOK ----------
   const smokeSpriteBook = new SpriteBook(smokeSpriteMap, "smokeSprite", 5, 8);
+  smokeSpriteBook.setLoopInterval(400);
   smokeSpriteBook.reverseIteration();
   smokeSpriteBook.sprite.scale.set(5, 5);
   smokeSpriteBook.sprite.renderOrder = 2;
+
+  // ---------- PARTICLES ----------
+  const particles = new Particles({
+    initialVelocity: new THREE.Vector3(5.5, 1.5, 3),
+    spread: 2.5,
+    particleCount: 50,
+    lifetimeInMs: 2000
+  });
+  const pointMaterial = new THREE.PointsMaterial({
+    size: 0.1,
+    vertexColors: true,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+  });
+  const sparks = new THREE.Points(particles.geometry, pointMaterial);
+  sparks.name = "particleEffect";
+  sparks.frustumCulled = false;
 
   // ---------- THE TRANSFORMER ----------
   const tf = new Transformer(
@@ -125,6 +144,7 @@ export const main = async () => {
     width: 250,
     height: 150
   })
+  tf.addToNeck(sparks);
 
   // ---------- THE ANIMATIONLOOP ----------
   ctx.setAnimationLoop((self) => {
@@ -135,9 +155,10 @@ export const main = async () => {
     self.lilGui.controllersRecursive().forEach((c) => {c.updateDisplay()})
 
     // ---------- EXTERNAL UPDATES
-    tf.update(dt);
+    tf.update();
     smokeSpriteBook.loop(dt);
     mainCameraControls.update(dt);
+    particles.update(dt);
 
     // ---------- POPULATING BUFFERS
     self.camera.getWorldPosition(buffers.cameraWorldPos);
@@ -162,8 +183,11 @@ export const main = async () => {
   // ---------- INPUT HANDLING ----------
   const animations = tf.animations;
   const params = tf.animationParameters;
+
+  const headParamsX = params.headRotX;
+  const headParamsY = params.headRotY;
+  
   const neckParams = params.neckRotY;
-  const headParams = params.headRotY;
 
   const shoulderParamsX = params.shoulderRotX;
   const shoulderParamsZ = params.shoulderRotZ;
@@ -184,36 +208,40 @@ export const main = async () => {
     .max(neckParams.max)
     .step(neckParams.step)
     .name("Neck Rotation");
-
-  const headGuiHandle = ctx.lilGui.add(animations, 'headRotY')
-    .min(headParams.min)
-    .max(headParams.max)
-    .step(headParams.step)
-    .name("Head Rotation");
+  const headXGuiHandle = ctx.lilGui.add(animations.headRot, 'x')
+    .min(headParamsX.min)
+    .max(headParamsX.max)
+    .step(headParamsX.step)
+    .name("Head Rotation X");
+  const headYGuiHandle = ctx.lilGui.add(animations.headRot, 'y')
+    .min(headParamsY.min)
+    .max(headParamsY.max)
+    .step(headParamsY.step)
+    .name("Head Rotation Y");
 
   const leftArmGuiFolder = ctx.lilGui.addFolder('Left Arm');
 
-  const leftShoulderXGuiHandle = leftArmGuiFolder.add(animations.leftShoulderRot, 'x')
+  leftArmGuiFolder.add(animations.leftShoulderRot, 'x')
     .min(shoulderParamsX.min)
     .max(shoulderParamsX.max)
     .step(shoulderParamsX.step)
     .name("Shoulder X Rotation")
-  const leftShoulderZGuiHandle = leftArmGuiFolder.add(animations.leftShoulderRot, 'z')
+  leftArmGuiFolder.add(animations.leftShoulderRot, 'z')
     .min(shoulderParamsZ.min)
     .max(shoulderParamsZ.max)
     .step(shoulderParamsZ.step)
     .name("Shoulder Z Rotation")
-  const leftElbowXGuiHandle = leftArmGuiFolder.add(animations.leftElbowRot, 'x')
+  leftArmGuiFolder.add(animations.leftElbowRot, 'x')
     .min(elbowParamsX.min)
     .max(elbowParamsX.max)
     .step(elbowParamsX.step)
     .name("Elbow X Rotation")
-  const leftElbowZGuiHandle = leftArmGuiFolder.add(animations.leftElbowRot, 'z')
+  leftArmGuiFolder.add(animations.leftElbowRot, 'z')
     .min(elbowParamsZ.min)
     .max(elbowParamsZ.max)
     .step(elbowParamsZ.step)
     .name("Elbow Z Rotation")
-  const leftHandFingersGuiHandle = leftArmGuiFolder.add(animations, 'leftFingersRotZ')
+  leftArmGuiFolder.add(animations, 'leftFingersRotZ')
     .min(fingerParams.min)
     .max(fingerParams.max)
     .step(fingerParams.step)
@@ -221,27 +249,27 @@ export const main = async () => {
 
   const rightArmGuiFolder = ctx.lilGui.addFolder('Right Arm');
 
-  const rightShoulderXGuiHandle = rightArmGuiFolder.add(animations.rightShoulderRot, 'x')
+  rightArmGuiFolder.add(animations.rightShoulderRot, 'x')
     .min(shoulderParamsX.min)
     .max(shoulderParamsX.max)
     .step(shoulderParamsX.step)
     .name("Shoulder X Rotation")
-  const rightShoulderZGuiHandle = rightArmGuiFolder.add(animations.rightShoulderRot, 'z')
+  rightArmGuiFolder.add(animations.rightShoulderRot, 'z')
     .min(shoulderParamsZ.min)
     .max(shoulderParamsZ.max)
     .step(shoulderParamsZ.step)
     .name("Shoulder Z Rotation")
-  const rightElbowXGuiHandle = rightArmGuiFolder.add(animations.rightElbowRot, 'x')
+  rightArmGuiFolder.add(animations.rightElbowRot, 'x')
     .min(elbowParamsX.min)
     .max(elbowParamsX.max)
     .step(elbowParamsX.step)
     .name("Elbow X Rotation")
-  const rightElbowZGuiHandle = rightArmGuiFolder.add(animations.rightElbowRot, 'z')
+  rightArmGuiFolder.add(animations.rightElbowRot, 'z')
     .min(elbowParamsZ.min)
     .max(elbowParamsZ.max)
     .step(elbowParamsZ.step)
     .name("Elbow Z Rotation")
-  const rightHandFingersGuiHandle = rightArmGuiFolder.add(animations, 'rightFingersRotZ')
+  rightArmGuiFolder.add(animations, 'rightFingersRotZ')
     .min(fingerParams.min)
     .max(fingerParams.max)
     .step(fingerParams.step)
@@ -249,22 +277,22 @@ export const main = async () => {
 
   const leftLegGuiFolder = ctx.lilGui.addFolder('Left Leg');
 
-  const leftHipXGuiHandle = leftLegGuiFolder.add(animations.leftHipRot, 'x')
+  leftLegGuiFolder.add(animations.leftHipRot, 'x')
     .min(hipParamsX.min)
     .max(hipParamsX.max)
     .step(hipParamsX.step)
     .name("Hip X Rotation")
-  const leftHipZGuiHandle = leftLegGuiFolder.add(animations.leftHipRot, 'z')
+  leftLegGuiFolder.add(animations.leftHipRot, 'z')
     .min(hipParamsZ.min)
     .max(hipParamsZ.max)
     .step(hipParamsZ.step)
     .name("Hip Z Rotation")
-  const leftKneeXGuiHandle = leftLegGuiFolder.add(animations.leftKneeRot, 'x')
+  leftLegGuiFolder.add(animations.leftKneeRot, 'x')
     .min(kneeParamsX.min)
     .max(kneeParamsX.max)
     .step(kneeParamsX.step)
     .name("Knee X Rotation")
-  const leftKneeZGuiHandle = leftLegGuiFolder.add(animations.leftKneeRot, 'z')
+  leftLegGuiFolder.add(animations.leftKneeRot, 'z')
     .min(kneeParamsZ.min)
     .max(kneeParamsZ.max)
     .step(kneeParamsZ.step)
@@ -272,40 +300,51 @@ export const main = async () => {
 
   const rightLegGuiFolder = ctx.lilGui.addFolder('Right Leg');
 
-  const rightHipXGuiHandle = rightLegGuiFolder.add(animations.rightHipRot, 'x')
+  rightLegGuiFolder.add(animations.rightHipRot, 'x')
     .min(hipParamsX.min)
     .max(hipParamsX.max)
     .step(hipParamsX.step)
     .name("Hip X Rotation")
-  const rightHipZGuiHandle = rightLegGuiFolder.add(animations.rightHipRot, 'z')
+  rightLegGuiFolder.add(animations.rightHipRot, 'z')
     .min(hipParamsZ.min)
     .max(hipParamsZ.max)
     .step(hipParamsZ.step)
     .name("Hip Z Rotation")
-  const rightKneeXGuiHandle = rightLegGuiFolder.add(animations.rightKneeRot, 'x')
+  rightLegGuiFolder.add(animations.rightKneeRot, 'x')
     .min(kneeParamsX.min)
     .max(kneeParamsX.max)
     .step(kneeParamsX.step)
     .name("Knee X Rotation")
-  const rightKneeZGuiHandle = rightLegGuiFolder.add(animations.rightKneeRot, 'z')
+  rightLegGuiFolder.add(animations.rightKneeRot, 'z')
     .min(kneeParamsZ.min)
     .max(kneeParamsZ.max)
     .step(kneeParamsZ.step)
     .name("Knee Z Rotation")
 
+  // KeyboardEvents defined
   ctx.keyManager.setHoldEventOn('ArrowLeft', (dt) => {
     tf.neckRotateY(dt);
     tf.headRotateY(dt);
 
     neckGuiHandle.updateDisplay();
-    headGuiHandle.updateDisplay();
+    headYGuiHandle.updateDisplay();
   }
   ).setHoldEventOn('ArrowRight', (dt) => {
     tf.neckRotateY(-dt)
     tf.headRotateY(-dt);
 
     neckGuiHandle.updateDisplay();
-    headGuiHandle.updateDisplay();
+    headYGuiHandle.updateDisplay();
+  }
+  ).setHoldEventOn('ArrowUp', (dt) => {
+    tf.headRotateX(-dt);
+
+    headXGuiHandle.updateDisplay();
+  }
+  ).setHoldEventOn('ArrowDown', (dt) => {
+    tf.headRotateX(dt);
+
+    headXGuiHandle.updateDisplay();
   }
   ).setHoldEventOn('KeyW', (dt) => {
     tf.rotateWheels(dt * 10);
@@ -331,11 +370,25 @@ export const main = async () => {
     tf.toggleHeadLights();
   }
   ).setPressEventOn('Space', () => {
+    const currState = tf.getState();
+
+    if (currState === 'standing') {
+      sparks.visible = false;
+    } else if (currState === 'driving') {
+      sparks.visible = true;
+    }
+
     tf.tweenToggleAnimation();
   }
   ).setPressEventOn('KeyP', () => {
     tf.log();
+    smokeSpriteBook.log();
+  }
+  ).setPressEventOn('KeyO', () => {
+    if (tf.getState() === 'standing')
+      tf.setRotationsToDefault();
   })
+  
 
   // ---------- ADD TO SCENE N RENDER ----------
   ctx.addToScene(ground);
