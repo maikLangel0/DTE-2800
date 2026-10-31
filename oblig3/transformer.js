@@ -36,8 +36,8 @@ export class Transformer {
   /**@type {THREE.Color} */
   #metalColor;
 
-  /**@type {SpriteBook | null} */
-  #smokeSpriteBook = null;
+  /**@type {THREE.Sprite | null} */
+  #smokeSprite = null;
 
   /**@type {THREE.Texture | null} */
   #wheelRimTexture = null;
@@ -134,7 +134,7 @@ export class Transformer {
    *
    * @param {Object} [optionals]
    * @param {THREE.ColorRepresentation} [optionals.metalColor]
-   * @param {SpriteBook | null} [optionals.exhaustSmokeSpriteBook]
+   * @param {THREE.Sprite | null} [optionals.exhaustSmokeSprite]
    * @param {THREE.Texture | null} [optionals.fallbackTexture]
    * @param {THREE.Texture | null} [optionals.wheelRimTexture]
    * @param {THREE.Texture | null} [optionals.wheelSideTexture]
@@ -152,7 +152,7 @@ export class Transformer {
     },
     {
       metalColor = 0x9f9f9f,
-      exhaustSmokeSpriteBook = null,
+      exhaustSmokeSprite = null,
       fallbackTexture = null,
       wheelRimTexture = null,
       wheelSideTexture = null,
@@ -169,7 +169,7 @@ export class Transformer {
     this.#upperArmFrag = upperArmFragmentShader;
     this.#metalColor = new THREE.Color(metalColor);
 
-    this.#smokeSpriteBook = exhaustSmokeSpriteBook;
+    this.#smokeSprite = exhaustSmokeSprite;
 
     this.#wheelRimTexture = wheelRimTexture ? wheelRimTexture : fallbackTexture;
     this.#wheelSideTexture = wheelSideTexture ? wheelSideTexture : fallbackTexture;
@@ -510,7 +510,6 @@ export class Transformer {
     this.#doesManuallyUpdate = true;
 
     this.#tweenGroup.update();
-    this.#smokeSpriteBook?.loop(dt);
 
     const anim = this.animations;
 
@@ -998,11 +997,6 @@ export class Transformer {
       leftTargetWorld: leftHeadLight.target.getWorldPosition(v()).toArray(),
       currentState: this.#state,
     });
-
-    if (this.#smokeSpriteBook) {
-      console.log("_______________\nSPRITEBOOK LOG: ")
-      this.#smokeSpriteBook.log();
-    }
   }
 
   tweenToggleAnimation() {
@@ -1384,8 +1378,8 @@ export class Transformer {
     /**@type {THREE.Sprite | null} */
     let smoke = null;
 
-    if (this.#smokeSpriteBook) {
-      smoke = this.#smokeSpriteBook.sprite.clone();
+    if (this.#smokeSprite) {
+      smoke = this.#smokeSprite.clone();
       smoke.position.y = exhaustDims.height / 1.5;
       smoke.visible = false;
 

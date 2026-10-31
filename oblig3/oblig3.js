@@ -108,7 +108,7 @@ export const main = async () => {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
     }, {
-      exhaustSmokeSpriteBook: smokeSpriteBook,
+      exhaustSmokeSprite: smokeSpriteBook.sprite,
       chestVideoTexture: howToVideoTexture,
       upperArmAlphaMap: silliAlphaMap,
       circleAlphaMap,
@@ -137,6 +137,7 @@ export const main = async () => {
 
     // ---------- EXTERNAL UPDATES
     tf.update(dt);
+    smokeSpriteBook.loop(dt);
     mainCameraControls.update(dt);
 
     // ---------- POPULATING BUFFERS
