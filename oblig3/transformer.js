@@ -843,7 +843,7 @@ export class Transformer {
     if (this.#state !== 'driving') return;
 
     this.setExhaustSmokeVisibility(true);
-    
+
     this.#leftArm.wheel.rotateZ(amount);
     this.#rightArm.wheel.rotateZ(amount);
     this.#leftLeg.wheel.rotateZ(amount);
@@ -959,9 +959,9 @@ export class Transformer {
     anim.rightKneeRot.z = this.#rightLeg.knee.rotation.z = 0;
   }
 
-  /** 
-   * @param {boolean} bool 
-   * Only possible if `exhaustSmokeSpriteBook` was given on initialization. 
+  /**
+   * @param {boolean} bool
+   * Only possible if `exhaustSmokeSpriteBook` was given on initialization.
   */
   setExhaustSmokeVisibility(bool) {
     const leftSmoke = this.#leftArm.smoke;
@@ -988,6 +988,7 @@ export class Transformer {
     const leftHeadLight = getOrThrow(this.#neckUp.head.getObjectByName("leftHeadLight"));
     if (!(leftHeadLight instanceof THREE.SpotLight)) return;
 
+    console.log("________________________________\nHEAD AND LIGHTS + CURRENT STATE: ")
     console.table({
       headLocal: this.#neckUp.head.position.toArray(),
       headWorld: this.#neckUp.head.getWorldPosition(v()).toArray(),
@@ -997,6 +998,11 @@ export class Transformer {
       leftTargetWorld: leftHeadLight.target.getWorldPosition(v()).toArray(),
       currentState: this.#state,
     });
+
+    if (this.#smokeSpriteBook) {
+      console.log("_______________\nSPRITEBOOK LOG: ")
+      this.#smokeSpriteBook.log();
+    }
   }
 
   tweenToggleAnimation() {
