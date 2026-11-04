@@ -5,7 +5,7 @@ import { getOrThrow } from "../base/lib/utility-functions";
 import { createCustomGround, createFallbackTexture, createMainSceneLights, loadTexSRGB, loadVideoTexture } from "./oblig3helpers";
 import { Transformer } from "./transformer";
 import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
-import { Particles } from "./particles";
+import { ParticleFountain } from "../base/threeHelpers/particleFountain";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
@@ -44,7 +44,7 @@ export const main = async () => {
   // ---------- ALL TEXTURES INITIALIZED ----------
   const {
     videoHandle: _,
-    texture: howToVideoTexture
+    texture: chestVideoTexture
   } = loadVideoTexture('../../base/videos/howTo.webm', 'howToVideo');
 
   const fallbackTexture = createFallbackTexture();
@@ -55,7 +55,7 @@ export const main = async () => {
   const metalnessTexture = await ctx.loadTexture('../../base/textures/metalnessTexture500x500.jpg');
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
   const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
-  const silliAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
+  const upperArmAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
 
   // ---------- MAIN SCENE LIGHTS ----------
   const {
@@ -101,7 +101,7 @@ export const main = async () => {
   smokeSpriteBook.sprite.visible = false;
 
   // ---------- PARTICLES ----------
-  const particles = new Particles({
+  const particles = new ParticleFountain({
     initialVelocity: new THREE.Vector3(5.5, 1.5, 3),
     spread: 2.5,
     particleCount: 50,
@@ -124,14 +124,9 @@ export const main = async () => {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
     }, {
-      chestVideoTexture: howToVideoTexture,
-      upperArmAlphaMap: silliAlphaMap,
-      shatterAlphaMap,
-      circleAlphaMap,
-      fallbackTexture,
-      wheelRimTexture,
-      wheelSideTexture,
-      metalnessTexture,
+      chestVideoTexture,
+      upperArmAlphaMap, shatterAlphaMap, circleAlphaMap,
+      wheelRimTexture, wheelSideTexture, metalnessTexture, fallbackTexture,
     }
   )
   tf.setFPV({

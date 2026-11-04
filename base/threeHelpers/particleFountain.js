@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const SIXTYFPSFRAMETIME = 16.667 / 1000;
 
-export class Particles {
+export class ParticleFountain {
   /**@type {number} */
   #particleCount;
   /**@type {number} */
