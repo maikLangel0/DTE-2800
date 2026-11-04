@@ -58,7 +58,6 @@ export class SpriteBook {
   // ---------- SET N GET ----------
   reverseIteration() {
     this.#reversed = true;
-    this.#currIndex = this.#totalIndices - 1;
   }
 
   /** @param {number} timeInMs */
@@ -91,7 +90,7 @@ export class SpriteBook {
   /**
    * @param {number} dt
    */
-  loop(dt) {
+  update(dt) {
     this.#loopTimer += dt * 1000;
 
     if (this.#loopTimer >= this.#iterationPerLoopInterval) {

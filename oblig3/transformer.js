@@ -35,8 +35,8 @@ export class Transformer {
   /**@type {THREE.Color} */
   #metalColor;
 
-  /**@type {THREE.Sprite | null} */
-  #smokeSprite = null;
+  /**@type {{leftSmoke: THREE.Sprite; rightSmoke: THREE.Sprite} | null} */
+  #smokesHandle = null;
 
   /**@type {THREE.Texture | null} */
   #wheelRimTexture = null;
@@ -76,7 +76,6 @@ export class Transformer {
   // #torso;
 
   /**@type {{
-   * smoke: THREE.Sprite | null;
    * exhaust: THREE.Mesh;
    * shoulder: THREE.Group;
    * elbow: THREE.Group;
@@ -86,7 +85,6 @@ export class Transformer {
   #rightArm;
 
   /**@type {{
-   * smoke: THREE.Sprite | null;
    * exhaust: THREE.Mesh;
    * shoulder: THREE.Group;
    * elbow: THREE.Group;
@@ -151,7 +149,6 @@ export class Transformer {
     },
     {
       metalColor = 0x9f9f9f,
-      exhaustSmokeSprite = null,
       fallbackTexture = null,
       wheelRimTexture = null,
       wheelSideTexture = null,
@@ -167,8 +164,6 @@ export class Transformer {
     this.#upperArmVert = upperArmVertexShader;
     this.#upperArmFrag = upperArmFragmentShader;
     this.#metalColor = new THREE.Color(metalColor);
-
-    this.#smokeSprite = exhaustSmokeSprite;
 
     this.#wheelRimTexture = wheelRimTexture ? wheelRimTexture : fallbackTexture;
     this.#wheelSideTexture = wheelSideTexture ? wheelSideTexture : fallbackTexture;
@@ -353,7 +348,6 @@ export class Transformer {
     // ---------- LEFT ARM
     const lowerArmDims = this.dimentions.lowerArms;
     const {
-      smoke: leftSmoke,
       shoulder: leftShoulder,
       elbow: leftElbow,
       lowerArm: leftLowerArm,
@@ -370,7 +364,6 @@ export class Transformer {
 
     // ---------- RIGHT ARM
     const {
-      smoke: rightSmoke,
       shoulder: rightShoulder,
       elbow: rightElbow,
       lowerArm: rightLowerArm,
@@ -444,7 +437,6 @@ export class Transformer {
     }
 
     this.#leftArm = {
-      smoke: leftSmoke,
       exhaust: leftExhaust,
       shoulder: leftShoulder,
       elbow: leftElbow,
@@ -453,7 +445,6 @@ export class Transformer {
     }
 
     this.#rightArm = {
-      smoke: rightSmoke,
       exhaust: rightExhaust,
       shoulder: rightShoulder,
       elbow: rightElbow,
@@ -986,16 +977,13 @@ export class Transformer {
   }
 
   /**
+   * Does nothing unless `.addExhaustSprite()` has already been called.
    * @param {boolean} bool
-   * Only possible if `exhaustSmokeSpriteBook` was given on initialization.
   */
   setExhaustSmokeVisibility(bool) {
-    const leftSmoke = this.#leftArm.smoke;
-    const rightSmoke = this.#rightArm.smoke;
-
-    if (leftSmoke && rightSmoke) {
-      leftSmoke.visible = bool;
-      rightSmoke.visible = bool;
+    if (this.#smokesHandle) {
+      this.#smokesHandle.leftSmoke.visible = bool;
+      this.#smokesHandle.rightSmoke.visible = bool;
     }
   }
 
@@ -1015,6 +1003,24 @@ export class Transformer {
   addToNeck(thing, { x = 0, y = 0, z = 0 } = {}) {
     thing.position.set(x, y, z);
     this.#neckUp.neck.add(thing);
+  }
+
+  /** Clones the sprite for each exhaust.
+   * @param {THREE.Sprite} sprite
+   * @param {{x?: number; y?: number; z?: number}} offset
+   * @returns {{leftSmoke: THREE.Sprite; rightSmoke: THREE.Sprite}}
+  */
+  addExhaustSprite(sprite, { x = 0, y = this.dimentions.exhausts.height / 1.5, z = 0 } = {}) {
+    sprite.position.set(x, y, z);
+
+    const leftSmoke = sprite.clone();
+    const rightSmoke = sprite.clone();
+
+    this.#smokesHandle = { leftSmoke, rightSmoke };
+    this.#leftArm.exhaust.add(leftSmoke);
+    this.#rightArm.exhaust.add(rightSmoke);
+
+    return this.#smokesHandle;
   }
 
   tweenToggleAnimation() {
@@ -1341,7 +1347,6 @@ export class Transformer {
   /**
    * @param {'leftArm' | 'rightArm'} subName
    * @returns {{
-   *  smoke: THREE.Sprite | null;
    *  exhaust: THREE.Mesh;
    *  shoulder: THREE.Group;
    *  elbow: THREE.Group;
@@ -1412,18 +1417,6 @@ export class Transformer {
 
     upperArm.add(exhaust);
 
-    // ---------- EXHAUST SPRITE
-    /**@type {THREE.Sprite | null} */
-    let smoke = null;
-
-    if (this.#smokeSprite) {
-      smoke = this.#smokeSprite.clone();
-      smoke.position.y = exhaustDims.height / 1.5;
-      smoke.visible = false;
-
-      exhaust.add(smoke);
-    }
-
     // ---------- ELBOW
     const elbow = new THREE.Group();
     elbow.name = subName + "_elbow";
@@ -1456,7 +1449,6 @@ export class Transformer {
     lowerArm.add(rightFinger);
 
     return {
-      smoke,
       exhaust,
       shoulder,
       elbow,

@@ -43,7 +43,7 @@ export const main = async () => {
 
   // ---------- ALL TEXTURES INITIALIZED ----------
   const {
-    videoHandle: howToVideoHandle,
+    videoHandle: _,
     texture: howToVideoTexture
   } = loadVideoTexture('../../base/videos/howTo.webm', 'howToVideo');
 
@@ -51,14 +51,11 @@ export const main = async () => {
   const grassTexture = await loadTexSRGB(ctx, '../../base/textures/newGrassTexture.png');
   const wheelRimTexture = await loadTexSRGB(ctx, '../../base/textures/tireRim.jpg');
   const wheelSideTexture = await loadTexSRGB(ctx, '../../base/textures/tireSideFace.png');
-  const metalnessTexture = await loadTexSRGB(ctx, '../../base/textures/metalnessTexture500x500.jpg');
   const smokeSpriteMap = await loadTexSRGB(ctx, '../../base/textures/smoke_spritesheet.png');
+  const metalnessTexture = await ctx.loadTexture('../../base/textures/metalnessTexture500x500.jpg');
   const shatterAlphaMap = await ctx.loadTexture('../../base/textures/shatterAlphaMapInverted.png');
   const circleAlphaMap = await ctx.loadTexture('../../base/textures/blackCircle.jpg');
   const silliAlphaMap = await ctx.loadTexture('../../base/textures/silliLilAlphaTexture.png');
-  shatterAlphaMap.colorSpace = THREE.NoColorSpace;
-  circleAlphaMap.colorSpace = THREE.NoColorSpace;
-  silliAlphaMap.colorSpace = THREE.NoColorSpace;
 
   // ---------- MAIN SCENE LIGHTS ----------
   const {
@@ -101,6 +98,7 @@ export const main = async () => {
   smokeSpriteBook.reverseIteration();
   smokeSpriteBook.sprite.scale.set(5, 5);
   smokeSpriteBook.sprite.renderOrder = 2;
+  smokeSpriteBook.sprite.visible = false;
 
   // ---------- PARTICLES ----------
   const particles = new Particles({
@@ -116,7 +114,7 @@ export const main = async () => {
     blending: THREE.AdditiveBlending,
   });
   const sparks = new THREE.Points(particles.geometry, pointMaterial);
-  sparks.name = "particleEffect";
+  sparks.name = "neckSparks";
   sparks.frustumCulled = false;
 
   // ---------- THE TRANSFORMER ----------
@@ -126,15 +124,14 @@ export const main = async () => {
       upperArmVertexShader: getOrThrow(document.getElementById("upperArmVertShader")?.innerText),
       upperArmFragmentShader: getOrThrow(document.getElementById("upperArmFragShader")?.innerText),
     }, {
-      exhaustSmokeSprite: smokeSpriteBook.sprite,
       chestVideoTexture: howToVideoTexture,
       upperArmAlphaMap: silliAlphaMap,
+      shatterAlphaMap,
       circleAlphaMap,
       fallbackTexture,
       wheelRimTexture,
       wheelSideTexture,
       metalnessTexture,
-      shatterAlphaMap,
     }
   )
   tf.setFPV({
@@ -144,6 +141,7 @@ export const main = async () => {
     width: 250,
     height: 150
   })
+  tf.addExhaustSprite(smokeSpriteBook.sprite);
   tf.addToNeck(sparks);
 
   // ---------- THE ANIMATIONLOOP ----------
@@ -156,9 +154,9 @@ export const main = async () => {
 
     // ---------- EXTERNAL UPDATES
     tf.update();
-    smokeSpriteBook.loop(dt);
-    mainCameraControls.update(dt);
     particles.update(dt);
+    smokeSpriteBook.update(dt);
+    mainCameraControls.update(dt);
 
     // ---------- POPULATING BUFFERS
     self.camera.getWorldPosition(buffers.cameraWorldPos);
@@ -179,146 +177,126 @@ export const main = async () => {
     tf.renderFPV(self.scene);
   })
 
-
   // ---------- INPUT HANDLING ----------
   const animations = tf.animations;
   const params = tf.animationParameters;
 
-  const headParamsX = params.headRotX;
-  const headParamsY = params.headRotY;
-
-  const neckParams = params.neckRotY;
-
-  const shoulderParamsX = params.shoulderRotX;
-  const shoulderParamsZ = params.shoulderRotZ;
-
-  const elbowParamsX = params.elbowRotX;
-  const elbowParamsZ = params.elbowRotZ;
-
-  const fingerParams = params.fingersRotZ;
-
-  const hipParamsX = params.hipRotX;
-  const hipParamsZ = params.hipRotZ;
-
-  const kneeParamsX = params.kneeRotX;
-  const kneeParamsZ = params.kneeRotZ;
-
   const neckGuiHandle = ctx.lilGui.add(animations, 'neckRotY')
-    .min(neckParams.min)
-    .max(neckParams.max)
-    .step(neckParams.step)
+    .min(params.neckRotY.min)
+    .max(params.neckRotY.max)
+    .step(params.neckRotY.step)
     .name("Neck Rotation");
   const headXGuiHandle = ctx.lilGui.add(animations.headRot, 'x')
-    .min(headParamsX.min)
-    .max(headParamsX.max)
-    .step(headParamsX.step)
+    .min(params.headRotX.min)
+    .max(params.headRotX.max)
+    .step(params.headRotX.step)
     .name("Head Rotation X");
   const headYGuiHandle = ctx.lilGui.add(animations.headRot, 'y')
-    .min(headParamsY.min)
-    .max(headParamsY.max)
-    .step(headParamsY.step)
+    .min(params.headRotY.min)
+    .max(params.headRotY.max)
+    .step(params.headRotY.step)
     .name("Head Rotation Y");
 
   const leftArmGuiFolder = ctx.lilGui.addFolder('Left Arm');
 
   leftArmGuiFolder.add(animations.leftShoulderRot, 'x')
-    .min(shoulderParamsX.min)
-    .max(shoulderParamsX.max)
-    .step(shoulderParamsX.step)
+    .min(params.shoulderRotX.min)
+    .max(params.shoulderRotX.max)
+    .step(params.shoulderRotX.step)
     .name("Shoulder X Rotation")
   leftArmGuiFolder.add(animations.leftShoulderRot, 'z')
-    .min(shoulderParamsZ.min)
-    .max(shoulderParamsZ.max)
-    .step(shoulderParamsZ.step)
+    .min(params.shoulderRotZ.min)
+    .max(params.shoulderRotZ.max)
+    .step(params.shoulderRotZ.step)
     .name("Shoulder Z Rotation")
   leftArmGuiFolder.add(animations.leftElbowRot, 'x')
-    .min(elbowParamsX.min)
-    .max(elbowParamsX.max)
-    .step(elbowParamsX.step)
+    .min(params.elbowRotX.min)
+    .max(params.elbowRotX.max)
+    .step(params.elbowRotX.step)
     .name("Elbow X Rotation")
   leftArmGuiFolder.add(animations.leftElbowRot, 'z')
-    .min(elbowParamsZ.min)
-    .max(elbowParamsZ.max)
-    .step(elbowParamsZ.step)
+    .min(params.elbowRotZ.min)
+    .max(params.elbowRotZ.max)
+    .step(params.elbowRotZ.step)
     .name("Elbow Z Rotation")
   leftArmGuiFolder.add(animations, 'leftFingersRotZ')
-    .min(fingerParams.min)
-    .max(fingerParams.max)
-    .step(fingerParams.step)
+    .min(params.fingersRotZ.min)
+    .max(params.fingersRotZ.max)
+    .step(params.fingersRotZ.step)
     .name("Finger Pinch")
 
   const rightArmGuiFolder = ctx.lilGui.addFolder('Right Arm');
 
   rightArmGuiFolder.add(animations.rightShoulderRot, 'x')
-    .min(shoulderParamsX.min)
-    .max(shoulderParamsX.max)
-    .step(shoulderParamsX.step)
+    .min(params.shoulderRotX.min)
+    .max(params.shoulderRotX.max)
+    .step(params.shoulderRotX.step)
     .name("Shoulder X Rotation")
   rightArmGuiFolder.add(animations.rightShoulderRot, 'z')
-    .min(shoulderParamsZ.min)
-    .max(shoulderParamsZ.max)
-    .step(shoulderParamsZ.step)
+    .min(params.shoulderRotZ.min)
+    .max(params.shoulderRotZ.max)
+    .step(params.shoulderRotZ.step)
     .name("Shoulder Z Rotation")
   rightArmGuiFolder.add(animations.rightElbowRot, 'x')
-    .min(elbowParamsX.min)
-    .max(elbowParamsX.max)
-    .step(elbowParamsX.step)
+    .min(params.elbowRotX.min)
+    .max(params.elbowRotX.max)
+    .step(params.elbowRotX.step)
     .name("Elbow X Rotation")
   rightArmGuiFolder.add(animations.rightElbowRot, 'z')
-    .min(elbowParamsZ.min)
-    .max(elbowParamsZ.max)
-    .step(elbowParamsZ.step)
+    .min(params.elbowRotZ.min)
+    .max(params.elbowRotZ.max)
+    .step(params.elbowRotZ.step)
     .name("Elbow Z Rotation")
   rightArmGuiFolder.add(animations, 'rightFingersRotZ')
-    .min(fingerParams.min)
-    .max(fingerParams.max)
-    .step(fingerParams.step)
+    .min(params.fingersRotZ.min)
+    .max(params.fingersRotZ.max)
+    .step(params.fingersRotZ.step)
     .name("Finger Pinch")
 
   const leftLegGuiFolder = ctx.lilGui.addFolder('Left Leg');
 
   leftLegGuiFolder.add(animations.leftHipRot, 'x')
-    .min(hipParamsX.min)
-    .max(hipParamsX.max)
-    .step(hipParamsX.step)
+    .min(params.hipRotX.min)
+    .max(params.hipRotX.max)
+    .step(params.hipRotX.step)
     .name("Hip X Rotation")
   leftLegGuiFolder.add(animations.leftHipRot, 'z')
-    .min(hipParamsZ.min)
-    .max(hipParamsZ.max)
-    .step(hipParamsZ.step)
+    .min(params.hipRotZ.min)
+    .max(params.hipRotZ.max)
+    .step(params.hipRotZ.step)
     .name("Hip Z Rotation")
   leftLegGuiFolder.add(animations.leftKneeRot, 'x')
-    .min(kneeParamsX.min)
-    .max(kneeParamsX.max)
-    .step(kneeParamsX.step)
+    .min(params.kneeRotX.min)
+    .max(params.kneeRotX.max)
+    .step(params.kneeRotX.step)
     .name("Knee X Rotation")
   leftLegGuiFolder.add(animations.leftKneeRot, 'z')
-    .min(kneeParamsZ.min)
-    .max(kneeParamsZ.max)
-    .step(kneeParamsZ.step)
+    .min(params.kneeRotZ.min)
+    .max(params.kneeRotZ.max)
+    .step(params.kneeRotZ.step)
     .name("Knee Z Rotation")
 
   const rightLegGuiFolder = ctx.lilGui.addFolder('Right Leg');
 
   rightLegGuiFolder.add(animations.rightHipRot, 'x')
-    .min(hipParamsX.min)
-    .max(hipParamsX.max)
-    .step(hipParamsX.step)
+    .min(params.hipRotX.min)
+    .max(params.hipRotX.max)
+    .step(params.hipRotX.step)
     .name("Hip X Rotation")
   rightLegGuiFolder.add(animations.rightHipRot, 'z')
-    .min(hipParamsZ.min)
-    .max(hipParamsZ.max)
-    .step(hipParamsZ.step)
+    .min(params.hipRotZ.min)
+    .max(params.hipRotZ.max)
+    .step(params.hipRotZ.step)
     .name("Hip Z Rotation")
   rightLegGuiFolder.add(animations.rightKneeRot, 'x')
-    .min(kneeParamsX.min)
-    .max(kneeParamsX.max)
-    .step(kneeParamsX.step)
+    .min(params.kneeRotX.min)
+    .max(params.kneeRotX.max)
+    .step(params.kneeRotX.step)
     .name("Knee X Rotation")
   rightLegGuiFolder.add(animations.rightKneeRot, 'z')
-    .min(kneeParamsZ.min)
-    .max(kneeParamsZ.max)
-    .step(kneeParamsZ.step)
+    .min(params.kneeRotZ.min)
+    .max(params.kneeRotZ.max)
+    .step(params.kneeRotZ.step)
     .name("Knee Z Rotation")
 
   // KeyboardEvents defined

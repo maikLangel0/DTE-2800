@@ -3,6 +3,8 @@
 
 import * as THREE from "three";
 
+const SIXTYFPSFRAMETIME = 16.667 / 1000;
+
 export class Particles {
   /**@type {number} */
   #particleCount;
@@ -82,7 +84,7 @@ export class Particles {
   /** @param {number} deltaTime */
   update(deltaTime) {
     // Min dt of that in 60fps so no stutters in animation
-    const dt = Math.min(deltaTime, 16.667 / 1000);
+    const dt = Math.min(deltaTime, SIXTYFPSFRAMETIME);
 
     const pos = this.#positions;
     const vel = this.#velocities;
