@@ -10,13 +10,15 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.2",
-    "@types/three": "^0.186.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.3.2"
+    "@types/bun": "^1.4.4",
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "ammo.js": "^0.0.10",
     "lil-gui": "^0.21.0",
-    "three": "^0.186.1"
+    "three": "^0.187.0"
   }
 }

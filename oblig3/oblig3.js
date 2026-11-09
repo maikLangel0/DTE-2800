@@ -6,6 +6,7 @@ import { createCustomGround, createFallbackTexture, createMainSceneLights, loadT
 import { Transformer } from "./transformer";
 import { SpriteBook } from "../base/threeHelpers/spriteFlipBook";
 import { ParticleFountain } from "../base/threeHelpers/particleFountain";
+import RAPIER from "@dimforge/rapier3d-compat";
 
 const CANVAS_HEIGHT = window.innerHeight;
 const CANVAS_WIDTH = window.innerWidth;
