@@ -28,9 +28,6 @@ export class BasicAppContext {
     renderer.setSize(width, height);
   };
 
-  /**@type {THREE.LoadingManager} */
-  #loadingManager = new THREE.LoadingManager();
-
   // ##############################################################################
   //                                THE CONSTRUCTOR
   // ##############################################################################
@@ -57,8 +54,10 @@ export class BasicAppContext {
 
     /**@type {THREE.Scene} */
     this.scene = new THREE.Scene();
+    /**@type {THREE.LoadingManager} ctx's own loadingManager*/
+    this.loadingManager = new THREE.LoadingManager();
     /**@type {THREE.TextureLoader} */
-    this.textureLoader = new THREE.TextureLoader(this.#loadingManager);
+    this.textureLoader = new THREE.TextureLoader(this.loadingManager);
     /**@type {GUI} */
     this.lilGui = new GUI().title("GUI");
 
