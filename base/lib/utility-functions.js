@@ -29,11 +29,13 @@ export function clamp(val, min = 0, max = 10) {
 /**
  * @template T
  * @param {T | null | undefined} val
+ * @param {string} [errMsg] 
  * @returns {T}
  */
-export function getOrThrow(val) {
+export function getOrThrow(val, errMsg) {
   if (val === null || val === undefined) {
-    throw Error("Unable to get value.");
+    if (errMsg !== undefined) throw Error(errMsg)
+    else throw Error("Unable to get value.")
   }
   return val;
 }

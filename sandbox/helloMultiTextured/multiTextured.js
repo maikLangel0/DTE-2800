@@ -476,7 +476,7 @@ function animate(renderInfo) {
 
   renderInfo.canvas.update();
 
-  renderInfo.camera.handleKeys(renderInfo.keyManager.keysPressed, fps.dt);
+  renderInfo.camera.handleKeys(renderInfo.keyManager.keysHeld, fps.dt);
   renderInfo.keyManager.handleEvents(fps.dt);
 
   window.requestAnimationFrame((currentTime) => {

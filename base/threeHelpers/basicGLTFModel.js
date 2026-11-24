@@ -48,6 +48,8 @@ export class BasicGLTFModel {
         console.warn(`Animation index of ${idx} and over are not defined (couldnt create the animation named ${name}).`);
         break;
       }
+      
+      idx += 1;
 
       if (duration) animation.duration = duration;
       if (blendMode) animation.blendMode = blendMode;
@@ -55,13 +57,12 @@ export class BasicGLTFModel {
 
       animation.name = name;
       animations.set(name, animation);
-
-      idx += 1;
     }
 
     /**@type {Map<string, THREE.AnimationClip>} */
     this.#animations = animations;
     this.#animationActions = new Map();
+    
     return this;
   }
 
@@ -196,6 +197,6 @@ export class BasicGLTFModel {
     else if (this.#mixerNamePersistent) leMixer = this.#mixerNamePersistent
     else throw Error("mixerName has not previously been set, and its also not provided in the function call.");
 
-    return getOrThrow(this.#mixers.get(leMixer));
+    return getOrThrow(this.#mixers.get(leMixer), "Mixer of name " + leMixer + " not found.");
   }
  }

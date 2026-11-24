@@ -46,6 +46,18 @@ export const main = async () => {
   ground.rotateX(degreeToRad(-90));
   ground.receiveShadow = true;
 
+  const groundMixer = new THREE.AnimationMixer(ground);
+  const groundKeyFrames = {
+    times: [0, 1, 2, 3, 4], // one timeStamp for each 3 values below
+    values: [0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, -20, 0, 0, 0] // 3 values (xyz) * 5 coordinates = 15 elements
+  }
+  const kfMotion = new THREE.VectorKeyframeTrack('.position', groundKeyFrames.times, groundKeyFrames.values);
+  const motionClip = new THREE.AnimationClip('groundSmoothMove', -1, [kfMotion]);
+
+  const moveCrazyAnimatonAction = groundMixer.clipAction(motionClip);
+  moveCrazyAnimatonAction.setLoop(THREE.LoopRepeat, Infinity);
+  moveCrazyAnimatonAction.play();
+
   // ---------- LIGHTS ----------
   const directionalLight = basicDirectionalLight({ position: [0, 30, 30] });
   directionalLight.name = "directionalLight";
@@ -59,12 +71,15 @@ export const main = async () => {
     self.fpsInfo.showFps();
 
     // ---------- EXTERNAL UPDATES
+    groundMixer.update(dt);
     mainCameraControls.update(dt);
     mushroomGLTFModel.update(dt);
   })
 
   ctx.keyManager.setPressEventOn('KeyO', () => {
     mushroomGLTFModel.stop("eating");
+  }).setPressEventOn('KeyI', () => {
+    mushroomGLTFModel.play("eating")
   })
 
   ctx.addToScene(directionalLight);
