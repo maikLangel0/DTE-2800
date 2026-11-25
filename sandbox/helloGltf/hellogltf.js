@@ -11,9 +11,6 @@ export const main = async () => {
   const ambientColor = 0xadd8d6;
   const mushroomDimentions = new THREE.Vector3();
 
-  const groundAxis = new THREE.Vector3(1, 0, 0).normalize();
-  const groundQuaternion = new THREE.Quaternion().setFromAxisAngle(groundAxis, Math.PI);
-
   // ---------- MAIN APPCONTEXT ----------
   const ctx = new BasicAppContext({
     canvasId: "canvas",
@@ -65,21 +62,21 @@ export const main = async () => {
   const groundRotZKeyFrames = {
     times: [0, 1, 2, 3, 4],
     values: [
-      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
-      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI / 2),
-      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI),
-      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI * 1.5),
-      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+      ...quatFromEulerToNums(NINETY_DEG, 0, 0),
+      ...quatFromEulerToNums(NINETY_DEG, 0, NINETY_DEG),
+      ...quatFromEulerToNums(NINETY_DEG, 0, Math.PI),
+      ...quatFromEulerToNums(NINETY_DEG, 0, Math.PI * 1.5),
+      ...quatFromEulerToNums(NINETY_DEG, 0, 0),
     ]
   }
   const groundRotYKeyFrames = {
     times: [0, 1, 2, 3, 4],
     values: [
-      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
-      ...quatFromEulerToNums(Math.PI / 2, Math.PI / 2, 0),
-      ...quatFromEulerToNums(Math.PI / 2, Math.PI, 0),
-      ...quatFromEulerToNums(Math.PI / 2, Math.PI * 1.5, 0),
-      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+      ...quatFromEulerToNums(NINETY_DEG, 0, 0),
+      ...quatFromEulerToNums(NINETY_DEG, NINETY_DEG, 0),
+      ...quatFromEulerToNums(NINETY_DEG, Math.PI, 0),
+      ...quatFromEulerToNums(NINETY_DEG, Math.PI * 1.5, 0),
+      ...quatFromEulerToNums(NINETY_DEG, 0, 0),
     ]
   }
 
