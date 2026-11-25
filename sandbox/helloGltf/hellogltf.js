@@ -3,10 +3,16 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../../base/threeHelpers/basicAppContext";
 import { BasicGLTFModel } from "../../base/threeHelpers/basicGLTFModel";
-import { basicDirectionalLight, degreeToRad } from "../../base/threeHelpers/helpers";
+import { basicDirectionalLight, degreeToRad, quatFromEulerToNums } from "../../base/threeHelpers/helpers";
+
+const NINETY_DEG = Math.PI / 2;
 
 export const main = async () => {
   const ambientColor = 0xadd8d6;
+  const mushroomDimentions = new THREE.Vector3();
+
+  const groundAxis = new THREE.Vector3(1, 0, 0).normalize();
+  const groundQuaternion = new THREE.Quaternion().setFromAxisAngle(groundAxis, Math.PI);
 
   // ---------- MAIN APPCONTEXT ----------
   const ctx = new BasicAppContext({
@@ -23,8 +29,12 @@ export const main = async () => {
   // ---------- GLTF OBJECT & ANIMATIONCLIP ----------
   const gltfLoader = new GLTFLoader(ctx.loadingManager);
   const mushroom = await gltfLoader.loadAsync("../../base/models/pc_nightmare_mushroom/scene.gltf");
-  mushroom.scene.position.setY(23); // Magic number cuz this is the height from the center of this gltf mesh
+
+  const mushroomBox = new THREE.Box3().setFromObject(mushroom.scene);
+  mushroomBox.getSize(mushroomDimentions);
+
   mushroom.scene.castShadow = true;
+  mushroom.scene.position.setY(mushroomDimentions.y + 1.25); // under-reported the height of the model #classic
 
   const mushroomGLTFModel = new BasicGLTFModel({gltfObject: mushroom, animationNames: ["eatingAnimation"] })
     .setMixerNamePersistent("mainAnimationMixer")
@@ -40,23 +50,54 @@ export const main = async () => {
     map: groundTexture,
     roughness: 0.1,
     color: 0xffffff,
+    side: THREE.DoubleSide
   });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.name = "ground";
-  ground.rotateX(degreeToRad(-90));
   ground.receiveShadow = true;
 
   const groundMixer = new THREE.AnimationMixer(ground);
-  const groundKeyFrames = {
+
+  const groundPosKeyFrames = {
     times: [0, 1, 2, 3, 4], // one timeStamp for each 3 values below
     values: [0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, -20, 0, 0, 0] // 3 values (xyz) * 5 coordinates = 15 elements
   }
-  const kfMotion = new THREE.VectorKeyframeTrack('.position', groundKeyFrames.times, groundKeyFrames.values);
-  const motionClip = new THREE.AnimationClip('groundSmoothMove', -1, [kfMotion]);
+  const groundRotZKeyFrames = {
+    times: [0, 1, 2, 3, 4],
+    values: [
+      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI / 2),
+      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI),
+      ...quatFromEulerToNums(Math.PI / 2, 0, Math.PI * 1.5),
+      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+    ]
+  }
+  const groundRotYKeyFrames = {
+    times: [0, 1, 2, 3, 4],
+    values: [
+      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+      ...quatFromEulerToNums(Math.PI / 2, Math.PI / 2, 0),
+      ...quatFromEulerToNums(Math.PI / 2, Math.PI, 0),
+      ...quatFromEulerToNums(Math.PI / 2, Math.PI * 1.5, 0),
+      ...quatFromEulerToNums(Math.PI / 2, 0, 0),
+    ]
+  }
 
+  const kfMotion = new THREE.VectorKeyframeTrack('.position', groundPosKeyFrames.times, groundPosKeyFrames.values, THREE.InterpolateSmooth);
+  const motionClip = new THREE.AnimationClip('groundSmoothMove', -1, [kfMotion]);
   const moveCrazyAnimatonAction = groundMixer.clipAction(motionClip);
   moveCrazyAnimatonAction.setLoop(THREE.LoopRepeat, Infinity);
+
+  const kfRotZ = new THREE.QuaternionKeyframeTrack('.quaternion', groundRotZKeyFrames.times, groundRotZKeyFrames.values, THREE.InterpolateSmooth);
+  const rotationZClip = new THREE.AnimationClip('groundRotateZ', -1, [kfRotZ]);
+  const rotateZAnimationAction = groundMixer.clipAction(rotationZClip);
+
+  const kfRotY = new THREE.QuaternionKeyframeTrack('.quaternion', groundRotYKeyFrames.times, groundRotYKeyFrames.values, THREE.InterpolateBezier);
+  const rotationYClip = new THREE.AnimationClip('groundRotateY', -1, [kfRotY]);
+  const rotateYAnimationAction = groundMixer.clipAction(rotationYClip);
+
   moveCrazyAnimatonAction.play();
+  rotateZAnimationAction.play();
 
   // ---------- LIGHTS ----------
   const directionalLight = basicDirectionalLight({ position: [0, 30, 30] });
@@ -80,6 +121,14 @@ export const main = async () => {
     mushroomGLTFModel.stop("eating");
   }).setPressEventOn('KeyI', () => {
     mushroomGLTFModel.play("eating")
+  }).setPressEventOn('Space', () => {
+    if (rotateYAnimationAction.isRunning()) {
+      rotateYAnimationAction.stop();
+      rotateZAnimationAction.play();
+    } else if (rotateZAnimationAction.isRunning()) {
+      rotateZAnimationAction.stop();
+      rotateYAnimationAction.play();
+    }
   })
 
   ctx.addToScene(directionalLight);

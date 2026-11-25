@@ -28,6 +28,19 @@ export const lilGuiControllerByName = (gui, name) => {
 }
 
 /**
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} z 
+ * @returns {[number, number, number, number]}
+ */
+export const quatFromEulerToNums = (x, y, z) => {
+  const quaternion = new THREE.Quaternion()
+    .setFromEuler(new THREE.Euler(x, y, z, 'XYZ'));
+
+  return quaternion.toArray();
+}
+
+/**
  * @param {Object} [options]
  * @param {number} [options.color]
  * @param {number} [options.intensity]
