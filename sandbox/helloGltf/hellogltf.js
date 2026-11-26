@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BasicAppContext } from "../../base/threeHelpers/basicAppContext";
 import { BasicGLTFModel } from "../../base/threeHelpers/basicGLTFModel";
-import { basicDirectionalLight, degreeToRad, quatFromEulerToNums } from "../../base/threeHelpers/helpers";
+import { basicDirectionalLight, quatFromEulerToNums } from "../../base/threeHelpers/helpers";
 
 const NINETY_DEG = Math.PI / 2;
 

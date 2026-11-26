@@ -8,7 +8,7 @@ import { Texture } from "../../base/helpers/texture";
 import { WebGLCanvas } from "../../base/helpers/WebGLCanvas";
 import { DataType, LocationType, Shader } from "../../base/helpers/WebGLShader";
 import { Matrix4 } from "../../base/lib/cuon-matrix";
-import { niceColorsRaw } from "../../base/lib/utility-functions";
+import { getOrThrow, niceColorsRaw } from "../../base/lib/utility-functions";
 import { Coords } from "../../base/shapes/coord";
 import { Cube } from "../../base/shapes/cube";
 
@@ -27,16 +27,13 @@ import { Cube } from "../../base/shapes/cube";
 
 // ---------- SHADERSOURCE & SHADER-VARIABLES ----------
 //
-const baseVertShaderSource = document.getElementById("base-vert-shader")?.innerHTML;
-const baseFragShaderSource = document.getElementById("base-frag-shader")?.innerHTML;
-if (baseVertShaderSource === undefined || baseFragShaderSource === undefined) throw Error("idot")
+const baseVertShaderSource = getOrThrow(document.getElementById("base-vert-shader")?.innerHTML);
+const baseFragShaderSource = getOrThrow(document.getElementById("base-frag-shader")?.innerHTML);
 
-const specularLightingVertShaderSource = document.getElementById("lighting-vert-shader")?.innerHTML;
-const specularLightingFragShaderSource = document.getElementById("lighting-frag-shader")?.innerHTML;
-if (specularLightingVertShaderSource === undefined || specularLightingFragShaderSource === undefined) throw Error("idot")
+const specularLightingVertShaderSource = getOrThrow(document.getElementById("lighting-vert-shader")?.innerHTML);
+const specularLightingFragShaderSource = getOrThrow(document.getElementById("lighting-frag-shader")?.innerHTML);
 
-const lightPosInHtml = document.getElementById("lightPos");
-if (!lightPosInHtml) throw Error("idot");
+const lightPosInHtml = getOrThrow(document.getElementById("lightPos"));
 
 /**@type {ShaderVariables} */
 const baseShaderVariables = [
@@ -279,15 +276,15 @@ function animate(ctx) {
     animate(ctx);
   })
 
-  if (lightPosInHtml) {
-    lightPosInHtml.innerHTML = `
-      LightPosition: ${
-        [Math.round(ctx.lightPosition.x), Math.round(ctx.lightPosition.y), Math.round(ctx.lightPosition.z)].join(" ")
-      }
-    `;
-  }
+  lightPosInHtml.innerHTML = `LightPosition: ${
+    [
+      Math.round(ctx.lightPosition.x),
+      Math.round(ctx.lightPosition.y),
+      Math.round(ctx.lightPosition.z)
+    ].join(" ")}`;
 
-  ctx.camera.handleKeys(ctx.keyManager.keysPressed, ctx.fpsInfo.dt);
+
+  ctx.camera.handleKeys(ctx.keyManager.keysHeld, ctx.fpsInfo.dt);
   ctx.keyManager.handleEvents(ctx.fpsInfo.dt);
   ctx.fpsInfo.showFps();
 
